@@ -1,0 +1,17 @@
+import UIKit
+
+enum MovieDetailSceneFactory {
+    static func make(
+        movie: Movie,
+        movieRepository: any MovieRepository,
+        imageURLProvider: any ImageURLProviding,
+        imageLoader: any ImageLoading
+    ) -> UIViewController {
+        let presenter = MovieDetailPresenter(imageURLProvider: imageURLProvider)
+        let worker = MovieDetailWorker(movieRepository: movieRepository)
+        let interactor = MovieDetailInteractor(movie: movie, presenter: presenter, worker: worker)
+        let viewController = MovieDetailViewController(interactor: interactor, imageLoader: imageLoader)
+        presenter.viewController = viewController
+        return viewController
+    }
+}

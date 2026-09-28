@@ -1,0 +1,29 @@
+import UIKit
+
+enum HomeSceneFactory {
+    struct Dependencies {
+        let movieRepository: any MovieRepository
+        let genreRepository: any GenreRepository
+        let watchProgressRepository: any WatchProgressRepository
+        let imageURLProvider: any ImageURLProviding
+        let imageLoader: any ImageLoading
+    }
+
+    static func make(dependencies: Dependencies, onSelectMovie: @escaping (Movie) -> Void) -> UIViewController {
+        let worker = HomeWorker(
+            movieRepository: dependencies.movieRepository,
+            genreRepository: dependencies.genreRepository,
+            watchProgressRepository: dependencies.watchProgressRepository
+        )
+        let presenter = HomePresenter(imageURLProvider: dependencies.imageURLProvider)
+        let interactor = HomeInteractor(presenter: presenter, worker: worker)
+        let router = HomeRouter(onSelectMovie: onSelectMovie)
+        let viewController = HomeViewController(
+            interactor: interactor,
+            router: router,
+            imageLoader: dependencies.imageLoader
+        )
+        presenter.viewController = viewController
+        return viewController
+    }
+}

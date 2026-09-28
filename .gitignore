@@ -1,0 +1,41 @@
+# macOS
+.DS_Store
+
+# Xcode user-specific
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+
+# Build
+build/
+DerivedData/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+docs/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+# Package.resolved is committed for reproducible builds
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Secrets / local config
+# Secrets.xcconfig holds the TMDB read access token; commit Secrets.example.xcconfig instead.
+Secrets.xcconfig
+*.xcconfig.local
+.env

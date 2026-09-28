@@ -1,0 +1,109 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld of %lld · the oldest is removed when full" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld · the oldest is removed when full"
+          }
+        }
+      }
+    },
+    "About" : {
+
+    },
+    "Appearance" : {
+
+    },
+    "Browse by Genre" : {
+
+    },
+    "Browsing as guest" : {
+
+    },
+    "Clear Saved data" : {
+
+    },
+    "Clear watch history" : {
+
+    },
+    "Continue Watching" : {
+
+    },
+    "Data" : {
+
+    },
+    "Home" : {
+
+    },
+    "Movie" : {
+
+    },
+    "No genres available" : {
+
+    },
+    "No movies to show yet" : {
+
+    },
+    "Popular" : {
+
+    },
+    "Preferences" : {
+
+    },
+    "Profile" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Save movies to watch later" : {
+
+    },
+    "Saved" : {
+
+    },
+    "Saved movies and watch history stay on this device." : {
+
+    },
+    "Search" : {
+
+    },
+    "Search movies" : {
+
+    },
+    "System" : {
+
+    },
+    "Tap Save on any movie. Up to %lld stay on this device, even offline." : {
+
+    },
+    "This product uses the TMDB API but is not endorsed or certified by TMDB." : {
+
+    },
+    "Top Rated" : {
+
+    },
+    "Trailer · %@ left" : {
+
+    },
+    "Unable to load genres" : {
+
+    },
+    "Unable to load movies" : {
+
+    },
+    "Unable to load this movie" : {
+
+    },
+    "Upcoming" : {
+
+    },
+    "Version" : {
+
+    }
+  },
+  "version" : "1.0"
+}
