@@ -29,7 +29,7 @@ struct APIClientTests {
         try URLProtocolStub.stub(endpoint, with: .json(statusCode: 200, body: Self.pageJSON))
 
         // When
-        let response: MovieListDTO.Response = try await sut.send(endpoint)
+        let response: MovieListDTO.Response = try await sut.request(endpoint)
 
         // Assert
         #expect(response.results.map(\.id) == [693134])
@@ -44,7 +44,7 @@ struct APIClientTests {
 
         // When & Assert
         await #expect(throws: NetworkError.invalidResponse(statusCode: 401)) {
-            let _: MovieListDTO.Response = try await sut.send(endpoint)
+            let _: MovieListDTO.Response = try await sut.request(endpoint)
         }
     }
 
@@ -56,7 +56,7 @@ struct APIClientTests {
 
         // When & Assert
         await #expect(throws: NetworkError.decodingFailed) {
-            let _: MovieListDTO.Response = try await sut.send(endpoint)
+            let _: MovieListDTO.Response = try await sut.request(endpoint)
         }
     }
 
@@ -68,7 +68,7 @@ struct APIClientTests {
 
         // When & Assert
         await #expect(throws: NetworkError.requestFailed) {
-            let _: MovieListDTO.Response = try await sut.send(endpoint)
+            let _: MovieListDTO.Response = try await sut.request(endpoint)
         }
     }
 
@@ -81,7 +81,7 @@ struct APIClientTests {
 
         // When
         let task = Task {
-            let _: MovieListDTO.Response = try await client.send(endpoint)
+            let _: MovieListDTO.Response = try await client.request(endpoint)
         }
         task.cancel()
 

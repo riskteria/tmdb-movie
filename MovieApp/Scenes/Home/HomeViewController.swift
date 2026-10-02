@@ -27,7 +27,6 @@ final class HomeViewController: UIViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
-    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -82,6 +81,15 @@ private extension HomeViewController {
         if dataSource.snapshot().numberOfItems == 0 {
             contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
         }
+        
+        Task {
+            await interactor.loadHome(request: HomeModel.LoadHome.Request())
+        }
+        
+        Task { [interactor] in
+            await interactor.loadHome(request: HomeModel.LoadHome.Request())
+        }
+        
         loadTask = Task { [interactor] in
             await interactor.loadHome(request: HomeModel.LoadHome.Request())
         }

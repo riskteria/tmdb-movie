@@ -187,6 +187,7 @@
 			packageReferences = (
 				384880FFEDB84DE996C328E0 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				C259C4F440694FECAB6133FA /* XCRemoteSwiftPackageReference "Nuke" */,
+				C63E04B830706F35008925A1 /* XCRemoteSwiftPackageReference "SimpleKeychain" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C6CD40B7306667E200FE6ECD /* Products */;
@@ -562,6 +563,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 13.2.0;
+			};
+		};
+		C63E04B830706F35008925A1 /* XCRemoteSwiftPackageReference "SimpleKeychain" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/auth0/SimpleKeychain";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

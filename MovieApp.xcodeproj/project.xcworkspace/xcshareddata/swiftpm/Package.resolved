@@ -1,5 +1,5 @@
 {
-  "originHash" : "213d98d7051ff488a30d37e9590ba98977e55da88efac6dcb9faff9f3b9fe36a",
+  "originHash" : "7336277641d88339dc94ffdef94eac81d1f88b381d9665d6074a02c477d760d5",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -17,6 +17,15 @@
       "state" : {
         "revision" : "30f7a7e72e0607d304fbf69c799474bd5fb6d1ce",
         "version" : "13.2.0"
+      }
+    },
+    {
+      "identity" : "simplekeychain",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/auth0/SimpleKeychain",
+      "state" : {
+        "revision" : "776c4a6db74d5c6c143974be91c383680d468630",
+        "version" : "1.3.0"
       }
     }
   ],

@@ -3,7 +3,7 @@ protocol IHomeInteractor {
 }
 
 final class HomeInteractor {
-    private static let continueWatchingLimit = 10
+    private let continueWatchingLimit = 10
 
     private let presenter: any IHomePresenter
     private let worker: any IHomeWorker
@@ -16,11 +16,9 @@ final class HomeInteractor {
 
 // MARK: - IHomeInteractor
 extension HomeInteractor: IHomeInteractor {
-    // Sections load concurrently and keep their own outcome, so one failed row doesn't blank the screen.
     func loadHome(request: HomeModel.LoadHome.Request) async {
-        // Local copies, so the `async let` child tasks capture Sendable values rather than main-actor state.
         let homeWorker = worker
-        let limit = Self.continueWatchingLimit
+        let limit = continueWatchingLimit
 
         async let trending = Result { try await homeWorker.fetchTrendingMovies(window: .day) }
         async let continueWatching = Result { try await homeWorker.fetchContinueWatching(limit: limit) }

@@ -12,11 +12,12 @@ nonisolated final class APIClient: Sendable {
         self.decoder = decoder
     }
 
-    func send<Response: Decodable & Sendable>(_ endpoint: TMDBEndpoint) async throws -> Response {
+    func request<Response: Decodable & Sendable>(_ endpoint: TMDBEndpoint) async throws -> Response {
         let result = await session.request(endpoint)
             .validate()
             .serializingDecodable(Response.self, decoder: decoder)
             .result
+        
         switch result {
         case .success(let response):
             return response

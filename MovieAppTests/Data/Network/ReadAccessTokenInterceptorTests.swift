@@ -33,7 +33,7 @@ struct ReadAccessTokenInterceptorTests {
         try URLProtocolStub.stub(endpoint, with: .json(statusCode: 200, body: #"{"genres": []}"#))
 
         // When
-        let _: MovieGenresDTO.Response = try await client.send(endpoint)
+        let _: MovieGenresDTO.Response = try await client.request(endpoint)
 
         // Assert
         let request = try #require(try URLProtocolStub.lastRequest(for: endpoint))

@@ -288,7 +288,6 @@ final class MovieListViewController: UIViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
-    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -671,7 +670,7 @@ nonisolated enum CreateSessionFromAccessTokenDTO {
 - For lists, use `UICollectionView` with a compositional layout (`.list(using:)` for list screens), `UICollectionViewDiffableDataSource`, `CellRegistration` and content configurations. Don't use `UITableView` in new code.
 - Show empty, error and loading states with `contentUnavailableConfiguration`.
 - Declare subviews as `private lazy var`, each built by a `make…()` method. Move complex screen layout into a custom `UIView` subclass under `Views/` so the ViewController stays thin.
-- Mark `required init?(coder:)` as `@available(*, unavailable)`.
+- Implement `required init?(coder:)` with `fatalError("init(coder:) has not been implemented")`, and don't mark it `@available(*, unavailable)`.
 - **Assets**: use the generated asset symbols (`UIColor.brand`, `UIColor.backgroundPrimary`, `UIColor.textSecondary`). Colors live in `Assets.xcassets/Colors`, each with a dark variant. No string names, and no `#colorLiteral` / `#imageLiteral`.
 - **Fonts**: use the `Typography` styles (Lexend, scaled with `UIFontMetrics`). The font files are registered through `UIAppFonts`.
 - **Strings**: write every user-facing string as `String(localized:)` backed by a String Catalog. Only the Presenter and the ViewController produce display strings.
