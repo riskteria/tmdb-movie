@@ -1,13 +1,13 @@
-nonisolated protocol IDiscoverWorker: Sendable {
+nonisolated protocol ISearchWorker: Sendable {
     func fetchGenres() async throws -> [Genre]
 }
 
-nonisolated struct DiscoverWorker {
+nonisolated struct SearchWorker {
     let genreRepository: any GenreRepository
 }
 
-// MARK: - IDiscoverWorker
-nonisolated extension DiscoverWorker: IDiscoverWorker {
+// MARK: - ISearchWorker
+nonisolated extension SearchWorker: ISearchWorker {
     func fetchGenres() async throws -> [Genre] {
         try await genreRepository.movieGenres()
     }

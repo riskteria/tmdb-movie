@@ -43,10 +43,10 @@ extension AppDependencies: HomeFactory {
     }
 }
 
-// MARK: - DiscoverFactory
-extension AppDependencies: DiscoverFactory {
-    func makeDiscover() -> UIViewController {
-        DiscoverSceneFactory.make(genreRepository: genreRepository)
+// MARK: - SearchFactory
+extension AppDependencies: SearchFactory {
+    func makeSearch() -> UIViewController {
+        SearchSceneFactory.make(genreRepository: genreRepository)
     }
 }
 

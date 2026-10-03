@@ -388,7 +388,7 @@ enum MovieListSceneFactory {
 Coordinators in `App/Coordinators/` own all navigation.
 
 - `AppCoordinator` puts `MainTabCoordinator`'s tab bar controller in the window.
-- `MainTabCoordinator` builds three `UITab`s (Home, Saved, Profile) and a `UISearchTab`, whose root is the Discover scene.
+- `MainTabCoordinator` builds three `UITab`s (Home, Saved, Profile) and a `UISearchTab`, whose root is the Search scene (the requirement's Discover area).
 - Each tab coordinator owns its `UINavigationController`. It builds scenes and passes the routing closures, capturing itself `[weak self]`.
 - **Coordinators never see `AppDependencies`.** Each one declares `typealias Dependencies` as the `<Scene>Factory` protocols it needs (`HomeFactory & MovieDetailFactory`) and stores `any Dependencies`. A protocol lives in the file of the coordinator (or `MovieDetailFlow`) that uses it. A parent's alias combines its children's (`HomeCoordinator.Dependencies & SearchCoordinator.Dependencies & …`). A new scene means a new protocol, a conformance on `AppDependencies`, and a conformance on `SceneFactorySpy`, which stands in for it in coordinator tests.
 - `MovieDetailFlow` pushes Movie Detail on its tab's stack. A `.zoom` transition starts from the view the source screen returns through `ZoomTransitionSourceProviding`, and is skipped under Reduce Motion.
@@ -716,7 +716,7 @@ SwiftLint enforces most of these rules. You are responsible for the rest.
 - **Types**:
   - Let the compiler infer types. Annotate empty collections (`var movies: [Movie] = []`).
   - Use shorthand syntax (`[String]`, `Int?`).
-  - Write `any` on every existential (`any IDiscoverPresenter`, `any Error`, `(any IHomeViewController)?`). Both targets set `SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES`, so a bare protocol type is a compile error. Use `some` or a generic instead when the concrete type is fixed and dispatch cost matters.
+  - Write `any` on every existential (`any ISearchPresenter`, `any Error`, `(any IHomeViewController)?`). Both targets set `SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES`, so a bare protocol type is a compile error. Use `some` or a generic instead when the concrete type is fixed and dispatch cost matters.
   - Prefer `let` over `var`.
   - Put constants in case-less enums (`enum Layout { static let spacing: CGFloat = 16 }`).
 - **Golden path**:

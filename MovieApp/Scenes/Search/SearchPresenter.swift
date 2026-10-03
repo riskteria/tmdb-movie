@@ -1,24 +1,24 @@
 import Foundation
 
-protocol IDiscoverPresenter {
-    func presentGenres(response: DiscoverModel.LoadGenres.Response)
+protocol ISearchPresenter {
+    func presentGenres(response: SearchModel.LoadGenres.Response)
 }
 
-final class DiscoverPresenter {
-    weak var viewController: (any IDiscoverViewController)?
+final class SearchPresenter {
+    weak var viewController: (any ISearchViewController)?
 }
 
-// MARK: - IDiscoverPresenter
-extension DiscoverPresenter: IDiscoverPresenter {
-    func presentGenres(response: DiscoverModel.LoadGenres.Response) {
+// MARK: - ISearchPresenter
+extension SearchPresenter: ISearchPresenter {
+    func presentGenres(response: SearchModel.LoadGenres.Response) {
         switch response.result {
         case .success(let genres) where genres.isEmpty:
             viewController?.displayGenres(viewData: .empty(message: String(localized: "No genres available")))
         case .success(let genres):
-            let content = DiscoverModel.DisplayedContent(
+            let content = SearchModel.DisplayedContent(
                 sectionTitle: String(localized: "Browse by Genre"),
                 count: genres.count.formatted(),
-                genres: genres.map { DiscoverModel.DisplayedGenre(id: $0.id, name: $0.name) }
+                genres: genres.map { SearchModel.DisplayedGenre(id: $0.id, name: $0.name) }
             )
             viewController?.displayGenres(viewData: .content(content))
         case .failure:

@@ -2,20 +2,20 @@
 import Testing
 
 @MainActor
-struct DiscoverInteractorTests {
-    private let presenter = DiscoverPresenterSpy()
+struct SearchInteractorTests {
+    private let presenter = SearchPresenterSpy()
 
     @Test
     func loadGenresPresentsFetchedGenres() async throws {
         // Given
         let genres = [Genre.scienceFiction, Genre.drama]
-        let sut = DiscoverInteractor(
+        let sut = SearchInteractor(
             presenter: presenter,
-            worker: DiscoverWorkerStub(result: .success(genres))
+            worker: SearchWorkerStub(result: .success(genres))
         )
 
         // When
-        await sut.loadGenres(request: DiscoverModel.LoadGenres.Request())
+        await sut.loadGenres(request: SearchModel.LoadGenres.Request())
 
         // Assert
         let response = try #require(presenter.responses.first)
@@ -25,13 +25,13 @@ struct DiscoverInteractorTests {
     @Test
     func loadGenresPresentsFailure() async throws {
         // Given
-        let sut = DiscoverInteractor(
+        let sut = SearchInteractor(
             presenter: presenter,
-            worker: DiscoverWorkerStub(result: .failure(StubError.failed))
+            worker: SearchWorkerStub(result: .failure(StubError.failed))
         )
 
         // When
-        await sut.loadGenres(request: DiscoverModel.LoadGenres.Request())
+        await sut.loadGenres(request: SearchModel.LoadGenres.Request())
 
         // Assert
         let response = try #require(presenter.responses.first)
@@ -43,13 +43,13 @@ struct DiscoverInteractorTests {
     @Test
     func loadGenresPresentsNothingWhenCancelled() async {
         // Given
-        let sut = DiscoverInteractor(
+        let sut = SearchInteractor(
             presenter: presenter,
-            worker: DiscoverWorkerStub(result: .failure(CancellationError()))
+            worker: SearchWorkerStub(result: .failure(CancellationError()))
         )
 
         // When
-        await sut.loadGenres(request: DiscoverModel.LoadGenres.Request())
+        await sut.loadGenres(request: SearchModel.LoadGenres.Request())
 
         // Assert
         #expect(presenter.responses.isEmpty)
@@ -57,15 +57,15 @@ struct DiscoverInteractorTests {
 }
 
 @MainActor
-private final class DiscoverPresenterSpy: IDiscoverPresenter {
-    private(set) var responses: [DiscoverModel.LoadGenres.Response] = []
+private final class SearchPresenterSpy: ISearchPresenter {
+    private(set) var responses: [SearchModel.LoadGenres.Response] = []
 
-    func presentGenres(response: DiscoverModel.LoadGenres.Response) {
+    func presentGenres(response: SearchModel.LoadGenres.Response) {
         responses.append(response)
     }
 }
 
-private struct DiscoverWorkerStub: IDiscoverWorker {
+private struct SearchWorkerStub: ISearchWorker {
     let result: Result<[Genre], any Error>
 
     func fetchGenres() async throws -> [Genre] {

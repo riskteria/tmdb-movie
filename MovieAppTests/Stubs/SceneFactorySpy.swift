@@ -4,7 +4,7 @@ import UIKit
 @MainActor
 final class SceneFactorySpy {
     let home = UIViewController()
-    let discover = UIViewController()
+    let search = UIViewController()
     let saved = UIViewController()
     let profile = UIViewController()
     private(set) var homeSelectionHandler: ((Movie) -> Void)?
@@ -20,10 +20,10 @@ extension SceneFactorySpy: HomeFactory {
     }
 }
 
-// MARK: - DiscoverFactory
-extension SceneFactorySpy: DiscoverFactory {
-    func makeDiscover() -> UIViewController {
-        discover
+// MARK: - SearchFactory
+extension SceneFactorySpy: SearchFactory {
+    func makeSearch() -> UIViewController {
+        search
     }
 }
 

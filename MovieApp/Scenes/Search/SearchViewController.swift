@@ -1,21 +1,21 @@
 import MovieAppDS
 import UIKit
 
-protocol IDiscoverViewController: AnyObject {
-    func displayGenres(viewData: DiscoverModel.LoadGenres.ViewData)
+protocol ISearchViewController: AnyObject {
+    func displayGenres(viewData: SearchModel.LoadGenres.ViewData)
 }
 
 // The Search tab's root, and the requirement's Discover area: a search field, then every genre.
 // Typing (Week 3) and opening Genre Movies (Week 2) aren't wired yet.
-final class DiscoverViewController: UIViewController {
-    private let interactor: any IDiscoverInteractor
+final class SearchViewController: UIViewController {
+    private let interactor: any ISearchInteractor
     private var loadTask: Task<Void, Never>?
-    private var content: DiscoverModel.DisplayedContent?
+    private var content: SearchModel.DisplayedContent?
 
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
 
-    init(interactor: any IDiscoverInteractor) {
+    init(interactor: any ISearchInteractor) {
         self.interactor = interactor
         super.init(nibName: nil, bundle: nil)
     }
@@ -37,24 +37,24 @@ final class DiscoverViewController: UIViewController {
     }
 }
 
-private extension DiscoverViewController {
+private extension SearchViewController {
     func loadGenres() {
         loadTask?.cancel()
         contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
         loadTask = Task { [interactor] in
-            await interactor.loadGenres(request: DiscoverModel.LoadGenres.Request())
+            await interactor.loadGenres(request: SearchModel.LoadGenres.Request())
         }
     }
 }
 
-// MARK: - IDiscoverViewController
-extension DiscoverViewController: IDiscoverViewController {
-    func displayGenres(viewData: DiscoverModel.LoadGenres.ViewData) {
+// MARK: - ISearchViewController
+extension SearchViewController: ISearchViewController {
+    func displayGenres(viewData: SearchModel.LoadGenres.ViewData) {
         switch viewData {
         case .content(let content):
             self.content = content
             contentUnavailableConfiguration = nil
-            var snapshot = NSDiffableDataSourceSnapshot<Int, DiscoverModel.DisplayedGenre>()
+            var snapshot = NSDiffableDataSourceSnapshot<Int, SearchModel.DisplayedGenre>()
             snapshot.appendSections([0])
             snapshot.appendItems(content.genres)
             dataSource.apply(snapshot)
@@ -77,7 +77,7 @@ extension DiscoverViewController: IDiscoverViewController {
 }
 
 // MARK: - Layout
-private extension DiscoverViewController {
+private extension SearchViewController {
     func setUpSearch() {
         let searchController = UISearchController(searchResultsController: nil)
         searchController.obscuresBackgroundDuringPresentation = false
@@ -146,8 +146,8 @@ private extension DiscoverViewController {
         }
     }
 
-    func makeDataSource() -> UICollectionViewDiffableDataSource<Int, DiscoverModel.DisplayedGenre> {
-        typealias CardRegistration = UICollectionView.CellRegistration<GenreCardCell, DiscoverModel.DisplayedGenre>
+    func makeDataSource() -> UICollectionViewDiffableDataSource<Int, SearchModel.DisplayedGenre> {
+        typealias CardRegistration = UICollectionView.CellRegistration<GenreCardCell, SearchModel.DisplayedGenre>
         let cardRegistration = CardRegistration { cell, _, genre in
             cell.configure(name: genre.name, genreID: genre.id)
         }
@@ -156,7 +156,7 @@ private extension DiscoverViewController {
         ) { [weak self] header, _, _ in
             header.configure(title: self?.content?.sectionTitle ?? "", count: self?.content?.count)
         }
-        let dataSource = UICollectionViewDiffableDataSource<Int, DiscoverModel.DisplayedGenre>(
+        let dataSource = UICollectionViewDiffableDataSource<Int, SearchModel.DisplayedGenre>(
             collectionView: collectionView
         ) { collectionView, indexPath, genre in
             collectionView.dequeueConfiguredReusableCell(using: cardRegistration, for: indexPath, item: genre)

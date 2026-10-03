@@ -1,4 +1,4 @@
-enum DiscoverModel {
+enum SearchModel {
     nonisolated struct DisplayedGenre: Hashable, Sendable {
         let id: Genre.ID
         let name: String

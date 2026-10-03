@@ -5,7 +5,7 @@ import UIKit
 @MainActor
 struct SearchCoordinatorTests {
     @Test
-    func startShowsDiscoverAsRoot() {
+    func startShowsSearchAsRoot() {
         // Given
         let scenes = SceneFactorySpy()
         let sut = SearchCoordinator(dependencies: scenes)
@@ -14,6 +14,6 @@ struct SearchCoordinatorTests {
         sut.start()
 
         // Assert
-        #expect(sut.navigationController.viewControllers == [scenes.discover])
+        #expect(sut.navigationController.viewControllers == [scenes.search])
     }
 }

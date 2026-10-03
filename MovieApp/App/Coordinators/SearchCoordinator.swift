@@ -1,13 +1,12 @@
 import MovieAppDS
 import UIKit
 
-protocol DiscoverFactory {
-    func makeDiscover() -> UIViewController
+protocol SearchFactory {
+    func makeSearch() -> UIViewController
 }
 
-// Week 2 adds Genre Movies (Discover → MovieGrid → Movie Detail).
 final class SearchCoordinator {
-    typealias Dependencies = DiscoverFactory
+    typealias Dependencies = SearchFactory
 
     let navigationController = UINavigationController()
     private let dependencies: any Dependencies
@@ -21,6 +20,6 @@ final class SearchCoordinator {
 extension SearchCoordinator: Coordinator {
     func start() {
         NavigationBarStyle.apply(to: navigationController.navigationBar, prefersLargeTitles: true)
-        navigationController.setViewControllers([dependencies.makeDiscover()], animated: false)
+        navigationController.setViewControllers([dependencies.makeSearch()], animated: false)
     }
 }
