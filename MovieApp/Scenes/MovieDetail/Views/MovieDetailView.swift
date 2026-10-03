@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 final class MovieDetailView: UIView {
@@ -8,9 +9,9 @@ final class MovieDetailView: UIView {
     private lazy var headerView = UIView()
     private lazy var artworkView = ArtworkView()
     private lazy var scrimView = makeScrimView()
-    private lazy var titleLabel = makeLabel(font: Typography.display, color: .white)
-    private lazy var metadataLabel = makeLabel(font: Typography.footnote, color: UIColor.white.withAlphaComponent(0.86))
-    private lazy var overviewLabel = makeLabel(font: Typography.body, color: .textSecondary)
+    private lazy var titleLabel = makeLabel(font: .MVFont(.display), color: .white)
+    private lazy var metadataLabel = makeLabel(font: .MVFont(.footnote), color: UIColor.white.withAlphaComponent(0.86))
+    private lazy var overviewLabel = makeLabel(font: .MVFont(.body), color: .MVColor(.textSecondary))
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -40,7 +41,7 @@ final class MovieDetailView: UIView {
 // MARK: - Layout
 private extension MovieDetailView {
     func setUpLayout() {
-        backgroundColor = .backgroundPrimary
+        backgroundColor = .MVColor(.backgroundPrimary)
         headerView.isAccessibilityElement = true
         headerView.accessibilityTraits = .header
         scrollView.translatesAutoresizingMaskIntoConstraints = false

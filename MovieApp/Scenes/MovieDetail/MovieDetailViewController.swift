@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 protocol IMovieDetailViewController: AnyObject {
@@ -59,7 +60,7 @@ extension MovieDetailViewController: IMovieDetailViewController {
             ) { [weak self] in
                 self?.loadDetails()
             }
-            configuration.background.backgroundColor = .backgroundPrimary
+            configuration.background.backgroundColor = .MVColor(.backgroundPrimary)
             contentUnavailableConfiguration = configuration
         }
     }

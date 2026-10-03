@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 final class SectionHeaderView: UICollectionReusableView {
@@ -39,18 +40,18 @@ private extension SectionHeaderView {
 
     func makeTitleLabel() -> UILabel {
         let label = UILabel()
-        label.font = Typography.sectionTitle
+        label.font = .MVFont(.sectionTitle)
         label.adjustsFontForContentSizeCategory = true
-        label.textColor = .textPrimary
+        label.textColor = .MVColor(.textPrimary)
         label.accessibilityTraits = .header
         return label
     }
 
     func makeCountLabel() -> UILabel {
         let label = UILabel()
-        label.font = Typography.footnote
+        label.font = .MVFont(.footnote)
         label.adjustsFontForContentSizeCategory = true
-        label.textColor = .textSecondary
+        label.textColor = .MVColor(.textSecondary)
         return label
     }
 }

@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 final class ProgressBarView: UIView {
@@ -36,7 +37,7 @@ final class ProgressBarView: UIView {
 private extension ProgressBarView {
     func makeFillView() -> UIView {
         let view = UIView()
-        view.backgroundColor = .brand
+        view.backgroundColor = .MVColor(.brand)
         view.layer.cornerRadius = Self.height / 2
         view.layer.maskedCorners = [.layerMaxXMinYCorner, .layerMaxXMaxYCorner]
         return view

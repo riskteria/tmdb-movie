@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 protocol IDiscoverViewController: AnyObject {
@@ -87,7 +88,7 @@ private extension DiscoverViewController {
     }
 
     func setUpLayout() {
-        view.backgroundColor = .backgroundPrimary
+        view.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -100,7 +101,7 @@ private extension DiscoverViewController {
 
     func makeCollectionView() -> UICollectionView {
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
-        collectionView.backgroundColor = .backgroundPrimary
+        collectionView.backgroundColor = .MVColor(.backgroundPrimary)
         return collectionView
     }
 

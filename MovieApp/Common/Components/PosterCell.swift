@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 final class PosterCell: UICollectionViewCell {

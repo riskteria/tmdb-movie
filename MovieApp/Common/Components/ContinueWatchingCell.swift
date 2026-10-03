@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 final class ContinueWatchingCell: UICollectionViewCell {
@@ -74,17 +75,17 @@ private extension ContinueWatchingCell {
 
     func makeTitleLabel() -> UILabel {
         let label = UILabel()
-        label.font = Typography.label
+        label.font = .MVFont(.label)
         label.adjustsFontForContentSizeCategory = true
-        label.textColor = .textPrimary
+        label.textColor = .MVColor(.textPrimary)
         return label
     }
 
     func makeSubtitleLabel() -> UILabel {
         let label = UILabel()
-        label.font = Typography.caption
+        label.font = .MVFont(.caption)
         label.adjustsFontForContentSizeCategory = true
-        label.textColor = .textSecondary
+        label.textColor = .MVColor(.textSecondary)
         return label
     }
 }

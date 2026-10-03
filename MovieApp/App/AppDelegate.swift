@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 @main
@@ -6,6 +7,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        true
+        FontRegistrar.registerFonts()
+        return true
     }
 }

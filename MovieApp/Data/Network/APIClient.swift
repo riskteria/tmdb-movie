@@ -17,7 +17,7 @@ nonisolated final class APIClient: Sendable {
             .validate()
             .serializingDecodable(Response.self, decoder: decoder)
             .result
-        
+
         switch result {
         case .success(let response):
             return response

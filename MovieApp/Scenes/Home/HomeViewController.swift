@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 protocol IHomeViewController: AnyObject {
@@ -81,15 +82,15 @@ private extension HomeViewController {
         if dataSource.snapshot().numberOfItems == 0 {
             contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
         }
-        
+
         Task {
             await interactor.loadHome(request: HomeModel.LoadHome.Request())
         }
-        
+
         Task { [interactor] in
             await interactor.loadHome(request: HomeModel.LoadHome.Request())
         }
-        
+
         loadTask = Task { [interactor] in
             await interactor.loadHome(request: HomeModel.LoadHome.Request())
         }
@@ -200,7 +201,7 @@ extension HomeViewController: UICollectionViewDelegate {
 // MARK: - Layout
 private extension HomeViewController {
     func setUpLayout() {
-        view.backgroundColor = .backgroundPrimary
+        view.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -216,7 +217,7 @@ private extension HomeViewController {
             self?.dataSource.sectionIdentifier(for: sectionIndex)
         }
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .backgroundPrimary
+        collectionView.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.contentInsetAdjustmentBehavior = .never
         collectionView.delegate = self
         return collectionView

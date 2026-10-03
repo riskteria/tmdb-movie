@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 // Shows a generated gradient (with an optional title) until the image loads. Loading starts on the
@@ -67,7 +68,7 @@ private extension ArtworkView {
 // MARK: - Layout
 private extension ArtworkView {
     func setUpLayout() {
-        backgroundColor = .fillPrimary
+        backgroundColor = .MVColor(.fillPrimary)
         clipsToBounds = true
         isAccessibilityElement = false
         [placeholderView, placeholderLabel, imageView].forEach { subview in
@@ -91,7 +92,7 @@ private extension ArtworkView {
 
     func makePlaceholderLabel() -> UILabel {
         let label = UILabel()
-        label.font = Typography.artworkTitle
+        label.font = .MVFont(.artworkTitle)
         label.adjustsFontForContentSizeCategory = true
         label.textColor = .white
         label.numberOfLines = 3

@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 extension UIContentUnavailableConfiguration {
@@ -9,7 +10,7 @@ extension UIContentUnavailableConfiguration {
         var configuration = UIContentUnavailableConfiguration.empty()
         configuration.image = UIImage(systemName: "exclamationmark.triangle")
         configuration.text = message
-        configuration.textProperties.font = Typography.sectionTitle
+        configuration.textProperties.font = .MVFont(.sectionTitle)
         configuration.button = .brandFilled()
         configuration.button.title = retryTitle
         configuration.buttonProperties.primaryAction = UIAction { _ in retry() }
@@ -19,11 +20,11 @@ extension UIContentUnavailableConfiguration {
     static func message(_ text: String, secondaryText: String? = nil, systemImage: String) -> UIContentUnavailableConfiguration {
         var configuration = UIContentUnavailableConfiguration.empty()
         configuration.image = UIImage(systemName: systemImage)
-        configuration.imageProperties.tintColor = .brand
+        configuration.imageProperties.tintColor = .MVColor(.brand)
         configuration.text = text
-        configuration.textProperties.font = Typography.sectionTitle
+        configuration.textProperties.font = .MVFont(.sectionTitle)
         configuration.secondaryText = secondaryText
-        configuration.secondaryTextProperties.font = Typography.body
+        configuration.secondaryTextProperties.font = .MVFont(.body)
         return configuration
     }
 }

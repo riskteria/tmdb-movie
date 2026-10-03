@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 protocol ISavedViewController: AnyObject {
@@ -88,7 +89,7 @@ extension SavedViewController: UICollectionViewDelegate {
 // MARK: - Layout
 private extension SavedViewController {
     func setUpLayout() {
-        view.backgroundColor = .backgroundPrimary
+        view.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -103,10 +104,10 @@ private extension SavedViewController {
         var configuration = UICollectionLayoutListConfiguration(appearance: .plain)
         configuration.showsSeparators = false
         configuration.headerMode = .supplementary
-        configuration.backgroundColor = .backgroundPrimary
+        configuration.backgroundColor = .MVColor(.backgroundPrimary)
         let layout = UICollectionViewCompositionalLayout.list(using: configuration)
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .backgroundPrimary
+        collectionView.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.delegate = self
         return collectionView
     }
@@ -114,8 +115,8 @@ private extension SavedViewController {
     func makeHeaderConfiguration() -> UIListContentConfiguration {
         var configuration = UIListContentConfiguration.header()
         configuration.text = header
-        configuration.textProperties.font = Typography.footnote
-        configuration.textProperties.color = .textSecondary
+        configuration.textProperties.font = .MVFont(.footnote)
+        configuration.textProperties.color = .MVColor(.textSecondary)
         configuration.directionalLayoutMargins.leading = Spacing.large
         return configuration
     }

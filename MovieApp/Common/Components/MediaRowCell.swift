@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 // A list row: a 16:9 thumbnail, the title, and a "year • ★ rating" line.
@@ -75,23 +76,23 @@ private extension MediaRowCell {
 
     func makeTitleLabel() -> UILabel {
         let label = UILabel()
-        label.font = Typography.rowTitle
+        label.font = .MVFont(.rowTitle)
         label.adjustsFontForContentSizeCategory = true
-        label.textColor = .textPrimary
+        label.textColor = .MVColor(.textPrimary)
         return label
     }
 
     func makeMetadataLabel() -> UILabel {
         let label = UILabel()
-        label.font = Typography.caption
+        label.font = .MVFont(.caption)
         label.adjustsFontForContentSizeCategory = true
-        label.textColor = .textSecondary
+        label.textColor = .MVColor(.textSecondary)
         return label
     }
 
     func makeSeparatorDot() -> UIView {
         let view = UIView()
-        view.backgroundColor = .textSecondary
+        view.backgroundColor = .MVColor(.textSecondary)
         view.layer.cornerRadius = 1.5
         return view
     }
@@ -99,7 +100,7 @@ private extension MediaRowCell {
     func makeStarView() -> UIImageView {
         let configuration = UIImage.SymbolConfiguration(textStyle: .caption2)
         let imageView = UIImageView(image: UIImage(systemName: "star.fill", withConfiguration: configuration))
-        imageView.tintColor = .ratingGold
+        imageView.tintColor = .MVColor(.ratingGold)
         return imageView
     }
 }

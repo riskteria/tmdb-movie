@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 // The trending banners in their own paging collection view, so the page control and auto-advance
@@ -136,7 +137,7 @@ private extension HeroCarouselCell {
     func makePageControl() -> UIPageControl {
         let pageControl = UIPageControl()
         pageControl.hidesForSinglePage = true
-        pageControl.currentPageIndicatorTintColor = .brand
+        pageControl.currentPageIndicatorTintColor = .MVColor(.brand)
         pageControl.pageIndicatorTintColor = UIColor.white.withAlphaComponent(0.45)
         pageControl.preferredIndicatorImage = Self.makeDashImage(width: 6)
         pageControl.preferredCurrentPageIndicatorImage = Self.makeDashImage(width: 22)

@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 final class GenreCardCell: UICollectionViewCell {
@@ -48,7 +49,7 @@ private extension GenreCardCell {
 
     func makeNameLabel() -> UILabel {
         let label = UILabel()
-        label.font = Typography.rowTitle
+        label.font = .MVFont(.rowTitle)
         label.adjustsFontForContentSizeCategory = true
         label.textColor = .white
         label.numberOfLines = 2

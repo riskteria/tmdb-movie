@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 final class HeroBannerCell: UICollectionViewCell {
@@ -66,7 +67,7 @@ private extension HeroBannerCell {
 
     func makeTitleLabel() -> UILabel {
         let label = UILabel()
-        label.font = Typography.display
+        label.font = .MVFont(.display)
         label.adjustsFontForContentSizeCategory = true
         label.textColor = .white
         label.numberOfLines = 2
@@ -75,7 +76,7 @@ private extension HeroBannerCell {
 
     func makeMetadataLabel() -> UILabel {
         let label = UILabel()
-        label.font = Typography.footnote
+        label.font = .MVFont(.footnote)
         label.adjustsFontForContentSizeCategory = true
         label.textColor = UIColor.white.withAlphaComponent(0.86)
         label.numberOfLines = 2

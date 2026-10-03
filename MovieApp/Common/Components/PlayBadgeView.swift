@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 final class PlayBadgeView: UIView {
@@ -20,7 +21,7 @@ final class PlayBadgeView: UIView {
 // MARK: - Layout
 private extension PlayBadgeView {
     func setUpLayout() {
-        backgroundColor = .brand
+        backgroundColor = .MVColor(.brand)
         layer.cornerRadius = Radius.small
         layer.cornerCurve = .continuous
         isAccessibilityElement = false

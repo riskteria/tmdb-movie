@@ -9,7 +9,7 @@ UIKit movie app built with Clean Architecture and the VIP (Clean Swift) pattern,
 - **UI**: UIKit only, layout written in code. No SwiftUI, storyboards or xibs
 - **Architecture**: Clean Architecture layers, with VIP inside each scene
 - **Concurrency**: async/await, actors and `AsyncStream`. The app target's default isolation is `MainActor`, with Approachable Concurrency on
-- **Dependencies**: Swift Package Manager only. Current packages: Alamofire 5 (networking, behind `APIClient`) and Nuke 13 (images, behind `ImageLoading`). Ask before adding any other third-party package
+- **Dependencies**: Swift Package Manager only. Current packages: Alamofire 5 (networking, behind `APIClient`), Nuke 13 (images, behind `ImageLoading`) and `MovieAppDS`, the design system, a local package at `../MovieAppDS`. Ask before adding any other third-party package
 - **Secrets**: the TMDB read access token lives in `Config/Secrets.xcconfig`, which is gitignored (copy `Config/Secrets.example.xcconfig`). `Config/App.xcconfig`, the app target's base configuration, includes it, and Info.plist exposes it as `TMDBReadAccessToken`. Never put the token in source
 - **Tests**: Swift Testing unit tests only. No UI test target for now
 - **Lint**: SwiftLint (`.swiftlint.yml`) runs in a build phase on every build
@@ -109,15 +109,16 @@ MovieApp/
 │       ├── MovieListSceneFactory.swift
 │       └── Views/          Cells, custom UIViews
 ├── Common/
-│   ├── DesignSystem/       Typography (Lexend), Spacing, Radius, button configurations, ArtworkPalette
 │   ├── Components/         Shared cells and views (ArtworkView, PosterCell, HeroBannerCell, …)
 │   ├── Images/             ImageLoading, NukeImageLoader
 │   ├── Transitions/        ZoomTransitionSourceProviding
 │   └── Extensions/
-├── Resources/              Fonts/ (Lexend and its OFL license), Localizable.xcstrings
-├── Assets.xcassets         Colors/ holds the brand and surface colors, each with a dark variant
+├── Resources/              Localizable.xcstrings
+├── Assets.xcassets         AccentColor, AppIcon
 └── Info.plist
 MovieAppTests/              Mirrors MovieApp/, plus TestDoubles/ and Fixtures/
+../MovieAppDS/              Design system package: MVFonts, MVColors, Spacing, Radius, ArtworkPalette,
+                            NavigationBarStyle, button configurations, the Lexend fonts and the color catalog
 ```
 
 The project uses Xcode **synchronized folders**. Files created on disk join their target automatically, so **never edit `project.pbxproj` to add files**.
@@ -671,10 +672,11 @@ nonisolated enum CreateSessionFromAccessTokenDTO {
 - Show empty, error and loading states with `contentUnavailableConfiguration`.
 - Declare subviews as `private lazy var`, each built by a `make…()` method. Move complex screen layout into a custom `UIView` subclass under `Views/` so the ViewController stays thin.
 - Implement `required init?(coder:)` with `fatalError("init(coder:) has not been implemented")`, and don't mark it `@available(*, unavailable)`.
-- **Assets**: use the generated asset symbols (`UIColor.brand`, `UIColor.backgroundPrimary`, `UIColor.textSecondary`). Colors live in `Assets.xcassets/Colors`, each with a dark variant. No string names, and no `#colorLiteral` / `#imageLiteral`.
-- **Fonts**: use the `Typography` styles (Lexend, scaled with `UIFontMetrics`). The font files are registered through `UIAppFonts`.
+- **Design system**: Fonts, colors, spacing and radii come from the `MovieAppDS` package. Every file that uses them needs `import MovieAppDS` (`MemberImportVisibility` is on). Change design tokens in the package, never in the app.
+- **Colors**: use `UIColor.MVColor(_:)` with an `MVColors` case (`view.backgroundColor = .MVColor(.backgroundPrimary)`). Where the context isn't `UIColor`, such as an attributes dictionary, write `UIColor.MVColor(.textPrimary)`. The color catalog lives in the package, each color with a dark variant. A new color needs an asset in the package catalog and an `MVColors` case. No string names, and no `#colorLiteral` / `#imageLiteral`.
+- **Fonts**: use `UIFont.MVFont(_:)` with an `MVFonts` case (`label.font = .MVFont(.body)`), Lexend scaled with `UIFontMetrics`. Where the context isn't `UIFont`, such as an attributes dictionary, write `UIFont.MVFont(.largeTitle)`. The font files ship in the package and `AppDelegate` registers them with `FontRegistrar.registerFonts()` at launch, before the first font is made. Don't add `UIAppFonts` back.
 - **Strings**: write every user-facing string as `String(localized:)` backed by a String Catalog. Only the Presenter and the ViewController produce display strings.
-- **Accessibility**: support Dynamic Type (`Typography` styles with `adjustsFontForContentSizeCategory = true`), use semantic colors (`.label`, `.systemBackground`), and add accessibility labels on icon-only controls. Support both light and dark mode.
+- **Accessibility**: support Dynamic Type (`MVFont` styles with `adjustsFontForContentSizeCategory = true`), use semantic colors (`.label`, `.systemBackground`), and add accessibility labels on icon-only controls. Support both light and dark mode.
 
 ## Code Style (Kodeco)
 

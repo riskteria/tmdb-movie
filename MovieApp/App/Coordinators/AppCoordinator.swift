@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 final class AppCoordinator {
@@ -19,7 +20,7 @@ extension AppCoordinator: Coordinator {
         let coordinator = MainTabCoordinator(dependencies: dependencies)
         coordinator.start()
         mainTabCoordinator = coordinator
-        window.tintColor = .brand
+        window.tintColor = .MVColor(.brand)
         window.rootViewController = coordinator.tabBarController
         window.makeKeyAndVisible()
     }

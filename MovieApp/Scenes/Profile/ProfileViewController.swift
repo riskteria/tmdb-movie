@@ -1,3 +1,4 @@
+import MovieAppDS
 import UIKit
 
 protocol IProfileViewController: AnyObject {
@@ -47,7 +48,7 @@ extension ProfileViewController: IProfileViewController {
 // MARK: - Layout
 private extension ProfileViewController {
     func setUpLayout() {
-        view.backgroundColor = .backgroundPrimary
+        view.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -61,10 +62,10 @@ private extension ProfileViewController {
     func makeCollectionView() -> UICollectionView {
         var configuration = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
         configuration.headerMode = .supplementary
-        configuration.backgroundColor = .backgroundPrimary
+        configuration.backgroundColor = .MVColor(.backgroundPrimary)
         let layout = UICollectionViewCompositionalLayout.list(using: configuration)
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .backgroundPrimary
+        collectionView.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.allowsSelection = false
         return collectionView
     }
@@ -74,7 +75,7 @@ private extension ProfileViewController {
         let rowRegistration = RowRegistration { cell, _, row in
             cell.contentConfiguration = Self.makeContentConfiguration(for: row)
             var background = UIBackgroundConfiguration.listCell()
-            background.backgroundColor = .backgroundSecondary
+            background.backgroundColor = .MVColor(.backgroundSecondary)
             cell.backgroundConfiguration = background
         }
         let headerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
@@ -84,8 +85,8 @@ private extension ProfileViewController {
             if let section = self?.dataSource.sectionIdentifier(for: indexPath.section) {
                 configuration.text = self?.headers[section]
             }
-            configuration.textProperties.font = Typography.footnote
-            configuration.textProperties.color = .textSecondary
+            configuration.textProperties.font = .MVFont(.footnote)
+            configuration.textProperties.color = .MVColor(.textSecondary)
             header.contentConfiguration = configuration
         }
         let dataSource = UICollectionViewDiffableDataSource<ProfileModel.Section, ProfileModel.Row>(
@@ -104,7 +105,7 @@ private extension ProfileViewController {
         case let .guest(title, message):
             var configuration = UIListContentConfiguration.subtitleCell()
             configuration.image = UIImage(systemName: "person.crop.circle.fill")
-            configuration.imageProperties.tintColor = .brand
+            configuration.imageProperties.tintColor = .MVColor(.brand)
             let symbolConfiguration = UIImage.SymbolConfiguration(textStyle: .largeTitle)
             configuration.imageProperties.preferredSymbolConfiguration = symbolConfiguration
             configuration.text = title
@@ -121,8 +122,8 @@ private extension ProfileViewController {
         case .attribution(let text):
             var configuration = UIListContentConfiguration.cell()
             configuration.text = text
-            configuration.textProperties.font = Typography.caption
-            configuration.textProperties.color = .textSecondary
+            configuration.textProperties.font = .MVFont(.caption)
+            configuration.textProperties.color = .MVColor(.textSecondary)
             return configuration
         }
     }
@@ -137,12 +138,12 @@ private extension ProfileViewController {
 
     static func styled(_ configuration: UIListContentConfiguration, isDestructive: Bool = false) -> UIListContentConfiguration {
         var configuration = configuration
-        let tintColor: UIColor = isDestructive ? .systemRed : .brand
+        let tintColor: UIColor = isDestructive ? .systemRed : .MVColor(.brand)
         configuration.imageProperties.tintColor = tintColor
-        configuration.textProperties.font = Typography.body
-        configuration.textProperties.color = isDestructive ? tintColor : .textPrimary
-        configuration.secondaryTextProperties.font = Typography.footnote
-        configuration.secondaryTextProperties.color = .textSecondary
+        configuration.textProperties.font = .MVFont(.body)
+        configuration.textProperties.color = isDestructive ? tintColor : .MVColor(.textPrimary)
+        configuration.secondaryTextProperties.font = .MVFont(.footnote)
+        configuration.secondaryTextProperties.color = .MVColor(.textSecondary)
         return configuration
     }
 }

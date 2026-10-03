@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A1559000B7BD459A8FE25537 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = FE154EDD70DE4625BA97E00B /* Alamofire */; };
 		BC186F78A0024FFE8065ADD5 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 85E1E73A4B844477B8C0E5E7 /* Nuke */; };
+		C63E04BB30707BAC008925A1 /* MovieAppDS in Frameworks */ = {isa = PBXBuildFile; productRef = C63E04BA30707BAC008925A1 /* MovieAppDS */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +62,7 @@
 			files = (
 				A1559000B7BD459A8FE25537 /* Alamofire in Frameworks */,
 				BC186F78A0024FFE8065ADD5 /* Nuke in Frameworks */,
+				C63E04BB30707BAC008925A1 /* MovieAppDS in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -128,6 +130,7 @@
 			packageProductDependencies = (
 				FE154EDD70DE4625BA97E00B /* Alamofire */,
 				85E1E73A4B844477B8C0E5E7 /* Nuke */,
+				C63E04BA30707BAC008925A1 /* MovieAppDS */,
 			);
 			productName = MovieApp;
 			productReference = C6CD40B6306667E200FE6ECD /* MovieApp.app */;
@@ -188,6 +191,7 @@
 				384880FFEDB84DE996C328E0 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				C259C4F440694FECAB6133FA /* XCRemoteSwiftPackageReference "Nuke" */,
 				C63E04B830706F35008925A1 /* XCRemoteSwiftPackageReference "SimpleKeychain" */,
+				C63E04B930707BAC008925A1 /* XCLocalSwiftPackageReference "../MovieAppDS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C6CD40B7306667E200FE6ECD /* Products */;
@@ -548,6 +552,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		C63E04B930707BAC008925A1 /* XCLocalSwiftPackageReference "../MovieAppDS" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../MovieAppDS;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		384880FFEDB84DE996C328E0 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -580,6 +591,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C259C4F440694FECAB6133FA /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = Nuke;
+		};
+		C63E04BA30707BAC008925A1 /* MovieAppDS */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MovieAppDS;
 		};
 		FE154EDD70DE4625BA97E00B /* Alamofire */ = {
 			isa = XCSwiftPackageProductDependency;
