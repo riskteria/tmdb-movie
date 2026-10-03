@@ -1,7 +1,7 @@
 @testable import MovieApp
 import Synchronization
 
-final class WatchProgressRepositoryStub: WatchProgressRepository {
+final class WatchProgressRepositoryStub: IWatchProgressRepository {
     private let records: [WatchProgress]
     private let recordedLimits = Mutex<[Int]>([])
 

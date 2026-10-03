@@ -2,7 +2,7 @@ import UIKit
 
 enum SavedSceneFactory {
     static func make(
-        savedMoviesRepository: any SavedMoviesRepository,
+        savedMoviesRepository: any ISavedMoviesRepository,
         imageURLProvider: any ImageURLProviding,
         imageLoader: any ImageLoading,
         onSelectMovie: @escaping (Movie) -> Void

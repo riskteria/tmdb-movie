@@ -1,18 +1,18 @@
 import Foundation
 
 // Keeps saved movies in memory. Week 4 replaces it with CoreDataSavedMoviesRepository.
-actor PreviewSavedMoviesRepository {
+actor SavedMoviesRepository {
     nonisolated let isPersistent = false
     private var savedMovies: [SavedMovie]
     private let broadcaster = AsyncBroadcaster<[SavedMovie]>()
 
-    init(savedMovies: [SavedMovie] = PreviewCatalog.savedMovies) {
+    init(savedMovies: [SavedMovie] = MockResponseCatalog.savedMovies) {
         self.savedMovies = savedMovies
     }
 }
 
-// MARK: - SavedMoviesRepository
-extension PreviewSavedMoviesRepository: SavedMoviesRepository {
+// MARK: - ISavedMoviesRepository
+extension SavedMoviesRepository: ISavedMoviesRepository {
     var changes: AsyncStream<[SavedMovie]> {
         get async {
             await broadcaster.subscribe(startingWith: savedMovies)

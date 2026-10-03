@@ -1,4 +1,4 @@
-nonisolated protocol WatchProgressRepository: Sendable {
+nonisolated protocol IWatchProgressRepository: Sendable {
     // Each subscriber gets the current records first (most recent first), then every change.
     var changes: AsyncStream<[WatchProgress]> { get async }
 

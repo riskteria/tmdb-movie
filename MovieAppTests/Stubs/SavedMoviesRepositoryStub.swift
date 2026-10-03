@@ -1,6 +1,6 @@
 @testable import MovieApp
 
-struct SavedMoviesRepositoryStub: SavedMoviesRepository {
+struct SavedMoviesRepositoryStub: ISavedMoviesRepository {
     let savedMovies: [SavedMovie]
 
     var isPersistent: Bool {

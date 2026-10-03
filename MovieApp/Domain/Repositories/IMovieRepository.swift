@@ -1,4 +1,4 @@
-nonisolated protocol MovieRepository: Sendable {
+nonisolated protocol IMovieRepository: Sendable {
     func trending(window: TrendingWindow) async throws -> [Movie]
     func movies(in category: MovieCategory, page: Int) async throws -> Page<Movie>
     func discover(genreIDs: [Genre.ID], page: Int) async throws -> Page<Movie>

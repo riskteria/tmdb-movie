@@ -1,7 +1,7 @@
 @testable import MovieApp
 import Synchronization
 
-final class MovieRepositoryStub: MovieRepository {
+final class MovieRepositoryStub: IMovieRepository {
     enum Call: Equatable, Sendable {
         case trending(TrendingWindow)
         case movies(MovieCategory, page: Int)

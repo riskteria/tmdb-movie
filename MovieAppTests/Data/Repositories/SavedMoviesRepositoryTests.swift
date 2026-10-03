@@ -2,11 +2,11 @@ import Foundation
 @testable import MovieApp
 import Testing
 
-struct PreviewSavedMoviesRepositoryTests {
+struct SavedMoviesRepositoryTests {
     @Test
     func saveListsNewestFirstAndMovesResavedMovieToTop() async {
         // Given
-        let sut = PreviewSavedMoviesRepository(savedMovies: [])
+        let sut = SavedMoviesRepository(savedMovies: [])
 
         // When
         await sut.save(.fixture(id: 1))
@@ -20,7 +20,7 @@ struct PreviewSavedMoviesRepositoryTests {
     @Test
     func changesStartWithCurrentListThenReportRemovals() async {
         // Given
-        let sut = PreviewSavedMoviesRepository(savedMovies: [SavedMovie(movie: .fixture(id: 1), savedAt: .now)])
+        let sut = SavedMoviesRepository(savedMovies: [SavedMovie(movie: .fixture(id: 1), savedAt: .now)])
         var changes = await sut.changes.makeAsyncIterator()
 
         // When
@@ -36,7 +36,7 @@ struct PreviewSavedMoviesRepositoryTests {
     @Test
     func reportsThatItDoesNotPersist() {
         // Given
-        let sut = PreviewSavedMoviesRepository()
+        let sut = SavedMoviesRepository()
 
         // Assert
         #expect(!sut.isPersistent)

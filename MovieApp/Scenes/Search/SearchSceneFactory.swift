@@ -1,7 +1,7 @@
 import UIKit
 
 enum SearchSceneFactory {
-    static func make(genreRepository: any GenreRepository) -> UIViewController {
+    static func make(genreRepository: any IGenreRepository) -> UIViewController {
         let worker = SearchWorker(genreRepository: genreRepository)
         let presenter = SearchPresenter()
         let interactor = SearchInteractor(presenter: presenter, worker: worker)

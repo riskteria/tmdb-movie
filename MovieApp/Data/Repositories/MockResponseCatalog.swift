@@ -2,7 +2,7 @@ import Foundation
 
 // Sample data for UI slicing until the remote repositories land in Week 2. IDs match TMDB so the
 // same movies can be looked up later. Image paths are nil, so cells show their generated artwork.
-nonisolated enum PreviewCatalog {
+nonisolated enum MockResponseCatalog {
     static let genres = [
         Genre(id: 28, name: "Action"),
         Genre(id: 12, name: "Adventure"),

@@ -3,7 +3,7 @@ nonisolated protocol IMovieDetailWorker: Sendable {
 }
 
 nonisolated struct MovieDetailWorker {
-    let movieRepository: any MovieRepository
+    let movieRepository: any IMovieRepository
 }
 
 // MARK: - IMovieDetailWorker

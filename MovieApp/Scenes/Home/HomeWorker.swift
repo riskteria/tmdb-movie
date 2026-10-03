@@ -6,9 +6,9 @@ nonisolated protocol IHomeWorker: Sendable {
 }
 
 nonisolated struct HomeWorker {
-    let movieRepository: any MovieRepository
-    let genreRepository: any GenreRepository
-    let watchProgressRepository: any WatchProgressRepository
+    let movieRepository: any IMovieRepository
+    let genreRepository: any IGenreRepository
+    let watchProgressRepository: any IWatchProgressRepository
 }
 
 // MARK: - IHomeWorker

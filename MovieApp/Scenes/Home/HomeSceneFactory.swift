@@ -2,9 +2,9 @@ import UIKit
 
 enum HomeSceneFactory {
     struct Dependencies {
-        let movieRepository: any MovieRepository
-        let genreRepository: any GenreRepository
-        let watchProgressRepository: any WatchProgressRepository
+        let movieRepository: any IMovieRepository
+        let genreRepository: any IGenreRepository
+        let watchProgressRepository: any IWatchProgressRepository
         let imageURLProvider: any ImageURLProviding
         let imageLoader: any ImageLoading
     }

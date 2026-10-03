@@ -4,7 +4,7 @@ nonisolated protocol ISavedWorker: Sendable {
 }
 
 nonisolated struct SavedWorker {
-    let savedMoviesRepository: any SavedMoviesRepository
+    let savedMoviesRepository: any ISavedMoviesRepository
 }
 
 // MARK: - ISavedWorker

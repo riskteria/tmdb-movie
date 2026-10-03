@@ -3,7 +3,7 @@ import UIKit
 enum MovieDetailSceneFactory {
     static func make(
         movie: Movie,
-        movieRepository: any MovieRepository,
+        movieRepository: any IMovieRepository,
         imageURLProvider: any ImageURLProviding,
         imageLoader: any ImageLoading
     ) -> UIViewController {

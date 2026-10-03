@@ -10,10 +10,10 @@ final class AppDependencies {
 
     private let imageLoader: any ImageLoading
     private let imageURLProvider: any ImageURLProviding = TMDBImageURLProvider()
-    private let movieRepository: any MovieRepository = PreviewMovieRepository()
-    private let genreRepository: any GenreRepository = PreviewGenreRepository()
-    private let savedMoviesRepository: any SavedMoviesRepository = PreviewSavedMoviesRepository()
-    private let watchProgressRepository: any WatchProgressRepository = PreviewWatchProgressRepository()
+    private let movieRepository: any IMovieRepository = MovieRepository()
+    private let genreRepository: any IGenreRepository = GenreRepository()
+    private let savedMoviesRepository: any ISavedMoviesRepository = SavedMoviesRepository()
+    private let watchProgressRepository: any IWatchProgressRepository = WatchProgressRepository()
 
     // Its own pipeline and memory cache rather than Nuke's shared singletons. The disk cache size is
     // set explicitly even though it matches Nuke's default.

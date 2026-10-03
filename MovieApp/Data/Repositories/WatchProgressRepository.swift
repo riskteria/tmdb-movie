@@ -1,17 +1,17 @@
 import Foundation
 
 // Keeps watch progress in memory. Week 3 adds InMemoryWatchProgressRepository and Week 4 Core Data.
-actor PreviewWatchProgressRepository {
+actor WatchProgressRepository {
     private var records: [WatchProgress]
     private let broadcaster = AsyncBroadcaster<[WatchProgress]>()
 
-    init(records: [WatchProgress] = PreviewCatalog.watchProgress(for: .local(UUID()))) {
+    init(records: [WatchProgress] = MockResponseCatalog.watchProgress(for: .local(UUID()))) {
         self.records = records.sorted { $0.lastWatchedAt > $1.lastWatchedAt }
     }
 }
 
-// MARK: - WatchProgressRepository
-extension PreviewWatchProgressRepository: WatchProgressRepository {
+// MARK: - IWatchProgressRepository
+extension WatchProgressRepository: IWatchProgressRepository {
     var changes: AsyncStream<[WatchProgress]> {
         get async {
             await broadcaster.subscribe(startingWith: records)

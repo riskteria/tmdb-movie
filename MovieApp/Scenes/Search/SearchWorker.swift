@@ -3,7 +3,7 @@ nonisolated protocol ISearchWorker: Sendable {
 }
 
 nonisolated struct SearchWorker {
-    let genreRepository: any GenreRepository
+    let genreRepository: any IGenreRepository
 }
 
 // MARK: - ISearchWorker

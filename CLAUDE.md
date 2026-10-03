@@ -90,14 +90,14 @@ MovieApp/
 │   └── Coordinators/       AppCoordinator, MainTabCoordinator, one coordinator per tab, MovieDetailFlow
 ├── Domain/
 │   ├── Entities/           Movie, MovieDetails, Genre, Page, SavedMovie, WatchProgress, …
-│   └── Repositories/       MovieRepository, GenreRepository, SavedMoviesRepository, … (protocols)
+│   └── Repositories/       IMovieRepository, IGenreRepository, ISavedMoviesRepository, … (protocols)
 ├── Data/
 │   ├── Network/            IAPIService + APIService (Alamofire), TMDBEndpoint, NetworkError, request interceptors
 │   ├── DTOs/               <Name>DTO per endpoint (+ toDomain()), grouped in Movie/, Auth/, Account/, Shared/
 │   ├── Observation/        AsyncBroadcaster
 │   ├── Persistence/        UserDefaults stores; CoreData/ holds the Core Data stack and repositories
-│   ├── Preview/            In-memory sample repositories, used until the remote ones are wired
-│   └── Repositories/       RemoteMovieRepository, TMDBImageURLProvider, caching decorators
+│   └── Repositories/       In-memory MovieRepository, GenreRepository, … backed by MockResponseCatalog (used until the
+│                           remote ones are wired), RemoteMovieRepository, TMDBImageURLProvider, caching decorators
 ├── Scenes/
 │   └── MovieList/
 │       ├── MovieListModels.swift
@@ -150,7 +150,7 @@ Rules:
 - Inject every dependency through `init` into a `private let`. Never use `var interactor: IMovieListInteractor!`.
 - Each scene use case (one `Request` / `Response` / `ViewData` triple) gets one method on each boundary: `loadMovies(request:)` → `presentMovies(response:)` → `displayMovies(viewData:)`. The Worker's methods are named for the data they fetch (`fetchPopularMovies(page:)`).
 - Name types `<Scene><Role>`. Put one type per file, with the type's boundary protocol in the same file. The models namespace is `enum <Scene>Model` in `<Scene>Models.swift`, and what the Presenter hands the ViewController is a `ViewData`, passed as `display…(viewData:)`.
-- Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is for scene protocols and `IAPIService` (see Networking) only. Domain ports and other protocols keep role names (`MovieRepository`, `ImageLoading`).
+- Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is for scene protocols, repository ports (`IMovieRepository`, implemented by `MovieRepository`) and `IAPIService` (see Networking) only. Other protocols keep role names (`ImageLoading`, `ImageURLProviding`).
 - **Workers are `nonisolated` and `Sendable`**: `nonisolated protocol I<Scene>Worker: Sendable` and `nonisolated struct <Scene>Worker`, with the conformance in a `nonisolated extension`. Interactors call them from child tasks (`async let`), and a nonisolated async method still runs on the Interactor's main actor when called directly. One Worker per scene; two scenes that need the same port each call it, and shared behavior such as caching belongs in a repository decorator.
 - Scenes never reach each other. The ViewController passes the data a route needs to its Router as a parameter, and the Router hands it to a coordinator closure (`onSelectMovie(Movie)`); the coordinator builds and shows the next scene. There is no data store, and a Router never depends on the Interactor. This keeps routers free of UIKit and state, and testable with a closure spy.
 - **Route data travels in the `ViewData`**: a displayed item the user can open carries the Domain entity its route needs (`let movie: Movie`, with `id` computed from it), so the ViewController can pass it on without asking the Interactor. Tapping, and anything else that only navigates, is not an Interactor use case.
@@ -221,7 +221,7 @@ nonisolated protocol IMovieListWorker: Sendable {
 }
 
 nonisolated struct MovieListWorker {
-    let movieRepository: any MovieRepository
+    let movieRepository: any IMovieRepository
 }
 
 // MARK: - IMovieListWorker
@@ -367,7 +367,7 @@ import UIKit
 
 enum MovieListSceneFactory {
     static func make(
-        movieRepository: any MovieRepository,
+        movieRepository: any IMovieRepository,
         onSelectMovie: @escaping (Movie) -> Void
     ) -> UIViewController {
         let worker = MovieListWorker(movieRepository: movieRepository)
@@ -409,7 +409,7 @@ nonisolated struct Movie: Identifiable, Hashable, Sendable {
     let releaseDate: Date?
 }
 
-nonisolated protocol MovieRepository: Sendable {
+nonisolated protocol IMovieRepository: Sendable {
     func popularMovies(page: Int) async throws -> [Movie]
 }
 ```
@@ -701,7 +701,7 @@ SwiftLint enforces most of these rules. You are responsible for the rest.
   - Keep acronyms in uniform case (`movieID`, `urlString`).
   - Booleans read as assertions (`isLoading`, `hasNextPage`).
   - Factory methods start with `make`.
-  - Scene boundary protocols take an `I` prefix (`IMovieListInteractor`), and so does `IAPIService`. This is a project rule; see VIP Scene.
+  - Scene boundary protocols, repository ports (`IMovieRepository`) and `IAPIService` take an `I` prefix. This is a project rule; see VIP Scene.
   - Delegate methods take the source object as an unnamed first parameter.
   - Use US English.
 - **Organization**:
@@ -774,7 +774,7 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
   - **Presenter**: add a `ViewControllerSpy` and assert on the `ViewData` values and strings.
   - **ViewController** (for logic that matters): add an `InteractorSpy` and a `RouterSpy`, and assert on the requests and routes that user events trigger.
 - **Coordinators**: inject `SceneFactorySpy`, call the routing closure it captured, and assert on the root view controller and the scenes requested. Keep the coordinator in a stored property of the suite: its closures capture it `[weak self]`, and a local constant can be released before the closure runs.
-- Name test doubles after their protocol, dropping a scene protocol's `I`: `<Name>Spy` records calls and `<Name>Stub` returns canned results (`MovieListPresenterSpy` for `IMovieListPresenter`, `MovieListWorkerStub` for `IMovieListWorker`). Keep them `private` to the test file. Shared ones go in `MovieAppTests/Stubs/`.
+- Name test doubles after their protocol, dropping the `I`: `<Name>Spy` records calls and `<Name>Stub` returns canned results (`MovieListPresenterSpy` for `IMovieListPresenter`, `MovieListWorkerStub` for `IMovieListWorker`, `MovieRepositoryStub` for `IMovieRepository`). Keep them `private` to the test file. Shared ones go in `MovieAppTests/Stubs/`.
 - Test names describe behavior: `loadMoviesPresentsFetchedMovies()`.
 - **Given / When / Assert**: split each test body into blocks separated by one blank line, and open each block with its marker comment and nothing else:
   - `// Given`: inputs, stubs and the system under test.
