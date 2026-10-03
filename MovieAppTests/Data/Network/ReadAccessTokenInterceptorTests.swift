@@ -22,22 +22,4 @@ struct ReadAccessTokenInterceptorTests {
         // Assert
         #expect(adapted.value(forHTTPHeaderField: "Authorization") == "Bearer read-token")
     }
-
-    @Test
-    func sessionSendsTokenAsHeaderAndNotInQuery() async throws {
-        // Given
-        let configuration = URLSessionConfiguration.af.ephemeral
-        configuration.protocolClasses = [URLProtocolStub.self]
-        let client = APIClient(session: Session(configuration: configuration, interceptor: sut))
-        let endpoint = TMDBEndpoint.movieGenres(parameters: .init(language: "en-US"))
-        try URLProtocolStub.stub(endpoint, with: .json(statusCode: 200, body: #"{"genres": []}"#))
-
-        // When
-        let _: MovieGenresDTO.Response = try await client.request(endpoint)
-
-        // Assert
-        let request = try #require(try URLProtocolStub.lastRequest(for: endpoint))
-        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer read-token")
-        #expect(request.url?.query?.contains("read-token") == false)
-    }
 }

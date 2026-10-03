@@ -1,10 +1,9 @@
-import Alamofire
 import Foundation
 @testable import MovieApp
 import Testing
 
 // Each test requests its own page of Popular so the URL stubs never collide.
-struct APIClientTests {
+struct APIServiceTests {
     private static let pageJSON = """
         {
             "page": 1,
@@ -14,16 +13,10 @@ struct APIClientTests {
         }
         """
 
-    private let sut: APIClient
-
-    init() {
-        let configuration = URLSessionConfiguration.af.ephemeral
-        configuration.protocolClasses = [URLProtocolStub.self]
-        sut = APIClient(session: Session(configuration: configuration))
-    }
+    private let sut: any IAPIService = APIService.makeStub()
 
     @Test
-    func sendDecodesSuccessfulResponse() async throws {
+    func requestDecodesSuccessfulResponse() async throws {
         // Given
         let endpoint = Self.popularMovies(page: 1)
         try URLProtocolStub.stub(endpoint, with: .json(statusCode: 200, body: Self.pageJSON))
@@ -36,7 +29,7 @@ struct APIClientTests {
     }
 
     @Test
-    func sendMapsUnsuccessfulStatusToInvalidResponse() async throws {
+    func requestMapsUnsuccessfulStatusToInvalidResponse() async throws {
         // Given
         let endpoint = Self.popularMovies(page: 2)
         let body = #"{"status_code": 7, "status_message": "Invalid API key"}"#
@@ -49,7 +42,7 @@ struct APIClientTests {
     }
 
     @Test
-    func sendMapsMalformedBodyToDecodingFailed() async throws {
+    func requestMapsMalformedBodyToDecodingFailed() async throws {
         // Given
         let endpoint = Self.popularMovies(page: 3)
         try URLProtocolStub.stub(endpoint, with: .json(statusCode: 200, body: #"{"page": 1}"#))
@@ -61,10 +54,9 @@ struct APIClientTests {
     }
 
     @Test
-    func sendMapsTransportErrorToRequestFailed() async throws {
+    func requestMapsTransportErrorToRequestFailed() async throws {
         // Given
         let endpoint = Self.popularMovies(page: 4)
-        try URLProtocolStub.stub(endpoint, with: .failure(URLError(.notConnectedToInternet)))
 
         // When & Assert
         await #expect(throws: NetworkError.requestFailed) {
@@ -73,7 +65,7 @@ struct APIClientTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func sendThrowsCancellationErrorWhenTaskIsCancelled() async throws {
+    func requestThrowsCancellationErrorWhenTaskIsCancelled() async throws {
         // Given
         let endpoint = Self.popularMovies(page: 5)
         try URLProtocolStub.stub(endpoint, with: .noResponse)

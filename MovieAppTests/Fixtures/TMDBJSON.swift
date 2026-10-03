@@ -1,7 +1,6 @@
 import Foundation
 
 enum TMDBJSON {
-    // Uses the same `.convertFromSnakeCase` strategy as `APIClient`, which the DTO coding keys rely on.
     static func decode<Value: Decodable>(_ type: Value.Type, from json: String) throws -> Value {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
