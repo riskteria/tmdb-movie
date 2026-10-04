@@ -1,22 +1,16 @@
 import Nuke
 import UIKit
 
-// The composition root: owns the long-lived services and builds every scene. Coordinators see it only
-// through the `<Scene>Factory` protocols, but it is one container rather than a throwaway factory: every
-// scene shares these instances, so the app creates exactly one. Until Week 2 the repositories are
-// in-memory previews; swapping in the remote ones changes nothing outside this file.
 final class AppDependencies {
     private static let imageDiskCacheSize = 150 * 1024 * 1024
 
     private let imageLoader: any ImageLoading
     private let imageURLProvider: any ImageURLProviding = TMDBImageURLProvider()
     private let movieRepository: any IMovieRepository = MovieRepository()
-    private let genreRepository: any IGenreRepository = GenreRepository()
+    private let genreRepository: any IGenreRepository
     private let savedMoviesRepository: any ISavedMoviesRepository = SavedMoviesRepository()
     private let watchProgressRepository: any IWatchProgressRepository = WatchProgressRepository()
 
-    // Its own pipeline and memory cache rather than Nuke's shared singletons. The disk cache size is
-    // set explicitly even though it matches Nuke's default.
     init() {
         var configuration = ImagePipeline.Configuration.withDataCache(
             name: "com.enkidu.MovieApp.images",
@@ -24,6 +18,7 @@ final class AppDependencies {
         )
         configuration.imageCache = ImageCache()
         imageLoader = NukeImageLoader(pipeline: ImagePipeline(configuration: configuration))
+        genreRepository = GenreRepository(apiService: APIService.shared)
     }
 }
 

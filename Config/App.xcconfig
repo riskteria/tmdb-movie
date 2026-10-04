@@ -1,6 +1,0 @@
-// Base configuration for the MovieApp target.
-//
-// Secrets.xcconfig is gitignored and optional. Copy Secrets.example.xcconfig to Secrets.xcconfig in
-// this folder and add your TMDB API read access token. Without it the app still builds, with an
-// empty token.
-#include? "Secrets.xcconfig"

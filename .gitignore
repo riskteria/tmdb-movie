@@ -34,8 +34,7 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
-# Secrets / local config
-# Secrets.xcconfig holds the TMDB read access token; commit Secrets.example.xcconfig instead.
-Secrets.xcconfig
-*.xcconfig.local
+# Secrets: Arkana/.env holds the TMDB read access token (copy Arkana/.env.example). Arkana generates the
+# obfuscated Arkana/ArkanaKeys/ packages from it, so they are never committed either.
 .env
+Arkana/ArkanaKeys/

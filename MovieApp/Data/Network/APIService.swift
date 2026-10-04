@@ -6,11 +6,15 @@ nonisolated protocol IAPIService: Sendable {
 }
 
 nonisolated final class APIService: Sendable {
+    static let shared = APIService(
+        interceptor: ReadAccessTokenInterceptor(token: AppConfigs.shared.tmdbReadAccessToken)
+    )
+
     private let session: Session
     private let decoder: JSONDecoder
 
-    init(session: Session) {
-        self.session = session
+    init(configuration: URLSessionConfiguration = .af.default, interceptor: (any RequestInterceptor)? = nil) {
+        session = Session(configuration: configuration, interceptor: interceptor)
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         self.decoder = decoder
