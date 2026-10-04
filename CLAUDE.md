@@ -100,9 +100,9 @@ MovieApp/
 │   ├── DTOs/               <Name>DTO per endpoint (wire types only), grouped in Movie/, Auth/, Account/, Shared/
 │   ├── Observation/        AsyncBroadcaster
 │   ├── Persistence/        UserDefaults stores; CoreData/ holds the Core Data stack and repositories
-│   └── Repositories/       In-memory MovieRepository, GenreRepository, … backed by MockResponseCatalog (used until the
-│                           remote ones are wired), RemoteMovieRepository, TMDBImageURLProvider, caching decorators
-├── Scenes/
+│   └── Repositories/       MovieRepository and GenreRepository (TMDB, through IAPIService), String+TMDB, the in-memory
+│                           SavedMoviesRepository and WatchProgressRepository (MockResponseCatalog), TMDBImageURLProvider
+├── Scenes/                 Home, Search, GenreMovies, Saved, MovieDetail, Profile, each laid out like MovieList:
 │   └── MovieList/
 │       ├── MovieListModels.swift
 │       ├── MovieListViewController.swift
@@ -121,7 +121,8 @@ MovieApp/
 ├── Resources/              Localizable.xcstrings
 ├── Assets.xcassets         AccentColor, AppIcon
 └── Info.plist
-MovieAppTests/              Mirrors MovieApp/, plus Stubs/ (shared stubs and spies) and Fixtures/
+MovieAppTests/              Mirrors MovieApp/, plus Stubs/ (shared stubs and spies) and Fixtures/ (Domain fixtures,
+                            JSONFixture, and JSON/ with the canned TMDB responses)
 ../MovieAppDS/              Design system package: MVFonts, MVColors, Spacing, Radius, ArtworkPalette,
                             NavigationBarStyle, button configurations, the Lexend fonts and the color catalog
 ```
@@ -396,6 +397,7 @@ Coordinators in `App/Coordinators/` own all navigation.
 - `MainTabCoordinator` builds three `UITab`s (Home, Saved, Profile) and a `UISearchTab`, whose root is the Search scene (the requirement's Discover area).
 - Each tab coordinator owns its `UINavigationController`. It builds scenes and passes the routing closures, capturing itself `[weak self]`.
 - **Coordinators never see `AppDependencies`.** Each one declares `typealias Dependencies` as the `<Scene>Factory` protocols it needs (`HomeFactory & MovieDetailFactory`) and stores `any Dependencies`. A protocol lives in the file of the coordinator (or `MovieDetailFlow`) that uses it. A parent's alias combines its children's (`HomeCoordinator.Dependencies & SearchCoordinator.Dependencies & …`). A new scene means a new protocol, a conformance on `AppDependencies`, and a conformance on `SceneFactorySpy`, which stands in for it in coordinator tests.
+- `SearchCoordinator` pushes Genre Movies when a genre is tapped, and its lazy `MovieDetailFlow` pushes Movie Detail from a poster with `.push`.
 - `MovieDetailFlow` pushes Movie Detail on its tab's stack. A `.zoom` transition starts from the view the source screen returns through `ZoomTransitionSourceProviding`, and is skipped under Reduce Motion.
 - The tab bar stays visible on pushed screens (`hidesBottomBarWhenPushed` stays `false`). Only full-screen modals cover it.
 
@@ -428,12 +430,13 @@ Domain holds only entities and ports. The code that calls ports for a screen, an
 #### Client
 
 - **Confine Alamofire** to `Data/Network/`, `App/` (to build the `Session`) and the Data-layer tests. Repositories take `any IAPIService` through `init` and use `TMDBEndpoint`, the DTOs and `NetworkError`. They never see `APIService` or a `Session`. Nothing outside the Data layer sees any of them.
-- **One injected `Session`**: `AppDependencies` creates a single `Session`, passes it to `APIService(session:)`, and gives that one instance to every repository. Never use `AF` or `Session.default`. They are global singletons.
+- **One shared client**: `APIService.shared` owns the app's only `Session`, built with `ReadAccessTokenInterceptor(token: AppConfigs.shared.tmdbReadAccessToken)`. `AppDependencies` passes it to every repository's `init`; nothing else reads `APIService.shared`. Tests build their own client with `APIService.makeStub()`. Never use `AF` or `Session.default`.
 - **Calling an endpoint**: `let page: SearchMoviesDTO.Response = try await apiService.request(.searchMovies(parameters: .init(query: query)))`, then map it to Domain entities in the repository (see DTOs > Mapping).
-- **Async API only**: use `serializingDecodable(_:decoder:)` with `.result` or `.value`. Never use the `response…` completion-handler methods. Always call `.validate()` so non-2xx statuses fail.
+- **Async API only**: use `serializingDecodable(_:decoder:)` with `.response`, `.result` or `.value`. Never use the `response…` completion-handler methods. Always call `.validate()` so non-2xx statuses fail.
 - **Decoding is already off the main actor**: Alamofire decodes on its serialization queue, so `APIService` needs no `@concurrent` decode step.
 - **Cancellation**: `serializingDecodable` cancels the request when the calling `Task` is cancelled (`automaticallyCancelling` defaults to `true`). It reports this as `AFError.explicitlyCancelled`, so `APIService` rethrows it as `CancellationError` and the Interactor's `catch is CancellationError` keeps working.
 - **Errors**: `AFError` never leaves `APIService`. Map it to `NetworkError`.
+- **Debug logging**: in Debug builds `APIService` logs each request and response (method, URL, status, headers, body) through `os.Logger`, category `network`, with the `Authorization` header redacted. Keep that redaction for any header you start logging.
 
 ```swift
 import Alamofire
@@ -464,11 +467,15 @@ nonisolated protocol IAPIService: Sendable {
 }
 
 nonisolated final class APIService: Sendable {
+    static let shared = APIService(
+        interceptor: ReadAccessTokenInterceptor(token: AppConfigs.shared.tmdbReadAccessToken)
+    )
+
     private let session: Session
     private let decoder: JSONDecoder
 
-    init(session: Session) {
-        self.session = session
+    init(configuration: URLSessionConfiguration = .af.default, interceptor: (any RequestInterceptor)? = nil) {
+        session = Session(configuration: configuration, interceptor: interceptor)
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         self.decoder = decoder
@@ -478,14 +485,15 @@ nonisolated final class APIService: Sendable {
 // MARK: - IAPIService
 nonisolated extension APIService: IAPIService {
     func request<Response: Decodable & Sendable>(_ endpoint: TMDBEndpoint) async throws -> Response {
-        let result = await session.request(endpoint)
+        let response = await session.request(endpoint)
             .validate()
             .serializingDecodable(Response.self, decoder: decoder)
-            .result
+            .response
+        log(response, for: endpoint)
 
-        switch result {
-        case .success(let response):
-            return response
+        switch response.result {
+        case .success(let value):
+            return value
         case .failure(let error) where error.isExplicitlyCancelledError:
             throw CancellationError()
         case .failure(let error):
@@ -494,6 +502,8 @@ nonisolated extension APIService: IAPIService {
     }
 }
 ```
+
+`log(_:for:)` lives in a `private nonisolated extension APIService` (see `APIService.swift`).
 
 #### Endpoint Enum
 
@@ -790,11 +800,11 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
   - When the call has to sit inside `#expect(throws:)`, mark that block `// When & Assert`.
 - `await` async business methods directly. No sleeps and no `XCTestExpectation` for async/await code.
 - Unit tests never touch the network.
-  - **Repositories**: inject `APIServiceStub(expectedEndpoint:result:)` from `MovieAppTests/Stubs/`. It decodes the canned JSON with `TMDBJSON`, so the real DTOs and mappings run, and throws if the request's method, URL or body differ from `expectedEndpoint`. Build it in each test's `// Given`. A caller that sends several requests gets a `private` multi-response stub in its own test file.
+  - **Repositories**: inject `APIServiceStub(endpoint:result:)` from `MovieAppTests/Stubs/`. It decodes the canned JSON with `TMDBJSON`, so the real DTOs and mappings run. It returns that response for any request, so repository tests check the mapping, not the request; `TMDBEndpointTests` covers how each endpoint encodes. Build it in each test's `// Given`. A caller that sends several requests gets a `private` multi-response stub in its own test file.
   - **`APIService`**: build the client with `APIService.makeStub()`, a real `Session` whose requests `URLProtocolStub` answers. Never build that `Session` by hand. `URLProtocolStub` keys responses by URL in shared static state and tests run in parallel, so each test must stub a URL no other test uses (for example, its own page number). An unstubbed URL fails like a lost connection, and `.noResponse` keeps a request in flight until it's cancelled.
   - **Interceptors**: call `adapt(_:for:completion:)` directly and assert on the adapted `URLRequest`.
 - `TMDBEndpointTests` checks every endpoint's method, URL and body through one parameterized table, `TMDBEndpointExpectation.all`. Add a row for each new case.
-- Decode DTO fixtures with `TMDBJSON.decode(_:from:)` from `MovieAppTests/Fixtures/`. It uses the same `.convertFromSnakeCase` strategy as `APIService`. Keep fixture JSON inline and minimal: the required fields, plus the ones the test asserts.
+- Repository tests read each canned response from `MovieAppTests/Fixtures/JSON/<name>.json` through `JSONFixture.named(_:)`, which takes a `JSONFixture.JSONFiles` case (add one per file). One file per response shape, holding only the required fields and the ones a test asserts. Synchronized folders copy resources to the bundle root, so file names must be unique across the test target. An inline JSON string is fine for a one-off edge case. `TMDBJSON.decode(_:from:)` decodes either with the same `.convertFromSnakeCase` strategy as `APIService`.
 - The project has no UI test target for now. Don't add one, or any UI tests, unless the user asks.
 
 ```swift

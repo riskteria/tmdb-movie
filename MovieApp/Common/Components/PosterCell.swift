@@ -4,6 +4,7 @@ import UIKit
 final class PosterCell: UICollectionViewCell {
     private(set) lazy var artworkView = makeArtworkView()
     private lazy var playBadge = PlayBadgeView()
+    private lazy var ratingBadge = RatingBadgeView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -14,10 +15,18 @@ final class PosterCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(title: String, artwork: DisplayedArtwork, showsPlayBadge: Bool, imageLoader: any ImageLoading) {
+    func configure(
+        title: String,
+        artwork: DisplayedArtwork,
+        showsPlayBadge: Bool,
+        rating: String? = nil,
+        imageLoader: any ImageLoading
+    ) {
         artworkView.configure(with: artwork, imageLoader: imageLoader)
         playBadge.isHidden = !showsPlayBadge
+        ratingBadge.configure(rating: rating)
         accessibilityLabel = title
+        accessibilityValue = rating
     }
 }
 
@@ -26,7 +35,7 @@ private extension PosterCell {
     func setUpLayout() {
         isAccessibilityElement = true
         accessibilityTraits = .button
-        [artworkView, playBadge].forEach { subview in
+        [artworkView, playBadge, ratingBadge].forEach { subview in
             subview.translatesAutoresizingMaskIntoConstraints = false
             contentView.addSubview(subview)
         }
@@ -36,7 +45,9 @@ private extension PosterCell {
             artworkView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             artworkView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             playBadge.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Spacing.xSmall),
-            playBadge.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Spacing.xSmall)
+            playBadge.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Spacing.xSmall),
+            ratingBadge.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Spacing.xSmall),
+            ratingBadge.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Spacing.xSmall)
         ])
     }
 

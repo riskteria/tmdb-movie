@@ -18,7 +18,7 @@ extension SearchPresenter: ISearchPresenter {
             let content = SearchModel.DisplayedContent(
                 sectionTitle: String(localized: "Browse by Genre"),
                 count: genres.count.formatted(),
-                genres: genres.map { SearchModel.DisplayedGenre(id: $0.id, name: $0.name) }
+                genres: genres.map { SearchModel.DisplayedGenre(genre: $0, name: $0.name) }
             )
             viewController?.displayGenres(viewData: .content(content))
         case .failure:

@@ -1,7 +1,11 @@
 enum SearchModel {
     nonisolated struct DisplayedGenre: Hashable, Sendable {
-        let id: Genre.ID
+        let genre: Genre
         let name: String
+
+        var id: Genre.ID {
+            genre.id
+        }
     }
 
     struct DisplayedContent: Equatable {

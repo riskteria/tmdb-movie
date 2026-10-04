@@ -7,14 +7,16 @@ protocol ISearchViewController: AnyObject {
 
 final class SearchViewController: UIViewController {
     private let interactor: any ISearchInteractor
+    private let router: any ISearchRouter
     private var loadTask: Task<Void, Never>?
     private var content: SearchModel.DisplayedContent?
 
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
 
-    init(interactor: any ISearchInteractor) {
+    init(interactor: any ISearchInteractor, router: any ISearchRouter) {
         self.interactor = interactor
+        self.router = router
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -29,7 +31,6 @@ final class SearchViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = String(localized: "Search")
-        setUpSearch()
         setUpLayout()
         loadGenres()
     }
@@ -83,17 +84,16 @@ extension SearchViewController: ISearchViewController {
     }
 }
 
+// MARK: - UICollectionViewDelegate
+extension SearchViewController: UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard let genre = dataSource.itemIdentifier(for: indexPath)?.genre else { return }
+        router.routeToGenreMovies(genre: genre)
+    }
+}
+
 // MARK: - Layout
 private extension SearchViewController {
-    func setUpSearch() {
-        let searchController = UISearchController(searchResultsController: nil)
-        searchController.obscuresBackgroundDuringPresentation = false
-        searchController.searchBar.placeholder = String(localized: "Search movies")
-        navigationItem.searchController = searchController
-        navigationItem.hidesSearchBarWhenScrolling = false
-        navigationItem.preferredSearchBarPlacement = .stacked
-    }
-
     func setUpLayout() {
         view.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -110,6 +110,7 @@ private extension SearchViewController {
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
         collectionView.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.refreshControl = makeRefreshControl()
+        collectionView.delegate = self
         return collectionView
     }
 
@@ -174,12 +175,13 @@ private extension SearchViewController {
         }
         return dataSource
     }
+
     func makeRefreshControl() -> UIRefreshControl {
         let refreshControl = UIRefreshControl()
         refreshControl.addAction(
-            .init(handler: { [weak self] _ in
+            UIAction { [weak self] _ in
                 self?.refreshGenres()
-            }),
+            },
             for: .valueChanged
         )
         return refreshControl

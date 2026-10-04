@@ -23,6 +23,7 @@ nonisolated final class APIService: Sendable {
     }
 }
 
+// MARK: - IAPIService
 nonisolated extension APIService: IAPIService {
     func request<Response: Decodable & Sendable>(_ endpoint: TMDBEndpoint) async throws -> Response {
         let response = await session.request(endpoint)

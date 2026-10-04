@@ -32,6 +32,9 @@
     "Continue Watching" : {
 
     },
+    "Couldn’t load more movies" : {
+
+    },
     "Data" : {
 
     },
@@ -42,6 +45,9 @@
 
     },
     "No genres available" : {
+
+    },
+    "No movies in this genre yet" : {
 
     },
     "No movies to show yet" : {
@@ -69,9 +75,6 @@
 
     },
     "Search" : {
-
-    },
-    "Search movies" : {
 
     },
     "System" : {

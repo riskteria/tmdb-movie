@@ -2,13 +2,14 @@
 import Testing
 
 struct GenreRepositoryTests {
+    private let endpoint = TMDBEndpoint.movieGenres(parameters: .init(language: "en-US"))
+
     @Test
-    func loadGenresSuccess() async throws {
+    func movieGenresMapsEveryGenre() async throws {
         // Given
-        let json = try JSONFixture.named(.movieGenres)
         let apiService = APIServiceStub(
-            endpoint: .movieGenres(parameters: .init(language: "en-US")),
-            result: .success(json)
+            endpoint: endpoint,
+            result: .success(try JSONFixture.named(.movieGenres))
         )
         let sut = GenreRepository(apiService: apiService)
 
@@ -16,20 +17,21 @@ struct GenreRepositoryTests {
         let genres = try await sut.movieGenres()
 
         // Assert
+        #expect(genres.count == 19)
         #expect(genres.first == .action)
     }
-    
+
     @Test
-    func loadGenresFailureInvalidResponse() async throws {
+    func failedRequestThrowsTheNetworkErrorUnchanged() async {
         // Given
         let apiService = APIServiceStub(
-            endpoint: .movieGenres(parameters: .init(language: "en-US")),
-            result: .failure(NetworkError.invalidResponse(statusCode: 500))
+            endpoint: endpoint,
+            result: .failure(NetworkError.invalidResponse(statusCode: 401))
         )
         let sut = GenreRepository(apiService: apiService)
-        
-        // Assert
-        await #expect(throws: NetworkError.invalidResponse(statusCode: 500)) {
+
+        // When & Assert
+        await #expect(throws: NetworkError.invalidResponse(statusCode: 401)) {
             try await sut.movieGenres()
         }
     }

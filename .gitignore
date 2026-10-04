@@ -16,6 +16,7 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 docs/
+.claude
 
 # Swift Package Manager
 .build/
