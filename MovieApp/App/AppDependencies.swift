@@ -6,7 +6,7 @@ final class AppDependencies {
 
     private let imageLoader: any ImageLoading
     private let imageURLProvider: any ImageURLProviding = TMDBImageURLProvider()
-    private let movieRepository: any IMovieRepository = MovieRepository()
+    private let movieRepository: any IMovieRepository
     private let genreRepository: any IGenreRepository
     private let savedMoviesRepository: any ISavedMoviesRepository = SavedMoviesRepository()
     private let watchProgressRepository: any IWatchProgressRepository = WatchProgressRepository()
@@ -18,6 +18,7 @@ final class AppDependencies {
         )
         configuration.imageCache = ImageCache()
         imageLoader = NukeImageLoader(pipeline: ImagePipeline(configuration: configuration))
+        movieRepository = MovieRepository(apiService: APIService.shared)
         genreRepository = GenreRepository(apiService: APIService.shared)
     }
 }
@@ -40,8 +41,21 @@ extension AppDependencies: HomeFactory {
 
 // MARK: - SearchFactory
 extension AppDependencies: SearchFactory {
-    func makeSearch() -> UIViewController {
-        SearchSceneFactory.make(genreRepository: genreRepository)
+    func makeSearch(onSelectGenre: @escaping (Genre) -> Void) -> UIViewController {
+        SearchSceneFactory.make(genreRepository: genreRepository, onSelectGenre: onSelectGenre)
+    }
+}
+
+// MARK: - GenreMoviesFactory
+extension AppDependencies: GenreMoviesFactory {
+    func makeGenreMovies(genre: Genre, onSelectMovie: @escaping (Movie) -> Void) -> UIViewController {
+        GenreMoviesSceneFactory.make(
+            genre: genre,
+            movieRepository: movieRepository,
+            imageURLProvider: imageURLProvider,
+            imageLoader: imageLoader,
+            onSelectMovie: onSelectMovie
+        )
     }
 }
 

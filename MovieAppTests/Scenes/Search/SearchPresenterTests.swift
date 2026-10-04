@@ -20,8 +20,8 @@ struct SearchPresenterTests {
             sectionTitle: "Browse by Genre",
             count: "2",
             genres: [
-                SearchModel.DisplayedGenre(id: 878, name: "Science Fiction"),
-                SearchModel.DisplayedGenre(id: 18, name: "Drama")
+                SearchModel.DisplayedGenre(genre: .scienceFiction, name: "Science Fiction"),
+                SearchModel.DisplayedGenre(genre: .drama, name: "Drama")
             ]
         )
         #expect(viewController.displayedViewData == [.content(expected)])
