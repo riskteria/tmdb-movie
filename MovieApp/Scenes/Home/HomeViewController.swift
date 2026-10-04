@@ -83,14 +83,6 @@ private extension HomeViewController {
             contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
         }
 
-        Task {
-            await interactor.loadHome(request: HomeModel.LoadHome.Request())
-        }
-
-        Task { [interactor] in
-            await interactor.loadHome(request: HomeModel.LoadHome.Request())
-        }
-
         loadTask = Task { [interactor] in
             await interactor.loadHome(request: HomeModel.LoadHome.Request())
         }

@@ -23,3 +23,4 @@ extension SearchCoordinator: Coordinator {
         navigationController.setViewControllers([dependencies.makeSearch()], animated: false)
     }
 }
+ 

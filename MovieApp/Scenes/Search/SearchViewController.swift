@@ -5,8 +5,6 @@ protocol ISearchViewController: AnyObject {
     func displayGenres(viewData: SearchModel.LoadGenres.ViewData)
 }
 
-// The Search tab's root, and the requirement's Discover area: a search field, then every genre.
-// Typing (Week 3) and opening Genre Movies (Week 2) aren't wired yet.
 final class SearchViewController: UIViewController {
     private let interactor: any ISearchInteractor
     private var loadTask: Task<Void, Never>?
@@ -58,6 +56,7 @@ extension SearchViewController: ISearchViewController {
             snapshot.appendSections([0])
             snapshot.appendItems(content.genres)
             dataSource.apply(snapshot)
+            refreshVisibleHeader()
         case .empty(let message):
             contentUnavailableConfiguration = UIContentUnavailableConfiguration.message(
                 message,
@@ -154,7 +153,7 @@ private extension SearchViewController {
         let headerRegistration = UICollectionView.SupplementaryRegistration<SectionHeaderView>(
             elementKind: UICollectionView.elementKindSectionHeader
         ) { [weak self] header, _, _ in
-            header.configure(title: self?.content?.sectionTitle ?? "", count: self?.content?.count)
+            self?.configureHeader(header)
         }
         let dataSource = UICollectionViewDiffableDataSource<Int, SearchModel.DisplayedGenre>(
             collectionView: collectionView
@@ -165,5 +164,17 @@ private extension SearchViewController {
             collectionView.dequeueConfiguredReusableSupplementary(using: headerRegistration, for: indexPath)
         }
         return dataSource
+    }
+
+    func configureHeader(_ header: SectionHeaderView) {
+        header.configure(title: content?.sectionTitle ?? "", count: content?.count)
+    }
+
+    func refreshVisibleHeader() {
+        guard let header = collectionView.supplementaryView(
+            forElementKind: UICollectionView.elementKindSectionHeader,
+            at: IndexPath(item: 0, section: 0)
+        ) as? SectionHeaderView else { return }
+        configureHeader(header)
     }
 }
