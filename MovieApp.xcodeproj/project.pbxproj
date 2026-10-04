@@ -10,6 +10,7 @@
 		7F099B50C0CA436586DF8602 /* ArkanaKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 4F82EFF4798C4098A0F30E0D /* ArkanaKeys */; };
 		A1559000B7BD459A8FE25537 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = FE154EDD70DE4625BA97E00B /* Alamofire */; };
 		BC186F78A0024FFE8065ADD5 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 85E1E73A4B844477B8C0E5E7 /* Nuke */; };
+		C6E2545930730D80005D81B4 /* MovieAppDS in Frameworks */ = {isa = PBXBuildFile; productRef = C6E2545830730D80005D81B4 /* MovieAppDS */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,6 +61,7 @@
 			files = (
 				A1559000B7BD459A8FE25537 /* Alamofire in Frameworks */,
 				BC186F78A0024FFE8065ADD5 /* Nuke in Frameworks */,
+				C6E2545930730D80005D81B4 /* MovieAppDS in Frameworks */,
 				7F099B50C0CA436586DF8602 /* ArkanaKeys in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -79,6 +81,7 @@
 			children = (
 				C6CD40B8306667E200FE6ECD /* MovieApp */,
 				C6CD40CA306667E700FE6ECD /* MovieAppTests */,
+				C6E2545730730D80005D81B4 /* Frameworks */,
 				C6CD40B7306667E200FE6ECD /* Products */,
 			);
 			indentWidth = 4;
@@ -93,6 +96,13 @@
 				C6CD40C7306667E700FE6ECD /* MovieAppTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		C6E2545730730D80005D81B4 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -119,6 +129,7 @@
 				FE154EDD70DE4625BA97E00B /* Alamofire */,
 				85E1E73A4B844477B8C0E5E7 /* Nuke */,
 				4F82EFF4798C4098A0F30E0D /* ArkanaKeys */,
+				C6E2545830730D80005D81B4 /* MovieAppDS */,
 			);
 			productName = MovieApp;
 			productReference = C6CD40B6306667E200FE6ECD /* MovieApp.app */;
@@ -590,6 +601,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C259C4F440694FECAB6133FA /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = Nuke;
+		};
+		C6E2545830730D80005D81B4 /* MovieAppDS */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6E24DB030730C68005D81B4 /* XCRemoteSwiftPackageReference "tmdb-movie-ds" */;
+			productName = MovieAppDS;
 		};
 		FE154EDD70DE4625BA97E00B /* Alamofire */ = {
 			isa = XCSwiftPackageProductDependency;
