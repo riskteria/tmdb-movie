@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7F099B50C0CA436586DF8602 /* ArkanaKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 4F82EFF4798C4098A0F30E0D /* ArkanaKeys */; };
 		A1559000B7BD459A8FE25537 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = FE154EDD70DE4625BA97E00B /* Alamofire */; };
 		BC186F78A0024FFE8065ADD5 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 85E1E73A4B844477B8C0E5E7 /* Nuke */; };
 		C63E04BB30707BAC008925A1 /* MovieAppDS in Frameworks */ = {isa = PBXBuildFile; productRef = C63E04BA30707BAC008925A1 /* MovieAppDS */; };
-		7F099B50C0CA436586DF8602 /* ArkanaKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 4F82EFF4798C4098A0F30E0D /* ArkanaKeys */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -543,13 +543,13 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		C63E04B930707BAC008925A1 /* XCLocalSwiftPackageReference "../MovieAppDS" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../MovieAppDS;
-		};
 		A9BB0E8DA9DD401B8CEF0668 /* XCLocalSwiftPackageReference "Arkana/ArkanaKeys/ArkanaKeys" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Arkana/ArkanaKeys/ArkanaKeys;
+		};
+		C63E04B930707BAC008925A1 /* XCLocalSwiftPackageReference "../MovieAppDS" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../MovieAppDS;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -581,6 +581,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		4F82EFF4798C4098A0F30E0D /* ArkanaKeys */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ArkanaKeys;
+		};
 		85E1E73A4B844477B8C0E5E7 /* Nuke */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C259C4F440694FECAB6133FA /* XCRemoteSwiftPackageReference "Nuke" */;
@@ -589,10 +593,6 @@
 		C63E04BA30707BAC008925A1 /* MovieAppDS */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MovieAppDS;
-		};
-		4F82EFF4798C4098A0F30E0D /* ArkanaKeys */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ArkanaKeys;
 		};
 		FE154EDD70DE4625BA97E00B /* Alamofire */ = {
 			isa = XCSwiftPackageProductDependency;

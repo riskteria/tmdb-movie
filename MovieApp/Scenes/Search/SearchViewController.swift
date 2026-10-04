@@ -43,6 +43,14 @@ private extension SearchViewController {
             await interactor.loadGenres(request: SearchModel.LoadGenres.Request())
         }
     }
+
+    func refreshGenres() {
+        loadTask?.cancel()
+        loadTask = Task { [weak self, interactor] in
+            await interactor.loadGenres(request: SearchModel.LoadGenres.Request())
+            self?.collectionView.refreshControl?.endRefreshing()
+        }
+    }
 }
 
 // MARK: - ISearchViewController
@@ -101,6 +109,7 @@ private extension SearchViewController {
     func makeCollectionView() -> UICollectionView {
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
         collectionView.backgroundColor = .MVColor(.backgroundPrimary)
+        collectionView.refreshControl = makeRefreshControl()
         return collectionView
     }
 
@@ -164,6 +173,16 @@ private extension SearchViewController {
             collectionView.dequeueConfiguredReusableSupplementary(using: headerRegistration, for: indexPath)
         }
         return dataSource
+    }
+    func makeRefreshControl() -> UIRefreshControl {
+        let refreshControl = UIRefreshControl()
+        refreshControl.addAction(
+            .init(handler: { [weak self] _ in
+                self?.refreshGenres()
+            }),
+            for: .valueChanged
+        )
+        return refreshControl
     }
 
     func configureHeader(_ header: SectionHeaderView) {

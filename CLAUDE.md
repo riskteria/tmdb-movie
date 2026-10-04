@@ -57,7 +57,7 @@ A change is complete only when all of these hold:
 ## Feature Workflow
 
 1. If `docs/specs/<feature>.md` exists, read it first. Use Plan Mode for work that spans several scenes or layers.
-2. Implement from the inside out: Domain (entity, repository protocol), then Data (DTO, mapping, repository), then Scene (VIP, with its Worker), then wire it up in `App/`.
+2. Implement from the inside out: Domain (entity, repository protocol), then Data (DTO, then the repository that maps it to Domain), then Scene (VIP, with its Worker), then wire it up in `App/`.
 3. Write tests for each layer as you go, then lint. Build and run tests only if the user asks.
 
 ## Architecture
@@ -73,7 +73,7 @@ Scenes (VIP) ──► Domain ◄── Data
 Dependencies point **inward only**. Domain knows nothing about the other layers.
 
 - **Domain**: entities and repository protocols (ports). Imports `Foundation` only, never `UIKit`. Contains no DTOs, Alamofire, `URLSession` or persistence details.
-- **Data**: implements the Domain repository protocols. Holds DTOs, `toDomain()` mapping, networking and persistence. DTOs never leave this layer.
+- **Data**: implements the Domain repository protocols. Holds DTOs (wire types only), networking, persistence, and the repositories that map DTOs to Domain entities. DTOs never leave this layer.
 - **Scenes**: the presentation layer, built with VIP. Each scene's Worker reaches data through the Domain ports. Scenes depend only on Domain protocols and entities, never on Data types.
 - **App**: `AppDelegate`, `SceneDelegate`, `AppDependencies` and the coordinators in `App/Coordinators/`. This is the only place that knows concrete types from every layer and wires them together, and the only place that pushes or presents view controllers.
 
@@ -97,7 +97,7 @@ MovieApp/
 │   └── Repositories/       IMovieRepository, IGenreRepository, ISavedMoviesRepository, … (protocols)
 ├── Data/
 │   ├── Network/            IAPIService + APIService (Alamofire), TMDBEndpoint, NetworkError, request interceptors
-│   ├── DTOs/               <Name>DTO per endpoint (+ toDomain()), grouped in Movie/, Auth/, Account/, Shared/
+│   ├── DTOs/               <Name>DTO per endpoint (wire types only), grouped in Movie/, Auth/, Account/, Shared/
 │   ├── Observation/        AsyncBroadcaster
 │   ├── Persistence/        UserDefaults stores; CoreData/ holds the Core Data stack and repositories
 │   └── Repositories/       In-memory MovieRepository, GenreRepository, … backed by MockResponseCatalog (used until the
@@ -429,7 +429,7 @@ Domain holds only entities and ports. The code that calls ports for a screen, an
 
 - **Confine Alamofire** to `Data/Network/`, `App/` (to build the `Session`) and the Data-layer tests. Repositories take `any IAPIService` through `init` and use `TMDBEndpoint`, the DTOs and `NetworkError`. They never see `APIService` or a `Session`. Nothing outside the Data layer sees any of them.
 - **One injected `Session`**: `AppDependencies` creates a single `Session`, passes it to `APIService(session:)`, and gives that one instance to every repository. Never use `AF` or `Session.default`. They are global singletons.
-- **Calling an endpoint**: `let page: SearchMoviesDTO.Response = try await apiService.request(.searchMovies(parameters: .init(query: query)))`, then map the DTO with `toDomain()`.
+- **Calling an endpoint**: `let page: SearchMoviesDTO.Response = try await apiService.request(.searchMovies(parameters: .init(query: query)))`, then map it to Domain entities in the repository (see DTOs > Mapping).
 - **Async API only**: use `serializingDecodable(_:decoder:)` with `.result` or `.value`. Never use the `response…` completion-handler methods. Always call `.validate()` so non-2xx statuses fail.
 - **Decoding is already off the main actor**: Alamofire decodes on its serialization queue, so `APIService` needs no `@concurrent` decode step.
 - **Cancellation**: `serializingDecodable` cancels the request when the calling `Task` is cancelled (`automaticallyCancelling` defaults to `true`). It reports this as `AFError.explicitlyCancelled`, so `APIService` rethrows it as `CancellationError` and the Interactor's `catch is CancellationError` keeps working.
@@ -606,6 +606,7 @@ nonisolated extension TMDBEndpoint: URLRequestConvertible {
   - Booleans are non-optional (`var includeAdult = false`), because lint's `discouraged_optional_boolean` flags `Bool?`.
   - Comma-joined values such as `append_to_response` are typed enum arrays, joined in a custom `encode(to:)`.
 - **Flattened JSON**: when extra fields sit next to movie fields in the same object (rated movies, person credits), decode `MovieSummaryDTO(from: decoder)` and then read the extra keys from the same decoder.
+- **Mapping**: DTOs hold no conversion code: no `toDomain()`, no extensions that build Domain entities. The repository maps the response right after the request, as `GenreRepository` does: `response.genres.map { Genre(id: $0.id, name: $0.name) }`. A conversion that is longer than a line, or that several methods share (`MovieSummaryDTO` to `Movie`, `PageDTO` to `Page`), goes in the repository's `private extension` as `make<Entity>(from:)`. Repository tests cover it through `APIServiceStub`.
 
 ```swift
 nonisolated enum AddFavoriteDTO {
@@ -772,7 +773,7 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
 
 - Write unit tests with Swift Testing (`import Testing`, `@Test`, `#expect`, `#require`). Don't use XCTest.
 - Mirror the source folder structure in `MovieAppTests/`.
-- Test every Interactor, Presenter, Worker and DTO mapping.
+- Test every Interactor, Presenter, Worker and repository. Repository tests cover the DTO-to-Domain mapping.
 - For VIP, test each component in isolation, with test doubles at its boundaries:
   - **Interactor**: stub the Worker (a private `<Scene>WorkerStub`), add a `PresenterSpy`, and assert on the `Response`.
   - **Worker**: pass the shared repository stubs from `MovieAppTests/Stubs/`, and assert on the result and on the calls the stub recorded (`repository.calls == [.details(7)]`). Workers are nonisolated, so their suites need no `@MainActor`.

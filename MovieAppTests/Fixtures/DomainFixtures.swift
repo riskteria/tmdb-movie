@@ -34,6 +34,7 @@ extension Genre {
     static let scienceFiction = Genre(id: 878, name: "Science Fiction")
     static let adventure = Genre(id: 12, name: "Adventure")
     static let drama = Genre(id: 18, name: "Drama")
+    static let action = Genre(id: 28, name: "Action")
 }
 
 extension MovieDetails {
