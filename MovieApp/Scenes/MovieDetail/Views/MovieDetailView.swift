@@ -38,6 +38,18 @@ final class MovieDetailView: UIView {
     }
 }
 
+// MARK: - UIScrollViewDelegate
+extension MovieDetailView: UIScrollViewDelegate {
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let offset = scrollView.contentOffset.y + scrollView.adjustedContentInset.top
+        let parallaxOffset = UIAccessibility.isReduceMotionEnabled ? min(offset, 0) : offset
+        let transform = CGAffineTransform.parallax(offset: parallaxOffset, height: headerView.bounds.height)
+        artworkView.transform = transform
+        scrimView.transform = transform
+        headerView.clipsToBounds = parallaxOffset >= 0
+    }
+}
+
 // MARK: - Layout
 private extension MovieDetailView {
     func setUpLayout() {
@@ -98,6 +110,7 @@ private extension MovieDetailView {
         scrollView.alwaysBounceVertical = true
         // The header runs under the navigation bar; the bottom inset follows the safe area instead.
         scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.delegate = self
         return scrollView
     }
 

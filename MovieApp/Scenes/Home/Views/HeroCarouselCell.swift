@@ -45,6 +45,11 @@ final class HeroCarouselCell: UICollectionViewCell {
         guard pageCount > 1, !isUserScrolling else { return }
         scrollToPage((currentPage + 1) % pageCount, animated: true)
     }
+
+    func applyParallax(offset: CGFloat) {
+        collectionView.transform = .parallax(offset: offset, height: bounds.height)
+        clipsToBounds = offset >= 0
+    }
 }
 
 private extension HeroCarouselCell {

@@ -187,6 +187,7 @@ extension HomeViewController: UICollectionViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let offset = scrollView.contentOffset.y + scrollView.adjustedContentInset.top
         updateStatusBarStyle(forOffset: offset)
+        heroCell?.applyParallax(offset: UIAccessibility.isReduceMotionEnabled ? min(offset, 0) : offset)
     }
 }
 
