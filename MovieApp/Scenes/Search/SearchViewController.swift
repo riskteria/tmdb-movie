@@ -31,7 +31,6 @@ final class SearchViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = String(localized: "Search")
-        setUpSearch()
         setUpLayout()
         loadGenres()
     }
@@ -95,15 +94,6 @@ extension SearchViewController: UICollectionViewDelegate {
 
 // MARK: - Layout
 private extension SearchViewController {
-    func setUpSearch() {
-        let searchController = UISearchController(searchResultsController: nil)
-        searchController.obscuresBackgroundDuringPresentation = false
-        searchController.searchBar.placeholder = String(localized: "Search movies")
-        navigationItem.searchController = searchController
-        navigationItem.hidesSearchBarWhenScrolling = false
-        navigationItem.preferredSearchBarPlacement = .stacked
-    }
-
     func setUpLayout() {
         view.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
