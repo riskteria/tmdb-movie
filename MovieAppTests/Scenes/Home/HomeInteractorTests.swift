@@ -55,7 +55,7 @@ struct HomeInteractorTests {
         continueWatching: Result<[ContinueWatchingItem], any Error> = .success([]),
         movies: Result<Page<Movie>, any Error> = .success(.fixture([])),
         genres: Result<[Genre], any Error> = .success([])
-    ) -> HomeInteractor {
+    ) -> any IHomeInteractor {
         HomeInteractor(
             presenter: presenter,
             worker: HomeWorkerStub(

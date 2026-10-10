@@ -1,6 +1,5 @@
 import Foundation
 
-// Keeps watch progress in memory. Week 3 adds InMemoryWatchProgressRepository and Week 4 Core Data.
 actor WatchProgressRepository {
     private var records: [WatchProgress]
     private let broadcaster = AsyncBroadcaster<[WatchProgress]>()

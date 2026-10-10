@@ -8,7 +8,7 @@ struct HomeRouterTests {
         // Given
         let movie = Movie.fixture()
         var routedMovies: [Movie] = []
-        let sut = HomeRouter { routedMovies.append($0) }
+        let sut: any IHomeRouter = HomeRouter { routedMovies.append($0) }
 
         // When
         sut.routeToMovieDetail(movie: movie)

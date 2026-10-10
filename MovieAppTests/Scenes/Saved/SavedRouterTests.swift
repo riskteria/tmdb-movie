@@ -8,7 +8,7 @@ struct SavedRouterTests {
         // Given
         let movie = Movie.fixture()
         var routedMovies: [Movie] = []
-        let sut = SavedRouter { routedMovies.append($0) }
+        let sut: any ISavedRouter = SavedRouter { routedMovies.append($0) }
 
         // When
         sut.routeToMovieDetail(movie: movie)

@@ -8,9 +8,9 @@ final class HomePresenter {
     private static let bannerCount = 5
 
     weak var viewController: (any IHomeViewController)?
-    private let imageURLProvider: any ImageURLProviding
+    private let imageURLProvider: any ImageURLProvider
 
-    init(imageURLProvider: any ImageURLProviding) {
+    init(imageURLProvider: any ImageURLProvider) {
         self.imageURLProvider = imageURLProvider
     }
 }

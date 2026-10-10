@@ -5,10 +5,12 @@ import Testing
 @MainActor
 struct SavedPresenterTests {
     private let viewController = SavedViewControllerSpy()
-    private let sut = SavedPresenter(imageURLProvider: ImageURLProvidingStub())
+    private let sut: any ISavedPresenter
 
     init() {
-        sut.viewController = viewController
+        let presenter = SavedPresenter(imageURLProvider: ImageURLProviderStub())
+        presenter.viewController = viewController
+        sut = presenter
     }
 
     @Test

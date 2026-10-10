@@ -11,7 +11,7 @@ struct GenreRepositoryTests {
             endpoint: endpoint,
             result: .success(try JSONFixture.named(.movieGenres))
         )
-        let sut = GenreRepository(apiService: apiService)
+        let sut: any IGenreRepository = GenreRepository(apiService: apiService)
 
         // When
         let genres = try await sut.movieGenres()
@@ -28,7 +28,7 @@ struct GenreRepositoryTests {
             endpoint: endpoint,
             result: .failure(NetworkError.invalidResponse(statusCode: 401))
         )
-        let sut = GenreRepository(apiService: apiService)
+        let sut: any IGenreRepository = GenreRepository(apiService: apiService)
 
         // When & Assert
         await #expect(throws: NetworkError.invalidResponse(statusCode: 401)) {

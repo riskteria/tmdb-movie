@@ -9,7 +9,7 @@ struct SearchInteractorTests {
     func loadGenresPresentsFetchedGenres() async throws {
         // Given
         let genres = [Genre.scienceFiction, Genre.drama]
-        let sut = SearchInteractor(
+        let sut: any ISearchInteractor = SearchInteractor(
             presenter: presenter,
             worker: SearchWorkerStub(result: .success(genres))
         )
@@ -25,7 +25,7 @@ struct SearchInteractorTests {
     @Test
     func loadGenresPresentsFailure() async throws {
         // Given
-        let sut = SearchInteractor(
+        let sut: any ISearchInteractor = SearchInteractor(
             presenter: presenter,
             worker: SearchWorkerStub(result: .failure(StubError.failed))
         )
@@ -43,7 +43,7 @@ struct SearchInteractorTests {
     @Test
     func loadGenresPresentsNothingWhenCancelled() async {
         // Given
-        let sut = SearchInteractor(
+        let sut: any ISearchInteractor = SearchInteractor(
             presenter: presenter,
             worker: SearchWorkerStub(result: .failure(CancellationError()))
         )

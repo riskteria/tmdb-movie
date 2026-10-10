@@ -2,6 +2,56 @@
 import Testing
 
 struct MovieRepositoryTests {
+    private let expectedMovie = Movie.fixture(posterPath: ImagePath(rawValue: "/poster.jpg"))
+
+    @Test
+    func trendingMapsTheMoviesForTheWindow() async throws {
+        // Given
+        let apiService = APIServiceStub(
+            endpoint: .trendingMovies(timeWindow: .week, parameters: .init(language: "en-US")),
+            result: .success(try JSONFixture.named(.moviePage))
+        )
+        let sut: any IMovieRepository = MovieRepository(apiService: apiService)
+
+        // When
+        let movies = try await sut.trending(window: .week)
+
+        // Assert
+        #expect(movies == [expectedMovie])
+    }
+
+    @Test
+    func moviesInRegionalCategorySendsTheRegion() async throws {
+        // Given
+        let apiService = APIServiceStub(
+            endpoint: .movieList(category: .upcoming, parameters: .init(language: "en-US", page: 2, region: "US")),
+            result: .success(try JSONFixture.named(.moviePage))
+        )
+        let sut: any IMovieRepository = MovieRepository(apiService: apiService)
+
+        // When
+        let page = try await sut.movies(in: .upcoming, page: 2)
+
+        // Assert
+        #expect(page.items == [expectedMovie])
+    }
+
+    @Test
+    func moviesInGlobalCategoryOmitsTheRegion() async throws {
+        // Given
+        let apiService = APIServiceStub(
+            endpoint: .movieList(category: .popular, parameters: .init(language: "en-US", page: 2)),
+            result: .success(try JSONFixture.named(.moviePage))
+        )
+        let sut: any IMovieRepository = MovieRepository(apiService: apiService)
+
+        // When
+        let page = try await sut.movies(in: .popular, page: 2)
+
+        // Assert
+        #expect(page.items == [expectedMovie])
+    }
+
     @Test
     func discoverMapsThePageOfMovies() async throws {
         // Given
@@ -15,7 +65,7 @@ struct MovieRepositoryTests {
             endpoint: .discoverMovies(parameters: parameters),
             result: .success(try JSONFixture.named(.moviePage))
         )
-        let sut = MovieRepository(apiService: apiService)
+        let sut: any IMovieRepository = MovieRepository(apiService: apiService)
 
         // When
         let page = try await sut.discover(genreIDs: [28], page: 2)
@@ -23,7 +73,23 @@ struct MovieRepositoryTests {
         // Assert
         #expect(page.number == 2)
         #expect(page.hasNextPage)
-        #expect(page.items == [.fixture(posterPath: ImagePath(rawValue: "/poster.jpg"))])
+        #expect(page.items == [expectedMovie])
+    }
+
+    @Test
+    func searchMapsThePageOfMovies() async throws {
+        // Given
+        let apiService = APIServiceStub(
+            endpoint: .searchMovies(parameters: .init(query: "dune", language: "en-US", page: 2)),
+            result: .success(try JSONFixture.named(.moviePage))
+        )
+        let sut: any IMovieRepository = MovieRepository(apiService: apiService)
+
+        // When
+        let page = try await sut.search(query: "dune", page: 2)
+
+        // Assert
+        #expect(page.items == [expectedMovie])
     }
 
     @Test
@@ -37,7 +103,7 @@ struct MovieRepositoryTests {
             endpoint: .movieDetails(movieID: 693134, parameters: parameters),
             result: .success(try JSONFixture.named(.movieDetails))
         )
-        let sut = MovieRepository(apiService: apiService)
+        let sut: any IMovieRepository = MovieRepository(apiService: apiService)
 
         // When
         let details = try await sut.details(movieID: 693134)

@@ -4,7 +4,7 @@ enum MovieDetailSceneFactory {
     static func make(
         movie: Movie,
         movieRepository: any IMovieRepository,
-        imageURLProvider: any ImageURLProviding,
+        imageURLProvider: any ImageURLProvider,
         imageLoader: any ImageLoading
     ) -> UIViewController {
         let presenter = MovieDetailPresenter(imageURLProvider: imageURLProvider)

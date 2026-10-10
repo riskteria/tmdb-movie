@@ -4,7 +4,7 @@ import Foundation
 import Testing
 
 struct ReadAccessTokenInterceptorTests {
-    private let sut = ReadAccessTokenInterceptor(token: "read-token")
+    private let sut: any RequestAdapter = ReadAccessTokenInterceptor(token: "read-token")
 
     @Test
     func adaptAddsBearerAuthorizationHeader() async throws {

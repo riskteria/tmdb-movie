@@ -10,9 +10,11 @@ final class MovieRepositoryStub: IMovieRepository {
         case details(Movie.ID)
     }
 
-    private let trendingMovies: [Movie]
-    private let moviePage: Page<Movie>
-    // A movie missing from this dictionary makes `details(movieID:)` throw.
+    private let trendingResult: Result<[Movie], any Error>
+    private let moviesResult: Result<Page<Movie>, any Error>
+    private let discoverResult: Result<Page<Movie>, any Error>
+    private let searchResult: Result<Page<Movie>, any Error>
+
     private let detailsByID: [Movie.ID: MovieDetails]
     private let recordedCalls = Mutex<[Call]>([])
 
@@ -21,33 +23,37 @@ final class MovieRepositoryStub: IMovieRepository {
     }
 
     init(
-        trendingMovies: [Movie] = [],
-        moviePage: Page<Movie> = Page(number: 1, items: [], totalPages: 1, totalResults: 0),
+        trending: Result<[Movie], any Error> = .success([]),
+        movies: Result<Page<Movie>, any Error> = .success(.fixture([])),
+        discover: Result<Page<Movie>, any Error> = .success(.fixture([])),
+        search: Result<Page<Movie>, any Error> = .success(.fixture([])),
         detailsByID: [Movie.ID: MovieDetails] = [:]
     ) {
-        self.trendingMovies = trendingMovies
-        self.moviePage = moviePage
+        trendingResult = trending
+        moviesResult = movies
+        discoverResult = discover
+        searchResult = search
         self.detailsByID = detailsByID
     }
 
     func trending(window: TrendingWindow) async throws -> [Movie] {
         record(.trending(window))
-        return trendingMovies
+        return try trendingResult.get()
     }
 
     func movies(in category: MovieCategory, page: Int) async throws -> Page<Movie> {
         record(.movies(category, page: page))
-        return moviePage
+        return try moviesResult.get()
     }
 
     func discover(genreIDs: [Genre.ID], page: Int) async throws -> Page<Movie> {
         record(.discover(genreIDs, page: page))
-        return moviePage
+        return try discoverResult.get()
     }
 
     func search(query: String, page: Int) async throws -> Page<Movie> {
         record(.search(query, page: page))
-        return moviePage
+        return try searchResult.get()
     }
 
     func details(movieID: Movie.ID) async throws -> MovieDetails {

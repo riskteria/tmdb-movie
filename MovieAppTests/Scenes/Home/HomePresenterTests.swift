@@ -5,26 +5,40 @@ import Testing
 @MainActor
 struct HomePresenterTests {
     private let viewController = HomeViewControllerSpy()
-    private let sut = HomePresenter(imageURLProvider: ImageURLProvidingStub())
+    private let sut: any IHomePresenter
 
     init() {
-        sut.viewController = viewController
+        let presenter = HomePresenter(imageURLProvider: ImageURLProviderStub())
+        presenter.viewController = viewController
+        sut = presenter
     }
 
     @Test
-    func presentHomeShowsAtMostFiveBannersWithMetadata() throws {
+    func presentHomeShowsAtMostFiveBanners() throws {
         // Given
         let movies = (1...6).map { Movie.fixture(id: $0) }
 
         // When
-        sut.presentHome(response: makeResponse(trending: .success(movies), genres: [.scienceFiction, .adventure]))
+        sut.presentHome(response: makeResponse(trending: .success(movies)))
 
         // Assert
         let hero = try #require(viewController.sections.first)
         let banners = try #require(hero.items.first?.banners)
         #expect(hero.section == .hero)
         #expect(banners.map(\.movie) == Array(movies.prefix(5)))
-        #expect(banners.first?.metadata == "2024 • Science Fiction, Adventure • Movie")
+    }
+
+    @Test
+    func presentHomeShowsBannerMetadataWithYearAndGenreNames() throws {
+        // Given
+        let movie = Movie.fixture(id: 1)
+
+        // When
+        sut.presentHome(response: makeResponse(trending: .success([movie]), genres: [.scienceFiction, .adventure]))
+
+        // Assert
+        let banner = try #require(viewController.sections.first?.items.first?.banners?.first)
+        #expect(banner.metadata == "2024 • Science Fiction, Adventure • Movie")
     }
 
     @Test

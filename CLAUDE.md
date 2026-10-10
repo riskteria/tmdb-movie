@@ -116,7 +116,7 @@ MovieApp/
 │   ├── Components/         Shared cells and views (ArtworkView, PosterCell, HeroBannerCell, …)
 │   ├── Configuration/      AppConfigs (keys from ArkanaKeys)
 │   ├── Images/             ImageLoading, NukeImageLoader
-│   ├── Transitions/        ZoomTransitionSourceProviding
+│   ├── Transitions/        ZoomTransitionSourceProvider
 │   └── Extensions/
 ├── Resources/              Localizable.xcstrings
 ├── Assets.xcassets         AccentColor, AppIcon
@@ -156,7 +156,7 @@ Rules:
 - Inject every dependency through `init` into a `private let`. Never use `var interactor: IMovieListInteractor!`.
 - Each scene use case (one `Request` / `Response` / `ViewData` triple) gets one method on each boundary: `loadMovies(request:)` → `presentMovies(response:)` → `displayMovies(viewData:)`. The Worker's methods are named for the data they fetch (`fetchPopularMovies(page:)`).
 - Name types `<Scene><Role>`. Put one type per file, with the type's boundary protocol in the same file. The models namespace is `enum <Scene>Model` in `<Scene>Models.swift`, and what the Presenter hands the ViewController is a `ViewData`, passed as `display…(viewData:)`.
-- Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is for scene protocols, repository ports (`IMovieRepository`, implemented by `MovieRepository`) and `IAPIService` (see Networking) only. Other protocols keep role names (`ImageLoading`, `ImageURLProviding`).
+- Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is for scene protocols, repository ports (`IMovieRepository`, implemented by `MovieRepository`) and `IAPIService` (see Networking) only. Other protocols keep role names (`ImageLoading`, `ImageURLProvider`). A protocol that supplies something is named `<Thing>Provider` (`ImageURLProvider`, `ZoomTransitionSourceProvider`), never `<Thing>Providing`; only Apple's own protocols (`ASWebAuthenticationPresentationContextProviding`) keep that suffix.
 - **Workers are `nonisolated` and `Sendable`**: `nonisolated protocol I<Scene>Worker: Sendable` and `nonisolated struct <Scene>Worker`, with the conformance in a `nonisolated extension`. Interactors call them from child tasks (`async let`), and a nonisolated async method still runs on the Interactor's main actor when called directly. One Worker per scene; two scenes that need the same port each call it, and shared behavior such as caching belongs in a repository decorator.
 - Scenes never reach each other. The ViewController passes the data a route needs to its Router as a parameter, and the Router hands it to a coordinator closure (`onSelectMovie(Movie)`); the coordinator builds and shows the next scene. There is no data store, and a Router never depends on the Interactor. This keeps routers free of UIKit and state, and testable with a closure spy.
 - **Route data travels in the `ViewData`**: a displayed item the user can open carries the Domain entity its route needs (`let movie: Movie`, with `id` computed from it), so the ViewController can pass it on without asking the Interactor. Tapping, and anything else that only navigates, is not an Interactor use case.
@@ -398,14 +398,14 @@ Coordinators in `App/Coordinators/` own all navigation.
 - Each tab coordinator owns its `UINavigationController`. It builds scenes and passes the routing closures, capturing itself `[weak self]`.
 - **Coordinators never see `AppDependencies`.** Each one declares `typealias Dependencies` as the `<Scene>Factory` protocols it needs (`HomeFactory & MovieDetailFactory`) and stores `any Dependencies`. A protocol lives in the file of the coordinator (or `MovieDetailFlow`) that uses it. A parent's alias combines its children's (`HomeCoordinator.Dependencies & SearchCoordinator.Dependencies & …`). A new scene means a new protocol, a conformance on `AppDependencies`, and a conformance on `SceneFactorySpy`, which stands in for it in coordinator tests.
 - `SearchCoordinator` pushes Genre Movies when a genre is tapped, and its lazy `MovieDetailFlow` pushes Movie Detail from a poster with `.push`.
-- `MovieDetailFlow` pushes Movie Detail on its tab's stack. A `.zoom` transition starts from the view the source screen returns through `ZoomTransitionSourceProviding`, and is skipped under Reduce Motion.
+- `MovieDetailFlow` pushes Movie Detail on its tab's stack. A `.zoom` transition starts from the view the source screen returns through `ZoomTransitionSourceProvider`, and is skipped under Reduce Motion.
 - The tab bar stays visible on pushed screens (`hidesBottomBarWhenPushed` stays `false`). Only full-screen modals cover it.
 
 ### Images (Nuke)
 
 - Import Nuke only in `Common/Images/` and `App/`.
 - `AppDependencies` builds one `ImagePipeline` with its own `ImageCache` and a 150 MB `DataCache`. Never use `ImagePipeline.shared` or `ImageCache.shared`.
-- Presenters turn an `ImagePath` into a URL through `ImageURLProviding` and hand cells a `DisplayedArtwork`. `ArtworkView` loads it through `ImageLoading`, downsampled to the view's size, and shows a generated placeholder until then.
+- Presenters turn an `ImagePath` into a URL through `ImageURLProvider` and hand cells a `DisplayedArtwork`. `ArtworkView` loads it through `ImageLoading`, downsampled to the view's size, and shows a generated placeholder until then.
 
 ### Domain and Data Shape
 
@@ -422,6 +422,8 @@ nonisolated protocol IMovieRepository: Sendable {
 ```
 
 Domain holds only entities and ports. The code that calls ports for a screen, and combines their results, lives in that scene's Worker (see the reference scene).
+
+A Worker, and the scene factory that builds it, depends on whole repository ports: `let savedMoviesRepository: any ISavedMoviesRepository`, never a role protocol carved out of one (`any SavedMoviesObserving`). Every data dependency then reads as the `I`-prefixed port it is, even when the Worker calls only one of its members.
 
 ### Networking (Alamofire)
 
@@ -790,8 +792,10 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
   - **Presenter**: add a `ViewControllerSpy` and assert on the `ViewData` values and strings.
   - **ViewController** (for logic that matters): add an `InteractorSpy` and a `RouterSpy`, and assert on the requests and routes that user events trigger.
 - **Coordinators**: inject `SceneFactorySpy`, call the routing closure it captured, and assert on the root view controller and the scenes requested. Keep the coordinator in a stored property of the suite: its closures capture it `[weak self]`, and a local constant can be released before the closure runs.
-- Name test doubles after their protocol, dropping the `I`: `<Name>Spy` records calls and `<Name>Stub` returns canned results (`MovieListPresenterSpy` for `IMovieListPresenter`, `MovieListWorkerStub` for `IMovieListWorker`, `MovieRepositoryStub` for `IMovieRepository`). Keep them `private` to the test file. Shared ones go in `MovieAppTests/Stubs/`.
-- Test names describe behavior: `loadMoviesPresentsFetchedMovies()`.
+- Name test doubles after their protocol, dropping the `I`: `<Name>Spy` records calls and `<Name>Stub` returns canned results (`MovieListPresenterSpy` for `IMovieListPresenter`, `MovieListWorkerStub` for `IMovieListWorker`, `MovieRepositoryStub` for `IMovieRepository`, `SavedMoviesRepositoryStub` for `ISavedMoviesRepository`). Keep them `private` to the test file. Shared ones go in `MovieAppTests/Stubs/`.
+- **Shared stubs are configured, not edited**: they take a `Result` per method, defaulting to success (`MovieRepositoryStub(trending: .failure(StubError.failed))`), so a new scenario, including an error path, needs no change to the stub. A repository stub conforms to the whole port: reads answer from its canned data, and members no SUT should call (writes, `isPersistent`) call `Issue.record("Unexpected call to save(_:)")`, so an unexpected call fails the test instead of passing silently.
+- **Hold the SUT through its boundary protocol** (`let sut: any ISearchInteractor = SearchInteractor(...)`, `makeSUT() -> any IHomeWorker`), so a test can only use the contract callers use. This matters most where an implementation narrows the protocol: `SavedMoviesRepository` drops `throws`, so only a test through `any ISavedMoviesRepository` checks the contract Workers rely on. A Presenter is wired in the suite's `init` (`let presenter = SearchPresenter()`, set `viewController`, then `sut = presenter`). Keep the concrete type where there is no protocol to test through: coordinators (tests read `navigationController`), `AsyncBroadcaster`, DTOs, `TMDBEndpoint` and entities.
+- Test names describe behavior: `loadMoviesPresentsFetchedMovies()`. Each test checks one behavior; when its asserts cover several, split it.
 - **Given / When / Assert**: split each test body into blocks separated by one blank line, and open each block with its marker comment and nothing else:
   - `// Given`: inputs, stubs and the system under test.
   - `// When`: the one call under test.
@@ -800,7 +804,7 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
   - When the call has to sit inside `#expect(throws:)`, mark that block `// When & Assert`.
 - `await` async business methods directly. No sleeps and no `XCTestExpectation` for async/await code.
 - Unit tests never touch the network.
-  - **Repositories**: inject `APIServiceStub(endpoint:result:)` from `MovieAppTests/Stubs/`. It decodes the canned JSON with `TMDBJSON`, so the real DTOs and mappings run. It returns that response for any request, so repository tests check the mapping, not the request; `TMDBEndpointTests` covers how each endpoint encodes. Build it in each test's `// Given`. A caller that sends several requests gets a `private` multi-response stub in its own test file.
+  - **Repositories**: inject `APIServiceStub(endpoint:result:)` from `MovieAppTests/Stubs/`. It decodes the canned JSON with `TMDBJSON`, so the real DTOs and mappings run. It first builds both requests and fails the test through `#require` unless the method, URL and body the repository sent match the endpoint it was given, so repository tests check both the request the repository builds from its inputs and the mapping; `TMDBEndpointTests` covers how each endpoint encodes. Build it in each test's `// Given`. A caller that sends several requests gets a `private` multi-response stub in its own test file.
   - **`APIService`**: build the client with `APIService.makeStub()`, a real `Session` whose requests `URLProtocolStub` answers. Never build that `Session` by hand. `URLProtocolStub` keys responses by URL in shared static state and tests run in parallel, so each test must stub a URL no other test uses (for example, its own page number). An unstubbed URL fails like a lost connection, and `.noResponse` keeps a request in flight until it's cancelled.
   - **Interceptors**: call `adapt(_:for:completion:)` directly and assert on the adapted `URLRequest`.
 - `TMDBEndpointTests` checks every endpoint's method, URL and body through one parameterized table, `TMDBEndpointExpectation.all`. Add a row for each new case.
@@ -819,7 +823,7 @@ struct MovieListInteractorTests {
     func loadMoviesPresentsFetchedMovies() async throws {
         // Given
         let movies = [Movie(id: 1, title: "Dune", releaseDate: nil)]
-        let sut = MovieListInteractor(
+        let sut: any IMovieListInteractor = MovieListInteractor(
             presenter: presenter,
             worker: MovieListWorkerStub(result: .success(movies))
         )

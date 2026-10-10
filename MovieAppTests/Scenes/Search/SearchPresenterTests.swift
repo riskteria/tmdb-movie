@@ -4,10 +4,12 @@ import Testing
 @MainActor
 struct SearchPresenterTests {
     private let viewController = SearchViewControllerSpy()
-    private let sut = SearchPresenter()
+    private let sut: any ISearchPresenter
 
     init() {
-        sut.viewController = viewController
+        let presenter = SearchPresenter()
+        presenter.viewController = viewController
+        sut = presenter
     }
 
     @Test

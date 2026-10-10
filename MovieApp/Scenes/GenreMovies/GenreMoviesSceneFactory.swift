@@ -4,7 +4,7 @@ enum GenreMoviesSceneFactory {
     static func make(
         genre: Genre,
         movieRepository: any IMovieRepository,
-        imageURLProvider: any ImageURLProviding,
+        imageURLProvider: any ImageURLProvider,
         imageLoader: any ImageLoading,
         onSelectMovie: @escaping (Movie) -> Void
     ) -> UIViewController {

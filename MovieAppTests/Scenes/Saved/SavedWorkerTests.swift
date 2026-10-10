@@ -7,7 +7,9 @@ struct SavedWorkerTests {
     func observeSavedMoviesStreamsRepositoryChanges() async {
         // Given
         let savedMovies = [SavedMovie(movie: .fixture(id: 1), savedAt: .now)]
-        let sut = SavedWorker(savedMoviesRepository: SavedMoviesRepositoryStub(savedMovies: savedMovies))
+        let sut: any ISavedWorker = SavedWorker(
+            savedMoviesRepository: SavedMoviesRepositoryStub(savedMovies: savedMovies)
+        )
 
         // When
         let stream = await sut.observeSavedMovies()

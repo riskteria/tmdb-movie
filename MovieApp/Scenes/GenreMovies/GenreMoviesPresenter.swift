@@ -6,9 +6,9 @@ protocol IGenreMoviesPresenter {
 
 final class GenreMoviesPresenter {
     weak var viewController: (any IGenreMoviesViewController)?
-    private let imageURLProvider: any ImageURLProviding
+    private let imageURLProvider: any ImageURLProvider
 
-    init(imageURLProvider: any ImageURLProviding) {
+    init(imageURLProvider: any ImageURLProvider) {
         self.imageURLProvider = imageURLProvider
     }
 }

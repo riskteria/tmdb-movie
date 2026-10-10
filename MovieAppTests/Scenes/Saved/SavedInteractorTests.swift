@@ -21,7 +21,7 @@ struct SavedInteractorTests {
         #expect(presenter.responses.map(\.capacity) == [50, 50])
     }
 
-    private func makeSUT(emissions: [[SavedMovie]]) -> SavedInteractor {
+    private func makeSUT(emissions: [[SavedMovie]]) -> any ISavedInteractor {
         SavedInteractor(presenter: presenter, worker: SavedWorkerStub(emissions: emissions))
     }
 }

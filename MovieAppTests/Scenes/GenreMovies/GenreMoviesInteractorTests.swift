@@ -7,13 +7,10 @@ struct GenreMoviesInteractorTests {
     private let presenter = GenreMoviesPresenterSpy()
 
     @Test
-    func loadNextPageAppendsPagesInOrder() async {
+    func loadNextPageRequestsTheFollowingPage() async {
         // Given
-        let worker = GenreMoviesWorkerStub(resultsByPage: [
-            1: .success(makePage(number: 1, totalPages: 3, movieIDs: [1, 2])),
-            2: .success(makePage(number: 2, totalPages: 3, movieIDs: [3]))
-        ])
-        let sut = GenreMoviesInteractor(genreID: 28, presenter: presenter, worker: worker)
+        let worker = makeTwoPageWorker()
+        let sut = makeSUT(worker: worker)
         await sut.loadNextPage(request: .init())
 
         // When
@@ -21,7 +18,31 @@ struct GenreMoviesInteractorTests {
 
         // Assert
         #expect(worker.requestedPages == [1, 2])
+    }
+
+    @Test
+    func loadNextPagePresentsLoadingBeforeEachLoadedPage() async {
+        // Given
+        let sut = makeSUT(worker: makeTwoPageWorker())
+        await sut.loadNextPage(request: .init())
+
+        // When
+        await sut.loadNextPage(request: .init())
+
+        // Assert
         #expect(presenter.presentedStatuses == [.loading, .loaded, .loading, .loaded])
+    }
+
+    @Test
+    func loadNextPageAppendsTheNewPageToEarlierMovies() async {
+        // Given
+        let sut = makeSUT(worker: makeTwoPageWorker())
+        await sut.loadNextPage(request: .init())
+
+        // When
+        await sut.loadNextPage(request: .init())
+
+        // Assert
         #expect(presenter.lastPresentedMovieIDs == [1, 2, 3])
     }
 
@@ -31,7 +52,7 @@ struct GenreMoviesInteractorTests {
         let worker = GenreMoviesWorkerStub(resultsByPage: [
             1: .success(makePage(number: 1, totalPages: 3, movieIDs: [1]))
         ])
-        let sut = GenreMoviesInteractor(genreID: 28, presenter: presenter, worker: worker)
+        let sut = makeSUT(worker: worker)
         await sut.loadNextPage(request: .init())
         await sut.loadNextPage(request: .init())
 
@@ -51,7 +72,7 @@ struct GenreMoviesInteractorTests {
             1: .success(makePage(number: 1, totalPages: 3, movieIDs: [1, 2])),
             2: .success(makePage(number: 2, totalPages: 3, movieIDs: [2, 3]))
         ])
-        let sut = GenreMoviesInteractor(genreID: 28, presenter: presenter, worker: worker)
+        let sut = makeSUT(worker: worker)
         await sut.loadNextPage(request: .init())
 
         // When
@@ -64,11 +85,8 @@ struct GenreMoviesInteractorTests {
     @Test
     func refreshStartsPagingAgainFromTheFirstPage() async {
         // Given
-        let worker = GenreMoviesWorkerStub(resultsByPage: [
-            1: .success(makePage(number: 1, totalPages: 3, movieIDs: [1, 2])),
-            2: .success(makePage(number: 2, totalPages: 3, movieIDs: [3]))
-        ])
-        let sut = GenreMoviesInteractor(genreID: 28, presenter: presenter, worker: worker)
+        let worker = makeTwoPageWorker()
+        let sut = makeSUT(worker: worker)
         await sut.loadNextPage(request: .init())
         await sut.loadNextPage(request: .init())
 
@@ -78,6 +96,17 @@ struct GenreMoviesInteractorTests {
         // Assert
         #expect(worker.requestedPages == [1, 2, 1])
         #expect(presenter.lastPresentedMovieIDs == [1, 2])
+    }
+
+    private func makeSUT(worker: any IGenreMoviesWorker) -> any IGenreMoviesInteractor {
+        GenreMoviesInteractor(genreID: 28, presenter: presenter, worker: worker)
+    }
+
+    private func makeTwoPageWorker() -> GenreMoviesWorkerStub {
+        GenreMoviesWorkerStub(resultsByPage: [
+            1: .success(makePage(number: 1, totalPages: 3, movieIDs: [1, 2])),
+            2: .success(makePage(number: 2, totalPages: 3, movieIDs: [3]))
+        ])
     }
 
     private func makePage(number: Int, totalPages: Int, movieIDs: [Movie.ID]) -> Page<Movie> {

@@ -40,7 +40,8 @@ final class MovieDetailViewController: UIViewController {
 private extension MovieDetailViewController {
     func loadDetails() {
         loadTask?.cancel()
-        loadTask = Task { [interactor] in
+        loadTask = Task { [weak self] in
+            guard let self else { return }
             await interactor.loadDetails(request: MovieDetailModel.LoadDetails.Request())
         }
     }

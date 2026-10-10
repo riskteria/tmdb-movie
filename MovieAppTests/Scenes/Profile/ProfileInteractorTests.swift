@@ -8,7 +8,7 @@ struct ProfileInteractorTests {
         // Given
         let presenter = ProfilePresenterSpy()
         let appInfo = AppInfo(version: "1.0", build: "7")
-        let sut = ProfileInteractor(presenter: presenter, appInfo: appInfo)
+        let sut: any IProfileInteractor = ProfileInteractor(presenter: presenter, appInfo: appInfo)
 
         // When
         sut.loadProfile(request: ProfileModel.LoadProfile.Request())

@@ -5,7 +5,6 @@ protocol ProfileFactory {
     func makeProfile() -> UIViewController
 }
 
-// Week 4 adds the confirmation alerts for the clear actions.
 final class ProfileCoordinator {
     typealias Dependencies = ProfileFactory
 

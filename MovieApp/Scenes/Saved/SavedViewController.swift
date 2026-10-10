@@ -5,7 +5,6 @@ protocol ISavedViewController: AnyObject {
     func displaySavedMovies(viewData: SavedModel.ObserveSavedMovies.ViewData)
 }
 
-// Remove, swipe to delete and the storage banner arrive with Core Data in Week 4.
 final class SavedViewController: UIViewController {
     private let interactor: any ISavedInteractor
     private let router: any ISavedRouter
@@ -42,7 +41,8 @@ final class SavedViewController: UIViewController {
 private extension SavedViewController {
     func observeSavedMovies() {
         observeTask?.cancel()
-        observeTask = Task { [interactor] in
+        observeTask = Task { [weak self] in
+            guard let self else { return }
             await interactor.observeSavedMovies(request: SavedModel.ObserveSavedMovies.Request())
         }
     }

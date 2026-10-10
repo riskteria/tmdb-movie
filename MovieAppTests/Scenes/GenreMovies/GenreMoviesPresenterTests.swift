@@ -5,10 +5,12 @@ import Testing
 @MainActor
 struct GenreMoviesPresenterTests {
     private let viewController = GenreMoviesViewControllerSpy()
-    private let sut = GenreMoviesPresenter(imageURLProvider: ImageURLProvidingStub())
+    private let sut: any IGenreMoviesPresenter
 
     init() {
-        sut.viewController = viewController
+        let presenter = GenreMoviesPresenter(imageURLProvider: ImageURLProviderStub())
+        presenter.viewController = viewController
+        sut = presenter
     }
 
     @Test
@@ -34,12 +36,55 @@ struct GenreMoviesPresenterTests {
     }
 
     @Test
+    func loadingNextPageShowsSpinnerFooter() {
+        // When
+        sut.presentMovies(response: .init(movies: [.fixture()], status: .loading))
+
+        // Assert
+        #expect(viewController.displayedViewData.last?.footer == .spinner)
+    }
+
+    @Test
+    func failedNextPageShowsRetryFooter() {
+        // When
+        sut.presentMovies(response: .init(movies: [.fixture()], status: .failed))
+
+        // Assert
+        #expect(viewController.displayedViewData.last?.footer == .retry(message: "Couldn’t load more movies"))
+    }
+
+    @Test
+    func loadingFirstPageShowsFullScreenLoading() {
+        // When
+        sut.presentMovies(response: .init(movies: [], status: .loading))
+
+        // Assert
+        #expect(viewController.displayedViewData == [.loading])
+    }
+
+    @Test
     func failedFirstPageShowsFullScreenFailure() {
         // When
         sut.presentMovies(response: .init(movies: [], status: .failed))
 
         // Assert
         #expect(viewController.displayedViewData == [.failure(message: "Unable to load movies")])
+    }
+
+    @Test
+    func loadedEmptyGenreShowsEmptyState() {
+        // When
+        sut.presentMovies(response: .init(movies: [], status: .loaded))
+
+        // Assert
+        #expect(viewController.displayedViewData == [.empty(message: "No movies in this genre yet")])
+    }
+}
+
+@MainActor
+private extension GenreMoviesModel.LoadNextPage.ViewData {
+    var footer: GenreMoviesModel.LoadMoreFooter? {
+        if case .content(_, let footer) = self { footer } else { nil }
     }
 }
 

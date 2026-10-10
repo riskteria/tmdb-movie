@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 struct TMDBImageURLProviderTests {
-    private let sut = TMDBImageURLProvider()
+    private let sut: any ImageURLProvider = TMDBImageURLProvider()
 
     @Test(
         arguments: [

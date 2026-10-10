@@ -1,22 +1,18 @@
-import Alamofire
 import Foundation
 @testable import MovieApp
+import Testing
 
 struct APIServiceStub: IAPIService {
     let endpoint: TMDBEndpoint
     let result: Result<String, any Error>
 
-    func request<Response: Decodable & Sendable>(_ endpoint: MovieApp.TMDBEndpoint) async throws -> Response {
-        let request = try endpoint.asURLRequest()
-        let expected = try request.asURLRequest()
+    func request<Response: Decodable & Sendable>(_ requestedEndpoint: TMDBEndpoint) async throws -> Response {
+        let request = try requestedEndpoint.asURLRequest()
+        let expected = try endpoint.asURLRequest()
 
-        guard
-            request.httpMethod == expected.httpMethod,
-            request.url == expected.url,
-            request.httpBody == expected.httpBody
-        else {
-            throw StubError.failed
-        }
+        try #require(request.httpMethod == expected.httpMethod)
+        try #require(request.url == expected.url)
+        try #require(request.httpBody == expected.httpBody)
 
         return try TMDBJSON.decode(Response.self, from: result.get())
     }

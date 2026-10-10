@@ -1,6 +1,5 @@
 import Foundation
 
-// Keeps saved movies in memory. Week 4 replaces it with CoreDataSavedMoviesRepository.
 actor SavedMoviesRepository {
     nonisolated let isPersistent = false
     private var savedMovies: [SavedMovie]

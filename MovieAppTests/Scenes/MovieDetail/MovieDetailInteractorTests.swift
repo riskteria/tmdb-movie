@@ -49,7 +49,7 @@ struct MovieDetailInteractorTests {
         #expect(presenter.responses.count == 1)
     }
 
-    private func makeSUT(result: Result<MovieDetails, any Error>) -> MovieDetailInteractor {
+    private func makeSUT(result: Result<MovieDetails, any Error>) -> any IMovieDetailInteractor {
         MovieDetailInteractor(
             movie: movie,
             presenter: presenter,

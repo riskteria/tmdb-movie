@@ -5,11 +5,13 @@ import Testing
 @MainActor
 struct MovieDetailPresenterTests {
     private let viewController = MovieDetailViewControllerSpy()
-    private let sut = MovieDetailPresenter(imageURLProvider: ImageURLProvidingStub())
+    private let sut: any IMovieDetailPresenter
     private let movie = Movie.fixture(backdropPath: ImagePath(rawValue: "/dune.jpg"))
 
     init() {
-        sut.viewController = viewController
+        let presenter = MovieDetailPresenter(imageURLProvider: ImageURLProviderStub())
+        presenter.viewController = viewController
+        sut = presenter
     }
 
     @Test

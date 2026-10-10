@@ -5,7 +5,7 @@ final class AppDependencies {
     private static let imageDiskCacheSize = 150 * 1024 * 1024
 
     private let imageLoader: any ImageLoading
-    private let imageURLProvider: any ImageURLProviding = TMDBImageURLProvider()
+    private let imageURLProvider: any ImageURLProvider = TMDBImageURLProvider()
     private let movieRepository: any IMovieRepository
     private let genreRepository: any IGenreRepository
     private let savedMoviesRepository: any ISavedMoviesRepository = SavedMoviesRepository()

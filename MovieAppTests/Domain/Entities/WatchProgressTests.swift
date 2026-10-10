@@ -9,6 +9,14 @@ struct WatchProgressTests {
 
         // Assert
         #expect(progress.progress == 0.25)
+    }
+
+    @Test
+    func remainingIsDurationMinusPosition() {
+        // Given
+        let progress = WatchProgress.fixture(position: .seconds(30), duration: .seconds(120))
+
+        // Assert
         #expect(progress.remaining == .seconds(90))
     }
 
@@ -28,6 +36,14 @@ struct WatchProgressTests {
 
         // Assert
         #expect(progress.progress == 1)
+    }
+
+    @Test
+    func remainingIsZeroWhenPositionPassesDuration() {
+        // Given
+        let progress = WatchProgress.fixture(position: .seconds(130), duration: .seconds(120))
+
+        // Assert
         #expect(progress.remaining == .zero)
     }
 

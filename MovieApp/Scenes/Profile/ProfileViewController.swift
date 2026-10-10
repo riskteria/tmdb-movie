@@ -5,7 +5,6 @@ protocol IProfileViewController: AnyObject {
     func displayProfile(viewData: ProfileModel.LoadProfile.ViewData)
 }
 
-// The rows are sliced but not interactive yet: the clear actions and Appearance land in Week 4.
 final class ProfileViewController: UIViewController {
     private let interactor: any IProfileInteractor
     private var headers: [ProfileModel.Section: String] = [:]

@@ -2,7 +2,6 @@ protocol IMovieDetailInteractor {
     func loadDetails(request: MovieDetailModel.LoadDetails.Request) async
 }
 
-// A Week 1 stub: the header and overview. Watch, Save, cast, videos and More Like This follow.
 final class MovieDetailInteractor {
     private let movie: Movie
     private let presenter: any IMovieDetailPresenter

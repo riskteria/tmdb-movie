@@ -23,7 +23,7 @@ final class MovieDetailFlow {
         if transition == .zoom, !UIAccessibility.isReduceMotionEnabled {
             let movieID = movie.id
             detail.preferredTransition = .zoom { context -> UIView? in
-                let source = context.sourceViewController as? any ZoomTransitionSourceProviding
+                let source = context.sourceViewController as? any ZoomTransitionSourceProvider
                 return source?.zoomTransitionSourceView(for: movieID)
             }
         }

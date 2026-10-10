@@ -6,9 +6,9 @@ protocol ISavedPresenter {
 
 final class SavedPresenter {
     weak var viewController: (any ISavedViewController)?
-    private let imageURLProvider: any ImageURLProviding
+    private let imageURLProvider: any ImageURLProvider
 
-    init(imageURLProvider: any ImageURLProviding) {
+    init(imageURLProvider: any ImageURLProvider) {
         self.imageURLProvider = imageURLProvider
     }
 }

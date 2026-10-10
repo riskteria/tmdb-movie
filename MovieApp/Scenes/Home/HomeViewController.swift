@@ -83,7 +83,8 @@ private extension HomeViewController {
             contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
         }
 
-        loadTask = Task { [interactor] in
+        loadTask = Task { [weak self] in
+            guard let self else { return }
             await interactor.loadHome(request: HomeModel.LoadHome.Request())
         }
     }
@@ -117,9 +118,7 @@ private extension HomeViewController {
         let isBehind = offset < (heroCell?.bounds.height ?? 0) - view.safeAreaInsets.top
         guard isBehind != isHeroBehindStatusBar else { return }
         isHeroBehindStatusBar = isBehind
-        #if os(iOS)
         setNeedsStatusBarAppearanceUpdate()
-        #endif
     }
 
     func sectionTitle(at sectionIndex: Int) -> String {
@@ -158,8 +157,8 @@ extension HomeViewController: IHomeViewController {
     }
 }
 
-// MARK: - ZoomTransitionSourceProviding
-extension HomeViewController: ZoomTransitionSourceProviding {
+// MARK: - ZoomTransitionSourceProvider
+extension HomeViewController: ZoomTransitionSourceProvider {
     func zoomTransitionSourceView(for movieID: Movie.ID) -> UIView? {
         movieID == zoomSourceMovieID ? zoomSourceView : nil
     }

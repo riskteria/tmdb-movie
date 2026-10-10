@@ -4,10 +4,12 @@ import Testing
 @MainActor
 struct ProfilePresenterTests {
     private let viewController = ProfileViewControllerSpy()
-    private let sut = ProfilePresenter()
+    private let sut: any IProfilePresenter
 
     init() {
-        sut.viewController = viewController
+        let presenter = ProfilePresenter()
+        presenter.viewController = viewController
+        sut = presenter
         sut.presentProfile(response: ProfileModel.LoadProfile.Response(appInfo: AppInfo(version: "1.0", build: "7")))
     }
 

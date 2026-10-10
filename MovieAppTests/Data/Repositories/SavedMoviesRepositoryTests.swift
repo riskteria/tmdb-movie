@@ -4,28 +4,30 @@ import Testing
 
 struct SavedMoviesRepositoryTests {
     @Test
-    func saveListsNewestFirstAndMovesResavedMovieToTop() async {
+    func saveListsNewestFirstAndMovesResavedMovieToTop() async throws {
         // Given
-        let sut = SavedMoviesRepository(savedMovies: [])
+        let sut: any ISavedMoviesRepository = SavedMoviesRepository(savedMovies: [])
 
         // When
-        await sut.save(.fixture(id: 1))
-        await sut.save(.fixture(id: 2))
-        await sut.save(.fixture(id: 1))
+        try await sut.save(.fixture(id: 1))
+        try await sut.save(.fixture(id: 2))
+        try await sut.save(.fixture(id: 1))
 
         // Assert
-        #expect(await sut.all().map(\.id) == [1, 2])
+        #expect(try await sut.all().map(\.id) == [1, 2])
     }
 
     @Test
-    func changesStartWithCurrentListThenReportRemovals() async {
+    func changesStartWithCurrentListThenReportRemovals() async throws {
         // Given
-        let sut = SavedMoviesRepository(savedMovies: [SavedMovie(movie: .fixture(id: 1), savedAt: .now)])
+        let sut: any ISavedMoviesRepository = SavedMoviesRepository(
+            savedMovies: [SavedMovie(movie: .fixture(id: 1), savedAt: .now)]
+        )
         var changes = await sut.changes.makeAsyncIterator()
 
         // When
         let initial = await changes.next(isolation: #isolation)
-        await sut.remove(1)
+        try await sut.remove(1)
         let afterRemoval = await changes.next(isolation: #isolation)
 
         // Assert
@@ -36,7 +38,7 @@ struct SavedMoviesRepositoryTests {
     @Test
     func reportsThatItDoesNotPersist() {
         // Given
-        let sut = SavedMoviesRepository()
+        let sut: any ISavedMoviesRepository = SavedMoviesRepository(savedMovies: [])
 
         // Assert
         #expect(!sut.isPersistent)

@@ -14,7 +14,7 @@ nonisolated extension DisplayedArtwork {
         size: ImageSize,
         placeholderSeed: Int,
         placeholderTitle: String?,
-        imageURLProvider: any ImageURLProviding
+        imageURLProvider: any ImageURLProvider
     ) {
         self.init(
             url: path.flatMap { imageURLProvider.url(for: $0, size: size) },

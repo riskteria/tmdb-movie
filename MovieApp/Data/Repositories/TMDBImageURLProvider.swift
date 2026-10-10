@@ -2,8 +2,8 @@ import Foundation
 
 nonisolated struct TMDBImageURLProvider {}
 
-// MARK: - ImageURLProviding
-nonisolated extension TMDBImageURLProvider: ImageURLProviding {
+// MARK: - ImageURLProvider
+nonisolated extension TMDBImageURLProvider: ImageURLProvider {
     private static let baseURL = "https://image.tmdb.org/t/p/"
 
     func url(for path: ImagePath, size: ImageSize) -> URL? {

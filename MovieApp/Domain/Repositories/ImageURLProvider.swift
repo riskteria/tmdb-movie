@@ -1,5 +1,5 @@
 import Foundation
 
-nonisolated protocol ImageURLProviding: Sendable {
+nonisolated protocol ImageURLProvider: Sendable {
     func url(for path: ImagePath, size: ImageSize) -> URL?
 }

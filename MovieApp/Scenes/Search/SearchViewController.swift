@@ -40,16 +40,18 @@ private extension SearchViewController {
     func loadGenres() {
         loadTask?.cancel()
         contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
-        loadTask = Task { [interactor] in
+        loadTask = Task { [weak self] in
+            guard let self else { return }
             await interactor.loadGenres(request: SearchModel.LoadGenres.Request())
         }
     }
 
     func refreshGenres() {
         loadTask?.cancel()
-        loadTask = Task { [weak self, interactor] in
+        loadTask = Task { [weak self] in
+            guard let self else { return }
             await interactor.loadGenres(request: SearchModel.LoadGenres.Request())
-            self?.collectionView.refreshControl?.endRefreshing()
+            collectionView.refreshControl?.endRefreshing()
         }
     }
 }

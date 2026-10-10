@@ -6,9 +6,9 @@ protocol IMovieDetailPresenter {
 
 final class MovieDetailPresenter {
     weak var viewController: (any IMovieDetailViewController)?
-    private let imageURLProvider: any ImageURLProviding
+    private let imageURLProvider: any ImageURLProvider
 
-    init(imageURLProvider: any ImageURLProviding) {
+    init(imageURLProvider: any ImageURLProvider) {
         self.imageURLProvider = imageURLProvider
     }
 }
