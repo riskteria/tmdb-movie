@@ -90,7 +90,7 @@ SOLID in practice:
 - One reason to change per type.
 - Small role protocols (`IMovieListInteractor`), not large ones.
 - Depend on protocols and inject them through `init`.
-- No singletons, no service locators, no global mutable state. The one exception is `AppConfigs.shared` (build-time keys). `AppDependencies` creates the one `APIService` (the one network session) and injects it into the repositories.
+- No singletons, no service locators, no global mutable state. The one exception is `AppConfigs.shared` (build-time keys). `AppDependencies` creates the one `APIService` (the one network session) and injects it into the repositories. The only other session is the test-only `CallbackAPIService` (see Networking).
 
 ### Project Structure
 
@@ -104,11 +104,12 @@ Modules/
 └── Networking/             Local Swift package, module `Networking`: the TMDB API client. Depends on Alamofire
     ├── Package.swift
     ├── Sources/Networking/
-    │   ├── Client/         IAPIService + APIService (Alamofire), NetworkError, ReadAccessTokenInterceptor
+    │   ├── Client/         IAPIService + APIService (Alamofire), NetworkError, ReadAccessTokenInterceptor,
+    │   │                   APIResponseLogger, and the test-only ICallbackAPIService + CallbackAPIService, APIRequestHandle
     │   ├── Endpoints/      TMDBEndpoint
     │   └── DTOs/           <Name>DTO per endpoint (wire types only), grouped in Movie/, Auth/, Account/, Shared/
     └── Tests/NetworkingTests/
-                            Mirrors Sources/Networking/, plus Stubs/ (URLProtocolStub, APIService.makeStub()) and
+                            Mirrors Sources/Networking/, plus Stubs/ (URLProtocolStub, APIService.makeStub(), CallbackAPIService.makeStub()) and
                             Fixtures/ (TMDBJSON)
 MovieApp/
 ├── App/                    AppDelegate, SceneDelegate, AppDependencies
@@ -140,7 +141,7 @@ MovieApp/
 ├── Resources/              Localizable.xcstrings
 ├── Assets.xcassets         AccentColor, AppIcon
 └── Info.plist
-MovieAppTests/              Mirrors MovieApp/, plus Stubs/ (shared stubs and spies, APIServiceStub) and Fixtures/
+MovieAppTests/              Mirrors MovieApp/, plus Stubs/ (shared stubs and spies, APIServiceStub, CallbackAPIServiceStub) and Fixtures/
                             (Domain fixtures, JSONFixture, TMDBJSON, and JSON/ with the canned TMDB responses)
 tmdb-movie-ds (remote SPM)  MovieAppDS design system package: MVFonts, MVColors, Spacing, Radius, ArtworkPalette,
                             NavigationBarStyle, button configurations, the Lexend fonts and the color catalog
@@ -175,7 +176,7 @@ Rules:
 - Inject every dependency through `init` into a `private let`. Never use `var interactor: IMovieListInteractor!`.
 - Each scene use case (one `Request` / `Response` / `ViewData` triple) gets one method on each boundary: `loadMovies(request:)` → `presentMovies(response:)` → `displayMovies(viewData:)`. The Worker's methods are named for the data they fetch (`fetchPopularMovies(page:)`).
 - Name types `<Scene><Role>`. Put one type per file, with the type's boundary protocol in the same file. The models namespace is `enum <Scene>Model` in `<Scene>Models.swift`, and what the Presenter hands the ViewController is a `ViewData`, passed as `display…(viewData:)`.
-- Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is for scene protocols, repository ports (`IMovieRepository`, implemented by `MovieRepository`) and `IAPIService` (see Networking) only. Other protocols keep role names (`ImageLoading`, `ImageURLProvider`). A protocol that supplies something is named `<Thing>Provider` (`ImageURLProvider`, `ZoomTransitionSourceProvider`), never `<Thing>Providing`; only Apple's own protocols (`ASWebAuthenticationPresentationContextProviding`) keep that suffix.
+- Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is for scene protocols, repository ports (`IMovieRepository`, implemented by `MovieRepository`) and `IAPIService` / `ICallbackAPIService` (see Networking) only. Other protocols keep role names (`ImageLoading`, `ImageURLProvider`). A protocol that supplies something is named `<Thing>Provider` (`ImageURLProvider`, `ZoomTransitionSourceProvider`), never `<Thing>Providing`; only Apple's own protocols (`ASWebAuthenticationPresentationContextProviding`) keep that suffix.
 - **Workers are `nonisolated` and `Sendable`**: `nonisolated protocol I<Scene>Worker: Sendable` and `nonisolated struct <Scene>Worker`, with the conformance in a `nonisolated extension`. Interactors call them from child tasks (`async let`), and a nonisolated async method still runs on the Interactor's main actor when called directly. One Worker per scene; two scenes that need the same port each call it, and shared behavior such as caching belongs in a repository decorator.
 - Scenes never reach each other. The ViewController passes the data a route needs to its Router as a parameter, and the Router hands it to a coordinator closure (`onSelectMovie(Movie)`); the coordinator builds and shows the next scene. There is no data store, and a Router never depends on the Interactor. This keeps routers free of UIKit and state, and testable with a closure spy.
 - **Route data travels in the `ViewData`**: a displayed item the user can open carries the Domain entity its route needs (`let movie: Movie`, with `id` computed from it), so the ViewController can pass it on without asking the Interactor. Tapping, and anything else that only navigates, is not an Interactor use case.
@@ -451,14 +452,15 @@ The network layer is the `Networking` module, a local Swift package in `Modules/
 #### Client
 
 - **Confine Alamofire** to the `Networking` module and its tests. Only `Data/Repositories/` and `App/` `import Networking` (lint rule `no_networking_outside_data`). Repositories take `any IAPIService` through `init` and use `TMDBEndpoint`, the DTOs and `NetworkError`. They never see `APIService` or a `Session`.
-- **One shared client**: `AppDependencies` creates the app's only `APIService` with `APIService(readAccessToken: AppConfigs.shared.tmdbReadAccessToken)`, which builds the `Session` and its `ReadAccessTokenInterceptor` inside the module, and passes it to every repository's `init`. Tests build their own client with `APIService.makeStub()`. Never use `AF` or `Session.default`.
-- **Public API**: mark `public` only what the app uses: `IAPIService`, `APIService` and `init(readAccessToken:)`, `NetworkError`, `TMDBEndpoint` and `asURLRequest()`, and every DTO type, typealias and stored property (public enum cases need public associated types). Everything that takes an Alamofire type stays internal (`APIService.init(configuration:interceptor:)`, `NetworkError.init(_:)`, the interceptors), and so do `method`, `path`, `parameters`, `body` and `authorization`. A `Parameters` or `Request` that a repository builds gets an explicit `public init` that mirrors the memberwise one (same labels, order and defaults). Tests reach internals with `@testable import Networking`.
+- **One shared client**: `AppDependencies` creates the app's only `APIService` with `APIService(readAccessToken: AppConfigs.shared.tmdbReadAccessToken)`, which builds the `Session` and its `ReadAccessTokenInterceptor` inside the module, and passes it to every repository's `init`. Tests build their own client with `APIService.makeStub()`. The one other client is the test-only `CallbackAPIService` below. Never use `AF` or `Session.default`.
+- **Public API**: mark `public` only what the app uses: `IAPIService`, `APIService` and `init(readAccessToken:)`, `ICallbackAPIService`, `CallbackAPIService` and `init(readAccessToken:)`, `APIRequestHandle` and `cancel()`, `NetworkError`, `TMDBEndpoint` and `asURLRequest()`, and every DTO type, typealias and stored property (public enum cases need public associated types). Everything that takes an Alamofire type stays internal (`APIService.init(configuration:interceptor:)`, `CallbackAPIService.init(configuration:interceptor:)`, `NetworkError.init(_:)`, the interceptors), and so do `method`, `path`, `parameters`, `body` and `authorization`. A `Parameters` or `Request` that a repository builds gets an explicit `public init` that mirrors the memberwise one (same labels, order and defaults). Tests reach internals with `@testable import Networking`.
 - **Calling an endpoint**: `let page: SearchMoviesDTO.Response = try await apiService.request(.searchMovies(parameters: .init(query: query)))`, then map it to Domain entities in the repository (see DTOs > Mapping).
 - **Async API only**: use `serializingDecodable(_:decoder:)` with `.response`, `.result` or `.value`. Never use the `response…` completion-handler methods. Always call `.validate()` so non-2xx statuses fail.
+- **Callback client (test-only)**: `CallbackAPIService` (`ICallbackAPIService`) is the one exception to async-only. It mirrors `APIService` on `responseDecodable(of:decoder:completionHandler:)`, delivers `Result<Response, any Error>` (failing with `NetworkError` or `CancellationError`) on the main queue, and returns an `APIRequestHandle` to cancel. It exists to compare a callback chain with the async one, through `CallbackGenreRepository`, `SearchCallbackWorker` and `SearchInteractor.loadGenresUsingCallback`. `AppDependencies` builds that chain (its own `CallbackAPIService`, so a second `Session`) because `SearchInteractor` requires a callback Worker, but no screen calls `loadGenresUsingCallback`. Don't route other repositories through it.
 - **Decoding is already off the main actor**: Alamofire decodes on its serialization queue, so `APIService` needs no `@concurrent` decode step.
 - **Cancellation**: `serializingDecodable` cancels the request when the calling `Task` is cancelled (`automaticallyCancelling` defaults to `true`). It reports this as `AFError.explicitlyCancelled`, so `APIService` rethrows it as `CancellationError` and the Interactor's `catch is CancellationError` keeps working.
 - **Errors**: `AFError` never leaves `APIService`. Map it to `NetworkError`.
-- **Debug logging**: in Debug builds `APIService` logs each request and response (method, URL, status, headers, body) through `os.Logger`, category `network`, with the `Authorization` header redacted. Keep that redaction for any header you start logging.
+- **Debug logging**: in Debug builds `APIService` and `CallbackAPIService` log, through the shared internal `APIResponseLogger`, each request and response (method, URL, status, headers, body) through `os.Logger`, category `network`, with the `Authorization` header redacted. Keep that redaction for any header you start logging.
 
 ```swift
 import Alamofire
@@ -491,6 +493,7 @@ public nonisolated protocol IAPIService: Sendable {
 public nonisolated final class APIService: Sendable {
     private let session: Session
     private let decoder: JSONDecoder
+    private let responseLogger = APIResponseLogger()
 
     public convenience init(readAccessToken: String) {
         self.init(interceptor: ReadAccessTokenInterceptor(token: readAccessToken))
@@ -511,7 +514,7 @@ nonisolated extension APIService: IAPIService {
             .validate()
             .serializingDecodable(Response.self, decoder: decoder)
             .response
-        log(response, for: endpoint)
+        responseLogger.log(response, for: endpoint)
 
         switch response.result {
         case .success(let value):
@@ -525,7 +528,7 @@ nonisolated extension APIService: IAPIService {
 }
 ```
 
-`log(_:for:)` lives in a `private nonisolated extension APIService` (see `APIService.swift`).
+The logging lives in the internal `APIResponseLogger` (`Client/APIResponseLogger.swift`), shared by both clients.
 
 #### Endpoint Enum
 
@@ -682,7 +685,7 @@ public nonisolated enum CreateSessionFromAccessTokenDTO {
   - `.userAccessToken` for the v4 account lists.
   - `.readAccessToken`, the app's API read token, for everything else, including the v4 auth calls and the v3 writes.
 - **Attaching the token**: do it in a `RequestInterceptor` in the `Networking` module (`Sources/Networking/Client/`), never by setting the header by hand. Pass the read-token interceptor to `Session(interceptor:)`. `APIService` passes the user-token interceptor per request (`session.request(endpoint, interceptor:)`) when `endpoint.authorization == .userAccessToken`.
-- **Callback exception**: Alamofire's interceptor API is callback-based. Implementing it is the one allowed exception to the no-completion-handler rule.
+- **Callback exception**: Alamofire's interceptor API is callback-based. Implementing it is one of the two allowed exceptions (see Concurrency) to the no-completion-handler rule.
 
 ## Concurrency
 
@@ -697,7 +700,7 @@ public nonisolated enum CreateSessionFromAccessTokenDTO {
   - **Diffable data source identifiers must be `nonisolated` + `Hashable` + `Sendable`**, like `MovieListModel.DisplayedMovie`. Without that you get the compile error `main actor-isolated conformance ... cannot satisfy conformance requirement for a 'Sendable' type parameter`.
   - A `nonisolated async` function runs on the caller's actor. Put CPU-heavy work (image processing, decoding outside `APIService`) in `@concurrent` functions so it leaves the main actor.
 - Use async/await everywhere:
-  - No completion handlers, GCD (`DispatchQueue`), Combine or `OperationQueue`. The one exception is implementing Alamofire's `RequestInterceptor`.
+  - No completion handlers, GCD (`DispatchQueue`), Combine or `OperationQueue`. The exceptions are implementing Alamofire's `RequestInterceptor` and the test-only callback chain for Search genres (`CallbackAPIService` → `CallbackGenreRepository` → `SearchCallbackWorker`, bridged once with `withCheckedThrowingContinuation` in `SearchInteractor.loadGenresUsingCallback`), which `AppDependencies` builds but no screen calls.
   - Use Alamofire's async API (`serializingDecodable`), not its `response…` handlers.
   - Bridge other callback APIs with `withCheckedThrowingContinuation`.
   - Use `AsyncStream` / `AsyncSequence` for streams of values.
@@ -737,7 +740,7 @@ SwiftLint enforces most of these rules. You are responsible for the rest.
   - Keep acronyms in uniform case (`movieID`, `urlString`).
   - Booleans read as assertions (`isLoading`, `hasNextPage`).
   - Factory methods start with `make`.
-  - Scene boundary protocols, repository ports (`IMovieRepository`) and `IAPIService` take an `I` prefix. This is a project rule; see VIP Scene.
+  - Scene boundary protocols, repository ports (`IMovieRepository`), `IAPIService` and `ICallbackAPIService` take an `I` prefix. This is a project rule; see VIP Scene.
   - Delegate methods take the source object as an unnamed first parameter.
   - Use US English.
 - **Organization**:
@@ -823,7 +826,7 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
 - `await` async business methods directly. No sleeps and no `XCTestExpectation` for async/await code.
 - Unit tests never touch the network.
   - **Repositories**: inject `APIServiceStub(endpoint:result:)` from `MovieAppTests/Stubs/`. It decodes the canned JSON with `TMDBJSON`, so the real DTOs and mappings run. It first builds both requests and fails the test through `#require` unless the method, URL and body the repository sent match the endpoint it was given, so repository tests check both the request the repository builds from its inputs and the mapping; `TMDBEndpointTests` covers how each endpoint encodes. Build it in each test's `// Given`. A caller that sends several requests gets a `private` multi-response stub in its own test file.
-  - **`APIService`**: build the client with `APIService.makeStub()` (in `NetworkingTests/Stubs/`), a real `Session` whose requests `URLProtocolStub` answers. Never build that `Session` by hand. `URLProtocolStub` keys responses by URL in shared static state and tests run in parallel, so each test must stub a URL no other test uses (for example, its own page number). An unstubbed URL fails like a lost connection, and `.noResponse` keeps a request in flight until it's cancelled.
+  - **`APIService`**: build the client with `APIService.makeStub()` (in `NetworkingTests/Stubs/`), a real `Session` whose requests `URLProtocolStub` answers. Never build that `Session` by hand. `URLProtocolStub` keys responses by URL in shared static state and tests run in parallel, so each test must stub a URL no other test uses (for example, its own page number: `APIServiceTests` use Popular pages 1–5, `CallbackAPIServiceTests` 101–105). An unstubbed URL fails like a lost connection, and `.noResponse` keeps a request in flight until it's cancelled.
   - **Interceptors**: call `adapt(_:for:completion:)` directly and assert on the adapted `URLRequest`.
 - `TMDBEndpointTests` checks every endpoint's method, URL and body through one parameterized table, `TMDBEndpointExpectation.all`. Add a row for each new case.
 - Repository tests read each canned response from `MovieAppTests/Fixtures/JSON/<name>.json` through `JSONFixture.named(_:)`, which takes a `JSONFixture.JSONFiles` case (add one per file). One file per response shape, holding only the required fields and the ones a test asserts. Synchronized folders copy resources to the bundle root, so file names must be unique across the test target. An inline JSON string is fine for a one-off edge case. `TMDBJSON.decode(_:from:)` decodes either with the same `.convertFromSnakeCase` strategy as `APIService`. Each test target has its own five-line copy of it; keep both on that strategy.
