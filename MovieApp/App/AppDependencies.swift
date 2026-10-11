@@ -11,6 +11,7 @@ final class AppDependencies {
     private let genreRepository: any IGenreRepository
     private let savedMoviesRepository: any ISavedMoviesRepository = SavedMoviesRepository()
     private let watchProgressRepository: any IWatchProgressRepository = WatchProgressRepository()
+    let appearanceRepository: any IAppearanceRepository = AppearanceRepository()
 
     init() {
         var configuration = ImagePipeline.Configuration.withDataCache(
@@ -76,7 +77,7 @@ extension AppDependencies: SavedFactory {
 // MARK: - ProfileFactory
 extension AppDependencies: ProfileFactory {
     func makeProfile() -> UIViewController {
-        ProfileSceneFactory.make(appInfo: Self.makeAppInfo(from: .main))
+        ProfileSceneFactory.make(appInfo: Self.makeAppInfo(from: .main), appearanceRepository: appearanceRepository)
     }
 }
 

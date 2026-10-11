@@ -10,7 +10,9 @@ struct ProfilePresenterTests {
         let presenter = ProfilePresenter()
         presenter.viewController = viewController
         sut = presenter
-        sut.presentProfile(response: ProfileModel.LoadProfile.Response(appInfo: AppInfo(version: "1.0", build: "7")))
+        sut.presentProfile(
+            response: ProfileModel.LoadProfile.Response(appInfo: AppInfo(version: "1.0", build: "7"), theme: .dark)
+        )
     }
 
     @Test
@@ -37,6 +39,28 @@ struct ProfilePresenterTests {
             .clearWatchHistory(title: "Clear watch history")
         ]
         #expect(dataRows == expected)
+    }
+
+    @Test
+    func presentProfileListsEveryTheme() throws {
+        // Assert
+        let options = try appearanceOptions()
+        #expect(options.map(\.title) == ["System", "Light", "Dark"])
+    }
+
+    @Test
+    func presentProfileMarksSelectedTheme() throws {
+        // Assert
+        let options = try appearanceOptions()
+        #expect(options.filter(\.isSelected).map(\.theme) == [.dark])
+    }
+}
+
+private extension ProfilePresenterTests {
+    func appearanceOptions() throws -> [ProfileModel.DisplayedThemeOption] {
+        let rows = viewController.displayedViewData.last?.sections.first { $0.section == .preferences }?.rows ?? []
+        guard case let .appearance(_, options) = try #require(rows.first) else { return [] }
+        return options
     }
 }
 

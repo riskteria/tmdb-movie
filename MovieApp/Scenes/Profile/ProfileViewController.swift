@@ -8,6 +8,8 @@ protocol IProfileViewController: AnyObject {
 final class ProfileViewController: UIViewController {
     private let interactor: any IProfileInteractor
     private var headers: [ProfileModel.Section: String] = [:]
+    private var loadTask: Task<Void, Never>?
+    private var changeAppearanceTask: Task<Void, Never>?
 
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
@@ -21,11 +23,42 @@ final class ProfileViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    isolated deinit {
+        loadTask?.cancel()
+        changeAppearanceTask?.cancel()
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = String(localized: "Profile")
         setUpLayout()
-        interactor.loadProfile(request: ProfileModel.LoadProfile.Request())
+        loadProfile()
+    }
+}
+
+private extension ProfileViewController {
+    func loadProfile() {
+        loadTask?.cancel()
+        loadTask = Task { [interactor] in
+            await interactor.loadProfile(request: ProfileModel.LoadProfile.Request())
+        }
+    }
+
+    func changeAppearance(to theme: AppTheme) {
+        changeAppearanceTask?.cancel()
+        changeAppearanceTask = Task { [interactor] in
+            await interactor.changeAppearance(request: ProfileModel.ChangeAppearance.Request(theme: theme))
+        }
+    }
+
+    func makeAccessories(for row: ProfileModel.Row) -> [UICellAccessory] {
+        guard case let .appearance(_, options) = row else { return [] }
+        let actions = options.map { option in
+            UIAction(title: option.title, state: option.isSelected ? .on : .off) { [weak self] _ in
+                self?.changeAppearance(to: option.theme)
+            }
+        }
+        return [.popUpMenu(UIMenu(children: actions))]
     }
 }
 
@@ -71,8 +104,9 @@ private extension ProfileViewController {
 
     func makeDataSource() -> UICollectionViewDiffableDataSource<ProfileModel.Section, ProfileModel.Row> {
         typealias RowRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, ProfileModel.Row>
-        let rowRegistration = RowRegistration { cell, _, row in
+        let rowRegistration = RowRegistration { [weak self] cell, _, row in
             cell.contentConfiguration = Self.makeContentConfiguration(for: row)
+            cell.accessories = self?.makeAccessories(for: row) ?? []
             var background = UIBackgroundConfiguration.listCell()
             background.backgroundColor = .MVColor(.backgroundSecondary)
             cell.backgroundConfiguration = background
@@ -114,8 +148,8 @@ private extension ProfileViewController {
             return styled(makeCell(title: title, systemImage: "trash"), isDestructive: true)
         case .clearWatchHistory(let title):
             return styled(makeCell(title: title, systemImage: "clock.arrow.circlepath"), isDestructive: true)
-        case let .appearance(title, value):
-            return styled(makeCell(title: title, value: value, systemImage: "circle.lefthalf.filled"))
+        case .appearance(let title, _):
+            return styled(makeCell(title: title, systemImage: "circle.lefthalf.filled"))
         case let .version(title, value):
             return styled(makeCell(title: title, value: value, systemImage: "info.circle"))
         case .attribution(let text):

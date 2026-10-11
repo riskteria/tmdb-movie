@@ -6,11 +6,17 @@ enum ProfileModel {
         case about
     }
 
+    nonisolated struct DisplayedThemeOption: Hashable, Sendable {
+        let theme: AppTheme
+        let title: String
+        let isSelected: Bool
+    }
+
     nonisolated enum Row: Hashable, Sendable {
         case guest(title: String, message: String)
         case clearSavedData(title: String)
         case clearWatchHistory(title: String)
-        case appearance(title: String, value: String)
+        case appearance(title: String, options: [DisplayedThemeOption])
         case version(title: String, value: String)
         case attribution(text: String)
     }
@@ -26,10 +32,17 @@ enum ProfileModel {
 
         struct Response {
             let appInfo: AppInfo
+            let theme: AppTheme
         }
 
         struct ViewData: Equatable {
             let sections: [DisplayedSection]
+        }
+    }
+
+    enum ChangeAppearance {
+        struct Request {
+            let theme: AppTheme
         }
     }
 }

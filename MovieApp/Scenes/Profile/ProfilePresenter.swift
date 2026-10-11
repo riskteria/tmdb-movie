@@ -35,7 +35,7 @@ extension ProfilePresenter: IProfilePresenter {
             ProfileModel.DisplayedSection(
                 section: .preferences,
                 header: String(localized: "Preferences"),
-                rows: [.appearance(title: String(localized: "Appearance"), value: String(localized: "System"))]
+                rows: [makeAppearanceRow(selected: response.theme)]
             ),
             ProfileModel.DisplayedSection(
                 section: .about,
@@ -47,5 +47,31 @@ extension ProfilePresenter: IProfilePresenter {
             )
         ]
         viewController?.displayProfile(viewData: ProfileModel.LoadProfile.ViewData(sections: sections))
+    }
+}
+
+private extension ProfilePresenter {
+    func makeAppearanceRow(selected: AppTheme) -> ProfileModel.Row {
+        .appearance(
+            title: String(localized: "Appearance"),
+            options: AppTheme.allCases.map { theme in
+                ProfileModel.DisplayedThemeOption(
+                    theme: theme,
+                    title: title(for: theme),
+                    isSelected: theme == selected
+                )
+            }
+        )
+    }
+
+    func title(for theme: AppTheme) -> String {
+        switch theme {
+        case .system:
+            String(localized: "System")
+        case .light:
+            String(localized: "Light")
+        case .dark:
+            String(localized: "Dark")
+        }
     }
 }

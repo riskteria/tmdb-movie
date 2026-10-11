@@ -12,7 +12,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         let window = UIWindow(windowScene: windowScene)
-        let coordinator = AppCoordinator(window: window, dependencies: AppDependencies())
+        let dependencies = AppDependencies()
+        let coordinator = AppCoordinator(
+            window: window,
+            dependencies: dependencies,
+            appearanceRepository: dependencies.appearanceRepository
+        )
         coordinator.start()
         appCoordinator = coordinator
         self.window = window
