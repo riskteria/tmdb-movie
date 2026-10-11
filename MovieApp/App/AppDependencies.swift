@@ -1,3 +1,4 @@
+import Networking
 import Nuke
 import UIKit
 
@@ -18,8 +19,9 @@ final class AppDependencies {
         )
         configuration.imageCache = ImageCache()
         imageLoader = NukeImageLoader(pipeline: ImagePipeline(configuration: configuration))
-        movieRepository = MovieRepository(apiService: APIService.shared)
-        genreRepository = GenreRepository(apiService: APIService.shared)
+        let apiService = APIService(readAccessToken: AppConfigs.shared.tmdbReadAccessToken)
+        movieRepository = MovieRepository(apiService: apiService)
+        genreRepository = GenreRepository(apiService: apiService)
     }
 }
 

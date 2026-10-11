@@ -1,5 +1,6 @@
 import Foundation
 @testable import MovieApp
+@testable import Networking
 import Testing
 
 struct APIServiceStub: IAPIService {

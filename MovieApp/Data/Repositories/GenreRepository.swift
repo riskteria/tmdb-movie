@@ -1,3 +1,5 @@
+import Networking
+
 nonisolated struct GenreRepository {
     private let apiService: any IAPIService
     private let language: String

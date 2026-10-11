@@ -5,7 +5,7 @@ enum HomeSceneFactory {
         let movieRepository: any IMovieRepository
         let genreRepository: any IGenreRepository
         let watchProgressRepository: any IWatchProgressRepository
-        let imageURLProvider: any ImageURLProviding
+        let imageURLProvider: any ImageURLProvider
         let imageLoader: any ImageLoading
     }
 

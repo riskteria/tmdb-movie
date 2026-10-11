@@ -21,9 +21,6 @@ settings:
   ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
 
 packages:
-  Alamofire:
-    url: https://github.com/Alamofire/Alamofire.git
-    from: 5.12.2
   Nuke:
     url: https://github.com/kean/Nuke.git
     from: 13.2.0
@@ -32,6 +29,8 @@ packages:
     branch: main
   ArkanaKeys:
     path: Arkana/ArkanaKeys/ArkanaKeys
+  Networking:
+    path: Modules/Networking
 
 targets:
   MovieApp:
@@ -59,10 +58,10 @@ targets:
       INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
       INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
     dependencies:
-      - package: Alamofire
       - package: Nuke
       - package: MovieAppDS
       - package: ArkanaKeys
+      - package: Networking
     postCompileScripts:
       - name: SwiftLint
         basedOnDependencyAnalysis: false
@@ -79,6 +78,7 @@ targets:
     scheme:
       testTargets:
         - MovieAppTests
+        - package: Networking/NetworkingTests
 
   MovieAppTests:
     type: bundle.unit-test

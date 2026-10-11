@@ -10,7 +10,7 @@ UIKit movie app built with Clean Architecture and the VIP (Clean Swift) pattern,
 - **UI**: UIKit only, layout written in code. No SwiftUI, storyboards or xibs
 - **Architecture**: Clean Architecture layers, with VIP inside each scene
 - **Concurrency**: async/await, actors and `AsyncStream`. The app target's default isolation is `MainActor`, with Approachable Concurrency on
-- **Dependencies**: Swift Package Manager only. Current packages: Alamofire 5 (networking, behind `IAPIService`), Nuke 13 (images, behind `ImageLoading`), `MovieAppDS`, the design system, from the remote `tmdb-movie-ds` package on branch `main`, and `ArkanaKeys`, generated locally by Arkana (see Secrets). Ask before adding any other third-party package
+- **Dependencies**: Swift Package Manager only. Current packages: `Networking`, the local package in `Modules/Networking` that wraps Alamofire 5 (networking, behind `IAPIService`; see Networking), Nuke 13 (images, behind `ImageLoading`), `MovieAppDS`, the design system, from the remote `tmdb-movie-ds` package on branch `main`, and `ArkanaKeys`, generated locally by Arkana (see Secrets). Ask before adding any other third-party package
 - **Secrets**: the TMDB read access token lives in `Arkana/.env` as `TmdbReadAccessToken`, which is gitignored (copy `Arkana/.env.example`). [Arkana](https://github.com/rogerluan/arkana) (`gem install arkana`, configured by `Arkana/.arkana.yml`) turns it into the obfuscated local packages in `Arkana/ArkanaKeys/`, also gitignored. Run `./setup.sh` (it calls `./Arkana/sync-keys.sh`) after cloning and whenever `Arkana/.env` changes, or XcodeGen and the build can't find `ArkanaKeys`. `AppConfigs.shared` (`Common/Configuration/`) is the only file that imports `ArkanaKeys`; everything else reads keys from it (`AppConfigs.shared.tmdbReadAccessToken`). Add a property there for each new Arkana secret. Never put the token in source
 - **Tests**: Swift Testing unit tests only. No UI test target for now
 - **Lint**: SwiftLint (`.swiftlint.yml`) runs in a build phase on every build
@@ -37,11 +37,17 @@ Only when the user asks for a build or test run:
 xcodebuild -project MovieApp.xcodeproj -scheme MovieApp \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 
-# Unit tests (all / one suite / one test)
+# Unit tests: the MovieApp scheme runs MovieAppTests and NetworkingTests (all / one target / one suite / one test)
 xcodebuild -project MovieApp.xcodeproj -scheme MovieApp \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:MovieAppTests
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+  # -only-testing:MovieAppTests
+  # -only-testing:NetworkingTests
   # -only-testing:MovieAppTests/MovieListInteractorTests
   # -only-testing:MovieAppTests/MovieListInteractorTests/loadMoviesPresentsFetchedMovies()
+
+# The Networking module on its own, from its package folder (no XcodeGen, Arkana keys or app build)
+cd Modules/Networking && xcodebuild -scheme Networking \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
 
 When asked to build, run or test, use XcodeBuildMCP or iOS Simulator tools if they are available. Otherwise use `xcodebuild`.
@@ -75,7 +81,7 @@ Scenes (VIP) ──► Domain ◄── Data
 Dependencies point **inward only**. Domain knows nothing about the other layers.
 
 - **Domain**: entities and repository protocols (ports). Imports `Foundation` only, never `UIKit`. Contains no DTOs, Alamofire, `URLSession` or persistence details.
-- **Data**: implements the Domain repository protocols. Holds DTOs (wire types only), networking, persistence, and the repositories that map DTOs to Domain entities. DTOs never leave this layer.
+- **Data**: implements the Domain repository protocols. Holds persistence and the repositories that map DTOs to Domain entities. Networking and the DTOs (wire types only) live in the `Networking` package (`Modules/Networking`), which only the repositories and `App/` import. DTOs never leave this layer.
 - **Scenes**: the presentation layer, built with VIP. Each scene's Worker reaches data through the Domain ports. Scenes depend only on Domain protocols and entities, never on Data types.
 - **App**: `AppDelegate`, `SceneDelegate`, `AppDependencies` and the coordinators in `App/Coordinators/`. This is the only place that knows concrete types from every layer and wires them together, and the only place that pushes or presents view controllers.
 
@@ -84,7 +90,7 @@ SOLID in practice:
 - One reason to change per type.
 - Small role protocols (`IMovieListInteractor`), not large ones.
 - Depend on protocols and inject them through `init`.
-- No singletons, no service locators, no global mutable state. The two exceptions are `AppConfigs.shared` (build-time keys) and `APIService.shared` (the one network session); inject `APIService.shared` into repositories from `AppDependencies`, never read it inside them.
+- No singletons, no service locators, no global mutable state. The one exception is `AppConfigs.shared` (build-time keys). `AppDependencies` creates the one `APIService` (the one network session) and injects it into the repositories.
 
 ### Project Structure
 
@@ -94,6 +100,16 @@ setup.sh                    Generates the Arkana keys, then the Xcode project
 MovieApp.xcodeproj/         Generated by XcodeGen. Only project.xcworkspace/ (with Package.resolved) is tracked
 Arkana/                     .arkana.yml (Arkana config), .env.example (secret template), sync-keys.sh. .env is gitignored
 └── ArkanaKeys/             Generated by `arkana`: ArkanaKeys and ArkanaKeysInterfaces packages. Gitignored, never edit
+Modules/
+└── Networking/             Local Swift package, module `Networking`: the TMDB API client. Depends on Alamofire
+    ├── Package.swift
+    ├── Sources/Networking/
+    │   ├── Client/         IAPIService + APIService (Alamofire), NetworkError, ReadAccessTokenInterceptor
+    │   ├── Endpoints/      TMDBEndpoint
+    │   └── DTOs/           <Name>DTO per endpoint (wire types only), grouped in Movie/, Auth/, Account/, Shared/
+    └── Tests/NetworkingTests/
+                            Mirrors Sources/Networking/, plus Stubs/ (URLProtocolStub, APIService.makeStub()) and
+                            Fixtures/ (TMDBJSON)
 MovieApp/
 ├── App/                    AppDelegate, SceneDelegate, AppDependencies
 │   └── Coordinators/       AppCoordinator, MainTabCoordinator, one coordinator per tab, MovieDetailFlow
@@ -101,8 +117,6 @@ MovieApp/
 │   ├── Entities/           Movie, MovieDetails, Genre, Page, SavedMovie, WatchProgress, …
 │   └── Repositories/       IMovieRepository, IGenreRepository, ISavedMoviesRepository, … (protocols)
 ├── Data/
-│   ├── Network/            IAPIService + APIService (Alamofire), TMDBEndpoint, NetworkError, request interceptors
-│   ├── DTOs/               <Name>DTO per endpoint (wire types only), grouped in Movie/, Auth/, Account/, Shared/
 │   ├── Observation/        AsyncBroadcaster
 │   ├── Persistence/        UserDefaults stores; CoreData/ holds the Core Data stack and repositories
 │   └── Repositories/       MovieRepository and GenreRepository (TMDB, through IAPIService), String+TMDB, the in-memory
@@ -126,8 +140,8 @@ MovieApp/
 ├── Resources/              Localizable.xcstrings
 ├── Assets.xcassets         AccentColor, AppIcon
 └── Info.plist
-MovieAppTests/              Mirrors MovieApp/, plus Stubs/ (shared stubs and spies) and Fixtures/ (Domain fixtures,
-                            JSONFixture, and JSON/ with the canned TMDB responses)
+MovieAppTests/              Mirrors MovieApp/, plus Stubs/ (shared stubs and spies, APIServiceStub) and Fixtures/
+                            (Domain fixtures, JSONFixture, TMDBJSON, and JSON/ with the canned TMDB responses)
 tmdb-movie-ds (remote SPM)  MovieAppDS design system package: MVFonts, MVColors, Spacing, Radius, ArtworkPalette,
                             NavigationBarStyle, button configurations, the Lexend fonts and the color catalog
 ```
@@ -392,7 +406,7 @@ enum MovieListSceneFactory {
 }
 ```
 
-`AppDependencies` in `App/` owns long-lived services (the Alamofire `Session`, `APIService`, the Nuke `ImagePipeline`, repositories). It conforms to one `<Scene>Factory` protocol per scene, one extension each, and every `make<Scene>()` calls that scene's `<Scene>SceneFactory`. The two names are different layers: a `<Scene>Factory` protocol (`HomeFactory`) is what a coordinator asks for, and the `<Scene>SceneFactory` enum (`HomeSceneFactory`) wires the VIP components. Coordinators use `AppDependencies` as a factory, but it is one container: every scene shares its instances and the app creates exactly one, so keep the `AppDependencies` name and the `make` prefix. A factory with more than five inputs takes a nested `Dependencies` struct, which keeps it under SwiftLint's parameter limit.
+`AppDependencies` in `App/` owns long-lived services (`APIService`, which owns the Alamofire `Session`, the Nuke `ImagePipeline`, repositories). It conforms to one `<Scene>Factory` protocol per scene, one extension each, and every `make<Scene>()` calls that scene's `<Scene>SceneFactory`. The two names are different layers: a `<Scene>Factory` protocol (`HomeFactory`) is what a coordinator asks for, and the `<Scene>SceneFactory` enum (`HomeSceneFactory`) wires the VIP components. Coordinators use `AppDependencies` as a factory, but it is one container: every scene shares its instances and the app creates exactly one, so keep the `AppDependencies` name and the `make` prefix. A factory with more than five inputs takes a nested `Dependencies` struct, which keeps it under SwiftLint's parameter limit.
 
 ### Coordinators
 
@@ -432,12 +446,13 @@ A Worker, and the scene factory that builds it, depends on whole repository port
 
 ### Networking (Alamofire)
 
-`APIService` wraps Alamofire, and repositories reach it only through the `IAPIService` protocol. Every TMDB endpoint is a case of one enum, `TMDBEndpoint` in `Data/Network/TMDBEndpoint.swift`. Each endpoint's wire types live in one DTO file.
+The network layer is the `Networking` module, a local Swift package in `Modules/Networking`. `APIService` wraps Alamofire, and repositories reach it only through the `IAPIService` protocol. Every TMDB endpoint is a case of one enum, `TMDBEndpoint` in `Sources/Networking/Endpoints/TMDBEndpoint.swift`. Each endpoint's wire types live in one DTO file under `Sources/Networking/DTOs/`. The module knows no Domain types: repositories in `MovieApp/Data/Repositories/` map its DTOs to Domain entities.
 
 #### Client
 
-- **Confine Alamofire** to `Data/Network/`, `App/` (to build the `Session`) and the Data-layer tests. Repositories take `any IAPIService` through `init` and use `TMDBEndpoint`, the DTOs and `NetworkError`. They never see `APIService` or a `Session`. Nothing outside the Data layer sees any of them.
-- **One shared client**: `APIService.shared` owns the app's only `Session`, built with `ReadAccessTokenInterceptor(token: AppConfigs.shared.tmdbReadAccessToken)`. `AppDependencies` passes it to every repository's `init`; nothing else reads `APIService.shared`. Tests build their own client with `APIService.makeStub()`. Never use `AF` or `Session.default`.
+- **Confine Alamofire** to the `Networking` module and its tests. Only `Data/Repositories/` and `App/` `import Networking` (lint rule `no_networking_outside_data`). Repositories take `any IAPIService` through `init` and use `TMDBEndpoint`, the DTOs and `NetworkError`. They never see `APIService` or a `Session`.
+- **One shared client**: `AppDependencies` creates the app's only `APIService` with `APIService(readAccessToken: AppConfigs.shared.tmdbReadAccessToken)`, which builds the `Session` and its `ReadAccessTokenInterceptor` inside the module, and passes it to every repository's `init`. Tests build their own client with `APIService.makeStub()`. Never use `AF` or `Session.default`.
+- **Public API**: mark `public` only what the app uses: `IAPIService`, `APIService` and `init(readAccessToken:)`, `NetworkError`, `TMDBEndpoint` and `asURLRequest()`, and every DTO type, typealias and stored property (public enum cases need public associated types). Everything that takes an Alamofire type stays internal (`APIService.init(configuration:interceptor:)`, `NetworkError.init(_:)`, the interceptors), and so do `method`, `path`, `parameters`, `body` and `authorization`. A `Parameters` or `Request` that a repository builds gets an explicit `public init` that mirrors the memberwise one (same labels, order and defaults). Tests reach internals with `@testable import Networking`.
 - **Calling an endpoint**: `let page: SearchMoviesDTO.Response = try await apiService.request(.searchMovies(parameters: .init(query: query)))`, then map it to Domain entities in the repository (see DTOs > Mapping).
 - **Async API only**: use `serializingDecodable(_:decoder:)` with `.response`, `.result` or `.value`. Never use the `response…` completion-handler methods. Always call `.validate()` so non-2xx statuses fail.
 - **Decoding is already off the main actor**: Alamofire decodes on its serialization queue, so `APIService` needs no `@concurrent` decode step.
@@ -448,7 +463,7 @@ A Worker, and the scene factory that builds it, depends on whole repository port
 ```swift
 import Alamofire
 
-nonisolated enum NetworkError: Error, Equatable {
+public nonisolated enum NetworkError: Error, Equatable {
     case invalidResponse(statusCode: Int)
     case decodingFailed
     case requestFailed
@@ -469,17 +484,17 @@ nonisolated enum NetworkError: Error, Equatable {
 import Alamofire
 import Foundation
 
-nonisolated protocol IAPIService: Sendable {
+public nonisolated protocol IAPIService: Sendable {
     func request<Response: Decodable & Sendable>(_ endpoint: TMDBEndpoint) async throws -> Response
 }
 
-nonisolated final class APIService: Sendable {
-    static let shared = APIService(
-        interceptor: ReadAccessTokenInterceptor(token: AppConfigs.shared.tmdbReadAccessToken)
-    )
-
+public nonisolated final class APIService: Sendable {
     private let session: Session
     private let decoder: JSONDecoder
+
+    public convenience init(readAccessToken: String) {
+        self.init(interceptor: ReadAccessTokenInterceptor(token: readAccessToken))
+    }
 
     init(configuration: URLSessionConfiguration = .af.default, interceptor: (any RequestInterceptor)? = nil) {
         session = Session(configuration: configuration, interceptor: interceptor)
@@ -491,7 +506,7 @@ nonisolated final class APIService: Sendable {
 
 // MARK: - IAPIService
 nonisolated extension APIService: IAPIService {
-    func request<Response: Decodable & Sendable>(_ endpoint: TMDBEndpoint) async throws -> Response {
+    public func request<Response: Decodable & Sendable>(_ endpoint: TMDBEndpoint) async throws -> Response {
         let response = await session.request(endpoint)
             .validate()
             .serializingDecodable(Response.self, decoder: decoder)
@@ -521,9 +536,9 @@ nonisolated extension APIService: IAPIService {
   - `append_to_response` on `movieDetails` or `personDetails`. Credits, videos, images, reviews, release dates, watch providers, recommendations and account states all come back that way.
   - An existing case with a category enum, e.g. `movieList(category:)` for now playing, popular, top rated and upcoming.
 - **Adding an endpoint**:
-  1. Create `Data/DTOs/<Group>/<Name>DTO.swift`.
+  1. Create `Modules/Networking/Sources/Networking/DTOs/<Group>/<Name>DTO.swift`, with its types, typealiases and stored properties `public`. Give a `Parameters` or `Request` an explicit `public init` that mirrors the memberwise one once a repository builds it.
   2. Add the case and handle it in every switch.
-  3. Add a row to `TMDBEndpointExpectation.all` in `TMDBEndpointTests`.
+  3. Add a row to `TMDBEndpointExpectation.all` in `TMDBEndpointTests` (`NetworkingTests/Endpoints/`).
   4. Add a decoding test if the DTO has custom coding keys or an `init(from:)`.
 
 Trimmed to two cases (the real file has every endpoint and the `authorization` property):
@@ -532,13 +547,11 @@ Trimmed to two cases (the real file has every endpoint and the `authorization` p
 import Alamofire
 import Foundation
 
-nonisolated enum TMDBEndpoint {
+public nonisolated enum TMDBEndpoint {
     case movieDetails(movieID: Int, parameters: MovieDetailsDTO.Parameters)
     case addFavorite(accountID: Int, parameters: AddFavoriteDTO.Parameters, request: AddFavoriteDTO.Request)
 }
 
-// `nonisolated` is required here. Under default MainActor isolation, extension members and the
-// conformances they declare are main-actor-isolated even when the enum itself is `nonisolated`.
 nonisolated extension TMDBEndpoint {
     private static let baseURL = "https://api.themoviedb.org"
 
@@ -593,7 +606,7 @@ nonisolated extension TMDBEndpoint {
 
 // MARK: - URLRequestConvertible
 nonisolated extension TMDBEndpoint: URLRequestConvertible {
-    func asURLRequest() throws -> URLRequest {
+    public func asURLRequest() throws -> URLRequest {
         var request = try URLRequest(url: Self.baseURL + path, method: method)
         if let parameters {
             request = try Self.queryEncoder.encode(parameters, into: request)
@@ -612,8 +625,8 @@ nonisolated extension TMDBEndpoint: URLRequestConvertible {
   - `Parameters` (`Encodable`): the query string.
   - `Request` (`Encodable`): the JSON body.
   - `Response` (`Decodable`).
-- **Shared shapes** live in `Data/DTOs/Shared/` and are reused through `typealias`: `PageDTO<MovieSummaryDTO>`, `StatusDTO`, `SessionParametersDTO`, `GenreDTO`, `ImageDTO`.
-- **Isolation**: declare the namespace `nonisolated enum <Name>DTO`, so every type nested in its body inherits `nonisolated`. Types declared in an extension of the namespace need `nonisolated extension <Name>DTO`. Mark every DTO type `Sendable`.
+- **Shared shapes** live in `Sources/Networking/DTOs/Shared/` and are reused through `typealias`: `PageDTO<MovieSummaryDTO>`, `StatusDTO`, `SessionParametersDTO`, `GenreDTO`, `ImageDTO`.
+- **Isolation**: declare the namespace `public nonisolated enum <Name>DTO`, so every type nested in its body inherits `nonisolated`. Types declared in an extension of the namespace need `nonisolated extension <Name>DTO`. Mark every DTO type `Sendable`.
 - **Keys**: properties are camelCase. Encoders use `.convertToSnakeCase` and `APIService`'s decoder uses `.convertFromSnakeCase`. Write a `CodingKeys` raw value only where the conversion can't produce the name:
   - **Acronyms when decoding**: `imdb_id` becomes `imdbId`, so write `case imdbID = "imdbId"`. Encoding needs nothing: `sessionID` already becomes `session_id`.
   - **ISO codes**: `case languageCode = "iso6391"` and `case countryCode = "iso31661"`.
@@ -626,28 +639,28 @@ nonisolated extension TMDBEndpoint: URLRequestConvertible {
 - **Mapping**: DTOs hold no conversion code: no `toDomain()`, no extensions that build Domain entities. The repository maps the response right after the request, as `GenreRepository` does: `response.genres.map { Genre(id: $0.id, name: $0.name) }`. A conversion that is longer than a line, or that several methods share (`MovieSummaryDTO` to `Movie`, `PageDTO` to `Page`), goes in the repository's `private extension` as `make<Entity>(from:)`. Repository tests cover it through `APIServiceStub`.
 
 ```swift
-nonisolated enum AddFavoriteDTO {
-    typealias Parameters = SessionParametersDTO
+public nonisolated enum AddFavoriteDTO {
+    public typealias Parameters = SessionParametersDTO
 
-    struct Request: Encodable, Sendable {
-        let mediaType = "movie"
-        let mediaID: Int
-        let favorite: Bool
+    public struct Request: Encodable, Sendable {
+        public let mediaType = "movie"
+        public let mediaID: Int
+        public let favorite: Bool
     }
 
-    typealias Response = StatusDTO
+    public typealias Response = StatusDTO
 }
 ```
 
 ```swift
-nonisolated enum CreateSessionFromAccessTokenDTO {
-    struct Request: Encodable, Sendable {
-        let accessToken: String
+public nonisolated enum CreateSessionFromAccessTokenDTO {
+    public struct Request: Encodable, Sendable {
+        public let accessToken: String
     }
 
-    struct Response: Decodable, Sendable {
-        let sessionID: String
-        let success: Bool
+    public struct Response: Decodable, Sendable {
+        public let sessionID: String
+        public let success: Bool
 
         private enum CodingKeys: String, CodingKey {
             case sessionID = "sessionId"
@@ -668,7 +681,7 @@ nonisolated enum CreateSessionFromAccessTokenDTO {
 - **Tokens**: `TMDBEndpoint.authorization` says which bearer token a request needs:
   - `.userAccessToken` for the v4 account lists.
   - `.readAccessToken`, the app's API read token, for everything else, including the v4 auth calls and the v3 writes.
-- **Attaching the token**: do it in a `RequestInterceptor` in `Data/Network/`, never by setting the header by hand. Pass the read-token interceptor to `Session(interceptor:)`. `APIService` passes the user-token interceptor per request (`session.request(endpoint, interceptor:)`) when `endpoint.authorization == .userAccessToken`.
+- **Attaching the token**: do it in a `RequestInterceptor` in the `Networking` module (`Sources/Networking/Client/`), never by setting the header by hand. Pass the read-token interceptor to `Session(interceptor:)`. `APIService` passes the user-token interceptor per request (`session.request(endpoint, interceptor:)`) when `endpoint.authorization == .userAccessToken`.
 - **Callback exception**: Alamofire's interceptor API is callback-based. Implementing it is the one allowed exception to the no-completion-handler rule.
 
 ## Concurrency
@@ -676,7 +689,7 @@ nonisolated enum CreateSessionFromAccessTokenDTO {
 - Swift 6 strict concurrency is on. Fix every diagnostic properly. Never silence one with `@unchecked Sendable`, `nonisolated(unsafe)` or `@preconcurrency` unless the user approves and a comment explains why.
 - The app target sets `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` and `SWIFT_APPROACHABLE_CONCURRENCY = YES`. This has several consequences:
   - Scene types are implicitly `@MainActor`. Don't add the annotation again.
-  - **Declare every top-level Domain and Data type `nonisolated`**: entities, DTOs and DTO namespaces, repository protocols, and their implementations. Scene Workers follow the same rule (see VIP Scene). Make them `Sendable` as well. Otherwise their `Decodable`, `Hashable` and similar conformances become main-actor-isolated and fail off the main actor.
+  - **Declare every top-level Domain and Data type `nonisolated`**: entities, DTOs and DTO namespaces, repository protocols, and their implementations. Scene Workers follow the same rule (see VIP Scene). Make them `Sendable` as well. Otherwise their `Decodable`, `Hashable` and similar conformances become main-actor-isolated and fail off the main actor. The `Networking` package has no default isolation, so there the keyword is redundant; keep writing it so the code reads the same in both places.
   - **Nested types inherit, extensions don't**:
     - A type declared inside another type's body takes the enclosing type's isolation. Inside a `nonisolated` type it needs no annotation. Inside a main-actor type, such as a scene's `enum MovieListModel`, it is `@MainActor` unless marked `nonisolated`, like `MovieListModel.DisplayedMovie`.
     - An extension does not inherit. Its members, the types declared in it and the conformances it adds all default to `@MainActor`, even on a `nonisolated` type. Write `nonisolated extension` for extensions of Domain and Data types.
@@ -734,7 +747,7 @@ SwiftLint enforces most of these rules. You are responsible for the rest.
   - Delete unused code and template leftovers.
   - Import only what you use, sorted.
 - **Classes**: mark every class `final` unless it is designed for inheritance. Use a `struct` for values and a `class` for identity or lifecycle.
-- **Access control**: default to `private`. Use `fileprivate` only when the compiler needs it. Never write `internal`.
+- **Access control**: default to `private`. Use `fileprivate` only when the compiler needs it. Never write `internal`. Inside `Networking`, mark `public` only what the app uses (see Networking > Public API).
 - **`self`**: omit it unless the compiler requires it.
 - **Types**:
   - Let the compiler infer types. Annotate empty collections (`var movies: [Movie] = []`).
@@ -778,9 +791,9 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
 
 - **Config**: `.swiftlint.yml` starts from Kodeco's base rules, adds stricter opt-in rules, and defines custom rules.
 - **Custom rules**:
-  - Errors: `no_swiftui`, `no_combine`, `no_storyboard_or_nib`.
+  - Errors: `no_swiftui`, `no_combine`, `no_storyboard_or_nib`, `no_networking_outside_data` (only `Data/Repositories/` and `App/` import `Networking`).
   - Warnings: `no_dispatch_queue`, `no_print`.
-- **Build phase**: the `MovieApp` target's **SwiftLint** Run Script phase (`postCompileScripts` in `project.yml`) runs after Compile Sources on every build. It lints `MovieApp` and `MovieAppTests`. Violations show as Xcode warnings and errors, and errors fail the build.
+- **Build phase**: the `MovieApp` target's **SwiftLint** Run Script phase (`postCompileScripts` in `project.yml`) runs after Compile Sources on every build. It lints `MovieApp`, `MovieAppTests` and `Modules`. Violations show as Xcode warnings and errors, and errors fail the build.
 - **Sandboxing**: the app target sets `ENABLE_USER_SCRIPT_SANDBOXING = NO` so SwiftLint can read the sources. Don't revert it, and don't remove the phase.
 - **Install**: `brew install swiftlint`. The script adds `/opt/homebrew/bin` to `PATH`. If SwiftLint is missing, the build only prints a warning.
 - **No global disables**: never turn off a rule in `.swiftlint.yml` just to get a green build. For an unavoidable exception, use `// swiftlint:disable:next <rule>` on a single line, with the reason in a comment above it.
@@ -789,7 +802,7 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
 ## Testing
 
 - Write unit tests with Swift Testing (`import Testing`, `@Test`, `#expect`, `#require`). Don't use XCTest.
-- Mirror the source folder structure in `MovieAppTests/`.
+- Mirror the source folder structure in `MovieAppTests/`. Tests of `Networking` code (DTO decoding, `APIService`, the interceptor, `TMDBEndpointTests`) live in the package test target `Modules/Networking/Tests/NetworkingTests/`, mirroring `Sources/Networking/`, with `@testable import Networking`. Repository tests stay in `MovieAppTests` and import both `@testable import MovieApp` and `@testable import Networking`. The `MovieApp` scheme runs both test targets.
 - Test every Interactor, Presenter, Worker and repository. Repository tests cover the DTO-to-Domain mapping.
 - For VIP, test each component in isolation, with test doubles at its boundaries:
   - **Interactor**: stub the Worker (a private `<Scene>WorkerStub`), add a `PresenterSpy`, and assert on the `Response`.
@@ -810,10 +823,10 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
 - `await` async business methods directly. No sleeps and no `XCTestExpectation` for async/await code.
 - Unit tests never touch the network.
   - **Repositories**: inject `APIServiceStub(endpoint:result:)` from `MovieAppTests/Stubs/`. It decodes the canned JSON with `TMDBJSON`, so the real DTOs and mappings run. It first builds both requests and fails the test through `#require` unless the method, URL and body the repository sent match the endpoint it was given, so repository tests check both the request the repository builds from its inputs and the mapping; `TMDBEndpointTests` covers how each endpoint encodes. Build it in each test's `// Given`. A caller that sends several requests gets a `private` multi-response stub in its own test file.
-  - **`APIService`**: build the client with `APIService.makeStub()`, a real `Session` whose requests `URLProtocolStub` answers. Never build that `Session` by hand. `URLProtocolStub` keys responses by URL in shared static state and tests run in parallel, so each test must stub a URL no other test uses (for example, its own page number). An unstubbed URL fails like a lost connection, and `.noResponse` keeps a request in flight until it's cancelled.
+  - **`APIService`**: build the client with `APIService.makeStub()` (in `NetworkingTests/Stubs/`), a real `Session` whose requests `URLProtocolStub` answers. Never build that `Session` by hand. `URLProtocolStub` keys responses by URL in shared static state and tests run in parallel, so each test must stub a URL no other test uses (for example, its own page number). An unstubbed URL fails like a lost connection, and `.noResponse` keeps a request in flight until it's cancelled.
   - **Interceptors**: call `adapt(_:for:completion:)` directly and assert on the adapted `URLRequest`.
 - `TMDBEndpointTests` checks every endpoint's method, URL and body through one parameterized table, `TMDBEndpointExpectation.all`. Add a row for each new case.
-- Repository tests read each canned response from `MovieAppTests/Fixtures/JSON/<name>.json` through `JSONFixture.named(_:)`, which takes a `JSONFixture.JSONFiles` case (add one per file). One file per response shape, holding only the required fields and the ones a test asserts. Synchronized folders copy resources to the bundle root, so file names must be unique across the test target. An inline JSON string is fine for a one-off edge case. `TMDBJSON.decode(_:from:)` decodes either with the same `.convertFromSnakeCase` strategy as `APIService`.
+- Repository tests read each canned response from `MovieAppTests/Fixtures/JSON/<name>.json` through `JSONFixture.named(_:)`, which takes a `JSONFixture.JSONFiles` case (add one per file). One file per response shape, holding only the required fields and the ones a test asserts. Synchronized folders copy resources to the bundle root, so file names must be unique across the test target. An inline JSON string is fine for a one-off edge case. `TMDBJSON.decode(_:from:)` decodes either with the same `.convertFromSnakeCase` strategy as `APIService`. Each test target has its own five-line copy of it; keep both on that strategy.
 - The project has no UI test target for now. Don't add one, or any UI tests, unless the user asks.
 
 ```swift
@@ -870,7 +883,7 @@ private struct MovieListWorkerStub: IMovieListWorker {
 - Silence concurrency errors with `@unchecked Sendable`, `nonisolated(unsafe)` or `@preconcurrency`.
 - Edit `project.pbxproj` or change settings in Xcode's UI. Change `project.yml`, and only when asked.
 - Add third-party dependencies without asking first.
-- Import Alamofire outside `Data/Network/`, `App/` and Data-layer tests, use `AF` / `Session.default`, or let `AFError` escape `APIService`.
+- Import Alamofire outside the `Networking` module and its tests, import `Networking` outside `Data/Repositories/`, `App/` and tests, use `AF` / `Session.default`, or let `AFError` escape `APIService`.
 - Import Nuke outside `Common/Images/` and `App/`, or use `ImagePipeline.shared` / `ImageCache.shared`.
 - Import CoreData outside `Data/Persistence/CoreData/` and its tests, or let an `NSManagedObject` leave a repository.
 - Push or present view controllers from a scene. Routers call coordinator closures.

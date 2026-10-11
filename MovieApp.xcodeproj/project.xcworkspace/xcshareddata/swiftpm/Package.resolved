@@ -1,5 +1,4 @@
 {
-  "originHash" : "28ebd7fe970610028e335a13761978fc229183f3a72a00a14ea1993a14d905f3",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -20,15 +19,6 @@
       }
     },
     {
-      "identity" : "simplekeychain",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/auth0/SimpleKeychain",
-      "state" : {
-        "revision" : "776c4a6db74d5c6c143974be91c383680d468630",
-        "version" : "1.3.0"
-      }
-    },
-    {
       "identity" : "tmdb-movie-ds",
       "kind" : "remoteSourceControl",
       "location" : "git@github.com:riskteria/tmdb-movie-ds.git",
@@ -38,5 +28,5 @@
       }
     }
   ],
-  "version" : 3
+  "version" : 2
 }

@@ -1,4 +1,5 @@
 @testable import MovieApp
+@testable import Networking
 import Testing
 
 struct GenreRepositoryTests {

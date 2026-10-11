@@ -1,11 +1,13 @@
 included:
   - MovieApp
   - MovieAppTests
+  - Modules
 
 excluded:
   - DerivedData
   - build
   - .build
+  - Modules/Networking/.build
 
 disabled_rules:
   - discarded_notification_center_observer
@@ -165,3 +167,9 @@ custom_rules:
     regex: '^\s*(debugPrint|print)\s*\('
     message: "Use os.Logger instead of print."
     severity: warning
+  no_networking_outside_data:
+    name: "Networking stays behind the repositories"
+    included: 'MovieApp/(Domain|Scenes|Common)/.*\.swift'
+    regex: '^\s*(@testable\s+)?import\s+Networking\b'
+    message: "Only Data/Repositories and App import Networking. Use the Domain ports."
+    severity: error
