@@ -96,7 +96,7 @@ struct SearchInteractorTests {
     }
 
     @Test
-    func loadGenresUsingCallbackPresentsNothingWhenCancelled() async {
+    func loadGenresUsingCallbackIgnoresCancellationError() async {
         // Given
         let sut: any ISearchCallbackInteractor = SearchInteractor(
             presenter: presenter,

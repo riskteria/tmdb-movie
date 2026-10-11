@@ -44,6 +44,19 @@ struct WatchProgressRepositoryTests {
     }
 
     @Test
+    func upsertKeepsTheRecordOfTheSameIDForAnotherMediaType() async throws {
+        // Given
+        let sut: any IWatchProgressRepository = WatchProgressRepository(records: [older])
+        let show = WatchProgress.fixture(contentID: 1, mediaType: .tvShow)
+
+        // When
+        try await sut.upsert(show)
+
+        // Assert
+        #expect(try await sut.recent(limit: 10) == [show, older])
+    }
+
+    @Test
     func progressFindsTheRecordForContent() async throws {
         // Given
         let sut: any IWatchProgressRepository = WatchProgressRepository(records: [older, newer])
@@ -68,18 +81,57 @@ struct WatchProgressRepositoryTests {
     }
 
     @Test
-    func changesStartWithCurrentRecordsThenReportRemoveAll() async throws {
+    func progressIsNilForTheSameIDOfAnotherMediaType() async throws {
+        // Given
+        let sut: any IWatchProgressRepository = WatchProgressRepository(records: [older])
+
+        // When
+        let progress = try await sut.progress(for: 1, mediaType: .tvShow)
+
+        // Assert
+        #expect(progress == nil)
+    }
+
+    @Test
+    func changesStartWithTheCurrentRecords() async {
         // Given
         let sut: any IWatchProgressRepository = WatchProgressRepository(records: [older])
         var changes = await sut.changes.makeAsyncIterator()
 
         // When
         let initial = await changes.next(isolation: #isolation)
+
+        // Assert
+        #expect(initial == [older])
+    }
+
+    @Test
+    func upsertSendsTheUpdatedRecords() async throws {
+        // Given
+        let sut: any IWatchProgressRepository = WatchProgressRepository(records: [older])
+        var changes = await sut.changes.makeAsyncIterator()
+        _ = await changes.next(isolation: #isolation)
+
+        // When
+        try await sut.upsert(newer)
+        let afterUpsert = await changes.next(isolation: #isolation)
+
+        // Assert
+        #expect(afterUpsert == [newer, older])
+    }
+
+    @Test
+    func removeAllSendsAnEmptyList() async throws {
+        // Given
+        let sut: any IWatchProgressRepository = WatchProgressRepository(records: [older])
+        var changes = await sut.changes.makeAsyncIterator()
+        _ = await changes.next(isolation: #isolation)
+
+        // When
         try await sut.removeAll()
         let afterRemoval = await changes.next(isolation: #isolation)
 
         // Assert
-        #expect(initial == [older])
         #expect(afterRemoval?.isEmpty == true)
     }
 }

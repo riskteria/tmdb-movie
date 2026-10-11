@@ -6,15 +6,15 @@ struct SearchWorkerTests {
     func fetchGenresReturnsMovieGenres() async throws {
         // Given
         let genres = [Genre.scienceFiction, Genre.drama]
-        let sut: any ISearchWorker = SearchWorker(
-            genreRepository: GenreRepositoryStub(result: .success(genres))
-        )
+        let repository = GenreRepositoryStub(result: .success(genres))
+        let sut: any ISearchWorker = SearchWorker(genreRepository: repository)
 
         // When
         let result = try await sut.fetchGenres()
 
         // Assert
         #expect(result == genres)
+        #expect(await repository.calls == [.movieGenres])
     }
 
     @Test

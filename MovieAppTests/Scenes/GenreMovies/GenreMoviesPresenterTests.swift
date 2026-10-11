@@ -79,12 +79,36 @@ struct GenreMoviesPresenterTests {
         // Assert
         #expect(viewController.displayedViewData == [.empty(message: "No movies in this genre yet")])
     }
+
+    @Test
+    func unratedMovieShowsNoRating() throws {
+        // When
+        sut.presentMovies(response: .init(movies: [.fixture(voteAverage: 0)], status: .loaded))
+
+        // Assert
+        let displayedMovie = try #require(viewController.displayedViewData.last?.movies?.first)
+        #expect(displayedMovie.rating == nil)
+    }
+
+    @Test
+    func wholeNumberRatingKeepsOneDecimal() throws {
+        // When
+        sut.presentMovies(response: .init(movies: [.fixture(voteAverage: 7)], status: .loaded))
+
+        // Assert
+        let displayedMovie = try #require(viewController.displayedViewData.last?.movies?.first)
+        #expect(displayedMovie.rating == "7.0")
+    }
 }
 
 @MainActor
 private extension GenreMoviesModel.LoadNextPage.ViewData {
     var footer: GenreMoviesModel.LoadMoreFooter? {
         if case .content(_, let footer) = self { footer } else { nil }
+    }
+
+    var movies: [GenreMoviesModel.DisplayedMovie]? {
+        if case .content(let movies, _) = self { movies } else { nil }
     }
 }
 

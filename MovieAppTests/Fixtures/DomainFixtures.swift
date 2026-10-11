@@ -60,6 +60,7 @@ extension MovieDetails {
 extension WatchProgress {
     static func fixture(
         contentID: Int = 693134,
+        mediaType: MediaType = .movie,
         position: Duration = .seconds(95),
         duration: Duration = .seconds(153),
         lastWatchedAt: Date = Date(timeIntervalSince1970: 1_700_000_000)
@@ -67,7 +68,7 @@ extension WatchProgress {
         WatchProgress(
             userID: UserID(rawValue: "local:test"),
             contentID: contentID,
-            mediaType: .movie,
+            mediaType: mediaType,
             position: position,
             duration: duration,
             videoKey: "trailer-\(contentID)",

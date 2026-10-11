@@ -1,9 +1,19 @@
 @testable import MovieApp
 
-struct GenreRepositoryStub: IGenreRepository {
-    let result: Result<[Genre], any Error>
+actor GenreRepositoryStub: IGenreRepository {
+    enum Call: Equatable, Sendable {
+        case movieGenres
+    }
+
+    private let result: Result<[Genre], any Error>
+    private(set) var calls: [Call] = []
+
+    init(result: Result<[Genre], any Error> = .success([])) {
+        self.result = result
+    }
 
     func movieGenres() async throws -> [Genre] {
-        try result.get()
+        calls.append(.movieGenres)
+        return try result.get()
     }
 }

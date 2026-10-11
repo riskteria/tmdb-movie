@@ -34,6 +34,13 @@
                 ]
             },
             {
+                "iso_3166_1": "CA",
+                "release_dates": [
+                    { "certification": "", "descriptors": [], "iso_639_1": null, "note": "", "release_date": "2024-03-01T00:00:00.000Z", "type": 3 },
+                    { "certification": "14A", "descriptors": [], "iso_639_1": null, "note": "", "release_date": "2024-04-16T00:00:00.000Z", "type": 4 }
+                ]
+            },
+            {
                 "iso_3166_1": "US",
                 "release_dates": [
                     { "certification": "", "descriptors": [], "iso_639_1": null, "note": "", "release_date": "2024-02-15T00:00:00.000Z", "type": 1 },
@@ -42,5 +49,43 @@
                 ]
             }
         ]
+    },
+    "credits": {
+        "cast": [
+            { "id": 1190668, "credit_id": "61a0", "name": "Zendaya", "original_name": "Zendaya", "character": "Chani", "order": 1, "profile_path": "", "known_for_department": "Acting", "gender": 1, "popularity": 90.1, "adult": false },
+            { "id": 1190667, "credit_id": "619f", "name": "Timothée Chalamet", "original_name": "Timothée Chalamet", "character": "Paul Atreides", "order": 0, "profile_path": "/chalamet.jpg", "known_for_department": "Acting", "gender": 2, "popularity": 88.4, "adult": false }
+        ],
+        "crew": []
+    },
+    "videos": {
+        "results": [
+            { "id": "v1", "key": "trailer-key", "name": "Official Trailer", "site": "YouTube", "size": 1080, "type": "Trailer", "official": true, "published_at": "2023-05-03T13:04:55.000Z", "iso_639_1": "en", "iso_3166_1": "US" },
+            { "id": "v2", "key": "vimeo-key", "name": "Vimeo Clip", "site": "Vimeo", "size": 1080, "type": "Clip", "official": true, "published_at": "2023-06-01T10:00:00.000Z", "iso_639_1": "en", "iso_3166_1": "US" },
+            { "id": "v3", "key": "teaser-key", "name": "Teaser", "site": "YouTube", "size": 1080, "type": "Teaser", "official": true, "published_at": "2023-04-01T10:00:00.000Z", "iso_639_1": "en", "iso_3166_1": "US" },
+            { "id": "v4", "key": "bloopers-key", "name": "Bloopers", "site": "YouTube", "size": 1080, "type": "Bloopers", "official": false, "published_at": "2023-07-01T10:00:00.000Z", "iso_639_1": "en", "iso_3166_1": "US" }
+        ]
+    },
+    "recommendations": {
+        "page": 1,
+        "results": [
+            {
+                "id": 438631,
+                "title": "Dune",
+                "original_title": "Dune",
+                "original_language": "en",
+                "overview": "Paul Atreides arrives on Arrakis.",
+                "poster_path": "/dune.jpg",
+                "backdrop_path": null,
+                "genre_ids": [878],
+                "release_date": "",
+                "popularity": 120.5,
+                "vote_average": 7.8,
+                "vote_count": 12000,
+                "adult": false,
+                "video": false
+            }
+        ],
+        "total_pages": 1,
+        "total_results": 1
     }
 }
