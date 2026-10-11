@@ -1,0 +1,93 @@
+name: MovieApp
+
+options:
+  minimumXcodeGenVersion: 2.46.0
+  projectFormat: xcode16_0
+  developmentLanguage: en
+  deploymentTarget:
+    iOS: "26.5"
+    visionOS: "26.5"
+
+settings:
+  DEVELOPMENT_TEAM: 2H46N4N76A
+  CODE_SIGN_STYLE: Automatic
+  MARKETING_VERSION: "1.0"
+  CURRENT_PROJECT_VERSION: 1
+  SWIFT_VERSION: "6.0"
+  SWIFT_APPROACHABLE_CONCURRENCY: YES
+  SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY: YES
+  SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY: YES
+  LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+  ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+
+packages:
+  Alamofire:
+    url: https://github.com/Alamofire/Alamofire.git
+    from: 5.12.2
+  Nuke:
+    url: https://github.com/kean/Nuke.git
+    from: 13.2.0
+  MovieAppDS:
+    url: git@github.com:riskteria/tmdb-movie-ds.git
+    branch: main
+  ArkanaKeys:
+    path: Arkana/ArkanaKeys/ArkanaKeys
+
+targets:
+  MovieApp:
+    type: application
+    supportedDestinations: [iOS, visionOS]
+    sources:
+      - path: MovieApp
+        type: syncedFolder
+        excludes:
+          - Info.plist
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.enkidu.MovieApp
+      INFOPLIST_FILE: MovieApp/Info.plist
+      GENERATE_INFOPLIST_FILE: YES
+      ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+      SWIFT_EMIT_LOC_STRINGS: YES
+      STRING_CATALOG_GENERATE_SYMBOLS: YES
+      ENABLE_USER_SCRIPT_SANDBOXING: NO
+      ENABLE_PREVIEWS: YES
+      REGISTER_APP_GROUPS: YES
+      "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphone*]": YES
+      "INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphone*]": YES
+      "INFOPLIST_KEY_UIStatusBarStyle[sdk=iphone*]": UIStatusBarStyleDefault
+      INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+      INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+    dependencies:
+      - package: Alamofire
+      - package: Nuke
+      - package: MovieAppDS
+      - package: ArkanaKeys
+    postCompileScripts:
+      - name: SwiftLint
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "$(uname -m)" = "arm64" ]; then
+            export PATH="/opt/homebrew/bin:$PATH"
+          fi
+
+          if command -v swiftlint >/dev/null 2>&1; then
+            swiftlint lint --quiet --config "${SRCROOT}/.swiftlint.yml"
+          else
+            echo "warning: SwiftLint not installed. Run: brew install swiftlint"
+          fi
+    scheme:
+      testTargets:
+        - MovieAppTests
+
+  MovieAppTests:
+    type: bundle.unit-test
+    supportedDestinations: [iOS, visionOS]
+    sources:
+      - path: MovieAppTests
+        type: syncedFolder
+    dependencies:
+      - target: MovieApp
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.enkidu.MovieAppTests
+      GENERATE_INFOPLIST_FILE: YES
