@@ -5,7 +5,7 @@ import UIKit
 // first layout pass, so the request is downsampled to the view's real size.
 final class ArtworkView: UIView {
     private var artwork: DisplayedArtwork?
-    private var imageLoader: (any ImageLoading)?
+    private var imageLoader: (any IImageLoader)?
     private var loadTask: Task<Void, Never>?
 
     private lazy var placeholderView = GradientView()
@@ -30,7 +30,7 @@ final class ArtworkView: UIView {
         loadImageIfNeeded()
     }
 
-    func configure(with artwork: DisplayedArtwork, imageLoader: any ImageLoading) {
+    func configure(with artwork: DisplayedArtwork, imageLoader: any IImageLoader) {
         guard artwork != self.artwork else { return }
         loadTask?.cancel()
         loadTask = nil

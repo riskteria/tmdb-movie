@@ -9,8 +9,13 @@ nonisolated struct APIResponseLogger: Sendable {
         #if DEBUG
         let request = response.request
         let method = request?.httpMethod ?? endpoint.method.rawValue
-        let url = request?.url?.absoluteString ?? endpoint.path
         let status = response.response.map { String($0.statusCode) } ?? "-"
+        if endpoint.carriesCredentials {
+            let summary = "[Response] \(status) \(method) \(endpoint.path)"
+            logger.debug("\(summary, privacy: .public)")
+            return
+        }
+        let url = request?.url?.absoluteString ?? endpoint.path
         let requestLog = """
             [Request] \(method) \(url)
             Headers: \(Self.describe(request?.headers))

@@ -29,7 +29,7 @@ public nonisolated enum TMDBEndpoint {
     )
     // v4 has no favorite, watchlist or rating writes. These v3 endpoints take the session ID
     // from `createSessionFromAccessToken`.
-    case accountDetails(accountID: Int, parameters: AccountDetailsDTO.Parameters)
+    case accountDetails(parameters: AccountDetailsDTO.Parameters)
     case addFavorite(accountID: Int, parameters: AddFavoriteDTO.Parameters, request: AddFavoriteDTO.Request)
     case addToWatchlist(accountID: Int, parameters: AddToWatchlistDTO.Parameters, request: AddToWatchlistDTO.Request)
     case addRating(movieID: Int, parameters: AddRatingDTO.Parameters, request: AddRatingDTO.Request)
@@ -92,8 +92,8 @@ nonisolated extension TMDBEndpoint {
             "/3/authentication/session"
         case let .accountMovies(accountObjectID, category, _):
             "/4/account/\(accountObjectID)/movie/\(category.rawValue)"
-        case .accountDetails(let accountID, _):
-            "/3/account/\(accountID)"
+        case .accountDetails:
+            "/3/account"
         case .addFavorite(let accountID, _, _):
             "/3/account/\(accountID)/favorite"
         case .addToWatchlist(let accountID, _, _):
@@ -124,8 +124,9 @@ nonisolated extension TMDBEndpoint {
             parameters
         case .accountMovies(_, _, let parameters):
             parameters
-        case .accountDetails(_, let parameters),
-            .addFavorite(_, let parameters, _),
+        case .accountDetails(let parameters):
+            parameters
+        case .addFavorite(_, let parameters, _),
             .addToWatchlist(_, let parameters, _),
             .addRating(_, let parameters, _),
             .deleteRating(_, let parameters):
@@ -168,6 +169,17 @@ nonisolated extension TMDBEndpoint {
             .createSessionFromAccessToken, .deleteSession, .accountDetails, .addFavorite, .addToWatchlist,
             .addRating, .deleteRating:
             .readAccessToken
+        }
+    }
+
+    var carriesCredentials: Bool {
+        switch self {
+        case .configuration, .movieGenres, .trendingMovies, .movieList, .discoverMovies, .searchMovies,
+            .movieDetails, .personDetails, .accountMovies:
+            false
+        case .createRequestToken, .createAccessToken, .deleteAccessToken, .createSessionFromAccessToken,
+            .deleteSession, .accountDetails, .addFavorite, .addToWatchlist, .addRating, .deleteRating:
+            true
         }
     }
 }

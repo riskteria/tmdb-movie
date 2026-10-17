@@ -10,7 +10,7 @@ final class HomeViewController: UIViewController {
 
     private let interactor: any IHomeInteractor
     private let router: any IHomeRouter
-    private let imageLoader: any ImageLoading
+    private let imageLoader: any IImageLoader
     private var loadTask: Task<Void, Never>?
     private var autoAdvanceTask: Task<Void, Never>?
     private var sectionTitles: [HomeModel.Section: String] = [:]
@@ -21,7 +21,7 @@ final class HomeViewController: UIViewController {
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
 
-    init(interactor: any IHomeInteractor, router: any IHomeRouter, imageLoader: any ImageLoading) {
+    init(interactor: any IHomeInteractor, router: any IHomeRouter, imageLoader: any IImageLoader) {
         self.interactor = interactor
         self.router = router
         self.imageLoader = imageLoader

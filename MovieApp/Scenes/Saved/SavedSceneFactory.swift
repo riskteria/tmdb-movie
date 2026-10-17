@@ -4,7 +4,7 @@ enum SavedSceneFactory {
     static func make(
         savedMoviesRepository: any ISavedMoviesRepository,
         imageURLProvider: any ImageURLProvider,
-        imageLoader: any ImageLoading,
+        imageLoader: any IImageLoader,
         onSelectMovie: @escaping (Movie) -> Void
     ) -> UIViewController {
         let presenter = SavedPresenter(imageURLProvider: imageURLProvider)

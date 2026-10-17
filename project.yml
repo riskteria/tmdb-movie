@@ -31,6 +31,9 @@ packages:
     path: Arkana/ArkanaKeys/ArkanaKeys
   Networking:
     path: Modules/Networking
+  SimpleKeychain:
+    url: https://github.com/auth0/SimpleKeychain
+    from: 1.3.0
 
 targets:
   MovieApp:
@@ -62,6 +65,7 @@ targets:
       - package: MovieAppDS
       - package: ArkanaKeys
       - package: Networking
+      - package: SimpleKeychain
     postCompileScripts:
       - name: SwiftLint
         basedOnDependencyAnalysis: false

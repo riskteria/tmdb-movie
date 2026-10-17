@@ -10,7 +10,7 @@ UIKit movie app built with Clean Architecture and the VIP (Clean Swift) pattern,
 - **UI**: UIKit only, layout written in code. No SwiftUI, storyboards or xibs
 - **Architecture**: Clean Architecture layers, with VIP inside each scene
 - **Concurrency**: async/await, actors and `AsyncStream`. The app target's default isolation is `MainActor`, with Approachable Concurrency on
-- **Dependencies**: Swift Package Manager only. Current packages: `Networking`, the local package in `Modules/Networking` that wraps Alamofire 5 (networking, behind `IAPIService`; see Networking), Nuke 13 (images, behind `ImageLoading`), `MovieAppDS`, the design system, from the remote `tmdb-movie-ds` package on branch `main`, and `ArkanaKeys`, generated locally by Arkana (see Secrets). Ask before adding any other third-party package
+- **Dependencies**: Swift Package Manager only. Current packages: `Networking`, the local package in `Modules/Networking` that wraps Alamofire 5 (networking, behind `IAPIService`; see Networking), Nuke 13 (images, behind `IImageLoader`), `MovieAppDS`, the design system, from the remote `tmdb-movie-ds` package on branch `main`, SimpleKeychain 1 (the session's Keychain item, behind `IKeychainService`; see Auth), and `ArkanaKeys`, generated locally by Arkana (see Secrets). Ask before adding any other third-party package
 - **Secrets**: the TMDB read access token lives in `Arkana/.env` as `TmdbReadAccessToken`, which is gitignored (copy `Arkana/.env.example`). [Arkana](https://github.com/rogerluan/arkana) (`gem install arkana`, configured by `Arkana/.arkana.yml`) turns it into the obfuscated local packages in `Arkana/ArkanaKeys/`, also gitignored. Run `./setup.sh` (it calls `./Arkana/sync-keys.sh`) after cloning and whenever `Arkana/.env` changes, or XcodeGen and the build can't find `ArkanaKeys`. `AppConfigs.shared` (`Common/Configuration/`) is the only file that imports `ArkanaKeys`; everything else reads keys from it (`AppConfigs.shared.tmdbReadAccessToken`). Add a property there for each new Arkana secret. Never put the token in source
 - **Tests**: Swift Testing unit tests only. No UI test target for now
 - **Lint**: SwiftLint (`.swiftlint.yml`) runs in a build phase on every build
@@ -104,7 +104,7 @@ Modules/
 └── Networking/             Local Swift package, module `Networking`: the TMDB API client. Depends on Alamofire
     ├── Package.swift
     ├── Sources/Networking/
-    │   ├── Client/         IAPIService + APIService (Alamofire), NetworkError, ReadAccessTokenInterceptor,
+    │   ├── Client/         IAPIService + APIService (Alamofire), NetworkError, ReadAccessTokenInterceptor, UserAccessTokenInterceptor,
     │   │                   APIResponseLogger, and the test-only ICallbackAPIService + CallbackAPIService, APIRequestHandle
     │   ├── Endpoints/      TMDBEndpoint
     │   └── DTOs/           <Name>DTO per endpoint (wire types only), grouped in Movie/, Auth/, Account/, Shared/
@@ -119,7 +119,8 @@ MovieApp/
 │   └── Repositories/       IMovieRepository, IGenreRepository, ISavedMoviesRepository, … (protocols)
 ├── Data/
 │   ├── Observation/        AsyncBroadcaster
-│   ├── Persistence/        UserDefaults stores; CoreData/ holds the Core Data stack and repositories
+│   ├── Persistence/        UserDefaults stores; the Keychain session (IKeychainService, KeychainService,
+│   │                       CredentialRepository, AuthSession); CoreData/ holds the Core Data stack and repositories
 │   └── Repositories/       MovieRepository and GenreRepository (TMDB, through IAPIService), String+TMDB, the in-memory
 │                           SavedMoviesRepository and WatchProgressRepository (MockResponseCatalog), TMDBImageURLProvider
 ├── Scenes/                 Home, Search, GenreMovies, Saved, MovieDetail, Profile, each laid out like MovieList:
@@ -133,9 +134,10 @@ MovieApp/
 │       ├── MovieListSceneFactory.swift
 │       └── Views/          Cells, custom UIViews
 ├── Common/
+│   ├── Authentication/     WebAuthenticator (the TMDB approval sheet, over ASWebAuthenticationSession)
 │   ├── Components/         Shared cells and views (ArtworkView, PosterCell, HeroBannerCell, …)
 │   ├── Configuration/      AppConfigs (keys from ArkanaKeys)
-│   ├── Images/             ImageLoading, NukeImageLoader
+│   ├── Images/             IImageLoader, ImageLoader
 │   ├── Transitions/        ZoomTransitionSourceProvider
 │   └── Extensions/
 ├── Resources/              Localizable.xcstrings
@@ -175,8 +177,9 @@ Rules:
 - **Ownership**: the ViewController holds the Interactor and Router strongly. The Interactor holds the Presenter and the Worker strongly. The Presenter holds the ViewController `weak`. The Router holds only the coordinator's closures, which capture the coordinator `[weak self]`.
 - Inject every dependency through `init` into a `private let`. Never use `var interactor: IMovieListInteractor!`.
 - Each scene use case (one `Request` / `Response` / `ViewData` triple) gets one method on each boundary: `loadMovies(request:)` → `presentMovies(response:)` → `displayMovies(viewData:)`. The Worker's methods are named for the data they fetch (`fetchPopularMovies(page:)`).
+- **Shared-Response variant**: an action whose only visible result is the screen's state can skip its own `Response` / `ViewData` and redraw through the screen's load use case. Profile's `changeAppearance(request:)`, `signIn(request:)` and `signOut(request:)` have a `Request` only, and every change reaches the screen through `presentProfile(response:)`.
 - Name types `<Scene><Role>`. Put one type per file, with the type's boundary protocol in the same file. The models namespace is `enum <Scene>Model` in `<Scene>Models.swift`, and what the Presenter hands the ViewController is a `ViewData`, passed as `display…(viewData:)`.
-- Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is for scene protocols, repository ports (`IMovieRepository`, implemented by `MovieRepository`) and `IAPIService` / `ICallbackAPIService` (see Networking) only. Other protocols keep role names (`ImageLoading`, `ImageURLProvider`). A protocol that supplies something is named `<Thing>Provider` (`ImageURLProvider`, `ZoomTransitionSourceProvider`), never `<Thing>Providing`; only Apple's own protocols (`ASWebAuthenticationPresentationContextProviding`) keep that suffix.
+- Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is only for scene protocols, repository ports (`IMovieRepository`, implemented by `MovieRepository`), the `IWebAuthenticator` port and service protocols: `IAPIService` / `ICallbackAPIService` (see Networking), `IKeychainService`, `ISessionService` and `IImageLoader`. Other protocols keep role names (`ImageURLProvider`, `Coordinator`). A protocol that supplies something is named `<Thing>Provider` (`ImageURLProvider`, `ZoomTransitionSourceProvider`), never `<Thing>Providing`; only Apple's own protocols (`ASWebAuthenticationPresentationContextProviding`) keep that suffix.
 - **Workers are `nonisolated` and `Sendable`**: `nonisolated protocol I<Scene>Worker: Sendable` and `nonisolated struct <Scene>Worker`, with the conformance in a `nonisolated extension`. Interactors call them from child tasks (`async let`), and a nonisolated async method still runs on the Interactor's main actor when called directly. One Worker per scene; two scenes that need the same port each call it, and shared behavior such as caching belongs in a repository decorator.
 - Scenes never reach each other. The ViewController passes the data a route needs to its Router as a parameter, and the Router hands it to a coordinator closure (`onSelectMovie(Movie)`); the coordinator builds and shows the next scene. There is no data store, and a Router never depends on the Interactor. This keeps routers free of UIKit and state, and testable with a closure spy.
 - **Route data travels in the `ViewData`**: a displayed item the user can open carries the Domain entity its route needs (`let movie: Movie`, with `id` computed from it), so the ViewController can pass it on without asking the Interactor. Tapping, and anything else that only navigates, is not an Interactor use case.
@@ -425,7 +428,7 @@ Coordinators in `App/Coordinators/` own all navigation.
 
 - Import Nuke only in `Common/Images/` and `App/`.
 - `AppDependencies` builds one `ImagePipeline` with its own `ImageCache` and a 150 MB `DataCache`. Never use `ImagePipeline.shared` or `ImageCache.shared`.
-- Presenters turn an `ImagePath` into a URL through `ImageURLProvider` and hand cells a `DisplayedArtwork`. `ArtworkView` loads it through `ImageLoading`, downsampled to the view's size, and shows a generated placeholder until then.
+- Presenters turn an `ImagePath` into a URL through `ImageURLProvider` and hand cells a `DisplayedArtwork`. `ArtworkView` loads it through `IImageLoader`, downsampled to the view's size, and shows a generated placeholder until then.
 
 ### Domain and Data Shape
 
@@ -453,14 +456,14 @@ The network layer is the `Networking` module, a local Swift package in `Modules/
 
 - **Confine Alamofire** to the `Networking` module and its tests. Only `Data/Repositories/` and `App/` `import Networking` (lint rule `no_networking_outside_data`). Repositories take `any IAPIService` through `init` and use `TMDBEndpoint`, the DTOs and `NetworkError`. They never see `APIService` or a `Session`.
 - **One shared client**: `AppDependencies` creates the app's only `APIService` with `APIService(readAccessToken: AppConfigs.shared.tmdbReadAccessToken)`, which builds the `Session` and its `ReadAccessTokenInterceptor` inside the module, and passes it to every repository's `init`. Tests build their own client with `APIService.makeStub()`. The one other client is the test-only `CallbackAPIService` below. Never use `AF` or `Session.default`.
-- **Public API**: mark `public` only what the app uses: `IAPIService`, `APIService` and `init(readAccessToken:)`, `ICallbackAPIService`, `CallbackAPIService` and `init(readAccessToken:)`, `APIRequestHandle` and `cancel()`, `NetworkError`, `TMDBEndpoint` and `asURLRequest()`, and every DTO type, typealias and stored property (public enum cases need public associated types). Everything that takes an Alamofire type stays internal (`APIService.init(configuration:interceptor:)`, `CallbackAPIService.init(configuration:interceptor:)`, `NetworkError.init(_:)`, the interceptors), and so do `method`, `path`, `parameters`, `body` and `authorization`. A `Parameters` or `Request` that a repository builds gets an explicit `public init` that mirrors the memberwise one (same labels, order and defaults). Tests reach internals with `@testable import Networking`.
+- **Public API**: mark `public` only what the app uses: `IAPIService`, `APIService` and `init(readAccessToken:userAccessToken:)`, `ICallbackAPIService`, `CallbackAPIService` and `init(readAccessToken:)`, `APIRequestHandle` and `cancel()`, `NetworkError`, `TMDBEndpoint` and `asURLRequest()`, and every DTO type, typealias and stored property (public enum cases need public associated types). Everything that takes an Alamofire type stays internal (`APIService.init(configuration:interceptor:userAccessTokenInterceptor:)`, `APIService.requestInterceptor(for:)`, `CallbackAPIService.init(configuration:interceptor:)`, `NetworkError.init(_:)`, the interceptors), and so do `method`, `path`, `parameters`, `body`, `authorization` and `carriesCredentials`. A `Parameters` or `Request` that a repository builds gets an explicit `public init` that mirrors the memberwise one (same labels, order and defaults). Tests reach internals with `@testable import Networking`.
 - **Calling an endpoint**: `let page: SearchMoviesDTO.Response = try await apiService.request(.searchMovies(parameters: .init(query: query)))`, then map it to Domain entities in the repository (see DTOs > Mapping).
 - **Async API only**: use `serializingDecodable(_:decoder:)` with `.response`, `.result` or `.value`. Never use the `response…` completion-handler methods. Always call `.validate()` so non-2xx statuses fail.
 - **Callback client (test-only)**: `CallbackAPIService` (`ICallbackAPIService`) is the one exception to async-only. It mirrors `APIService` on `responseDecodable(of:decoder:completionHandler:)`, delivers `Result<Response, any Error>` (failing with `NetworkError` or `CancellationError`) on the main queue, and returns an `APIRequestHandle` to cancel. It exists to compare a callback chain with the async one, through `CallbackGenreRepository`, `SearchCallbackWorker` and `SearchInteractor.loadGenresUsingCallback`. `AppDependencies` builds that chain (its own `CallbackAPIService`, so a second `Session`) because `SearchInteractor` requires a callback Worker, but no screen calls `loadGenresUsingCallback`. Don't route other repositories through it.
 - **Decoding is already off the main actor**: Alamofire decodes on its serialization queue, so `APIService` needs no `@concurrent` decode step.
 - **Cancellation**: `serializingDecodable` cancels the request when the calling `Task` is cancelled (`automaticallyCancelling` defaults to `true`). It reports this as `AFError.explicitlyCancelled`, so `APIService` rethrows it as `CancellationError` and the Interactor's `catch is CancellationError` keeps working.
 - **Errors**: `AFError` never leaves `APIService`. Map it to `NetworkError`.
-- **Debug logging**: in Debug builds `APIService` and `CallbackAPIService` log, through the shared internal `APIResponseLogger`, each request and response (method, URL, status, headers, body) through `os.Logger`, category `network`, with the `Authorization` header redacted. Keep that redaction for any header you start logging.
+- **Debug logging**: in Debug builds `APIService` and `CallbackAPIService` log, through the shared internal `APIResponseLogger`, each request and response (method, URL, status, headers, body) through `os.Logger`, category `network`, with the `Authorization` header redacted. Keep that redaction for any header you start logging. Endpoints whose `TMDBEndpoint.carriesCredentials` is `true` (the auth and session calls, `accountDetails` and the v3 writes) log one line instead, with method, path and status only: no query string, headers or body. `carriesCredentials` switches over every case with no `default`, and a new endpoint that carries a token or a session ID must return `true`.
 
 ```swift
 import Alamofire
@@ -494,13 +497,22 @@ public nonisolated final class APIService: Sendable {
     private let session: Session
     private let decoder: JSONDecoder
     private let responseLogger = APIResponseLogger()
+    private let userAccessTokenInterceptor: UserAccessTokenInterceptor?
 
-    public convenience init(readAccessToken: String) {
-        self.init(interceptor: ReadAccessTokenInterceptor(token: readAccessToken))
+    public convenience init(readAccessToken: String, userAccessToken: @escaping @Sendable () -> String? = { nil }) {
+        self.init(
+            interceptor: ReadAccessTokenInterceptor(token: readAccessToken),
+            userAccessTokenInterceptor: UserAccessTokenInterceptor(accessToken: userAccessToken)
+        )
     }
 
-    init(configuration: URLSessionConfiguration = .af.default, interceptor: (any RequestInterceptor)? = nil) {
+    init(
+        configuration: URLSessionConfiguration = .af.default,
+        interceptor: (any RequestInterceptor)? = nil,
+        userAccessTokenInterceptor: UserAccessTokenInterceptor? = nil
+    ) {
         session = Session(configuration: configuration, interceptor: interceptor)
+        self.userAccessTokenInterceptor = userAccessTokenInterceptor
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         self.decoder = decoder
@@ -510,7 +522,7 @@ public nonisolated final class APIService: Sendable {
 // MARK: - IAPIService
 nonisolated extension APIService: IAPIService {
     public func request<Response: Decodable & Sendable>(_ endpoint: TMDBEndpoint) async throws -> Response {
-        let response = await session.request(endpoint)
+        let response = await session.request(endpoint, interceptor: requestInterceptor(for: endpoint))
             .validate()
             .serializingDecodable(Response.self, decoder: decoder)
             .response
@@ -523,6 +535,17 @@ nonisolated extension APIService: IAPIService {
             throw CancellationError()
         case .failure(let error):
             throw NetworkError(error)
+        }
+    }
+}
+
+nonisolated extension APIService {
+    func requestInterceptor(for endpoint: TMDBEndpoint) -> UserAccessTokenInterceptor? {
+        switch endpoint.authorization {
+        case .readAccessToken:
+            nil
+        case .userAccessToken:
+            userAccessTokenInterceptor
         }
     }
 }
@@ -684,7 +707,10 @@ public nonisolated enum CreateSessionFromAccessTokenDTO {
 - **Tokens**: `TMDBEndpoint.authorization` says which bearer token a request needs:
   - `.userAccessToken` for the v4 account lists.
   - `.readAccessToken`, the app's API read token, for everything else, including the v4 auth calls and the v3 writes.
-- **Attaching the token**: do it in a `RequestInterceptor` in the `Networking` module (`Sources/Networking/Client/`), never by setting the header by hand. Pass the read-token interceptor to `Session(interceptor:)`. `APIService` passes the user-token interceptor per request (`session.request(endpoint, interceptor:)`) when `endpoint.authorization == .userAccessToken`.
+- **Attaching the token**: do it in a `RequestInterceptor` in the `Networking` module (`Sources/Networking/Client/`), never by setting the header by hand. Pass the read-token interceptor to `Session(interceptor:)`. `APIService` takes a `userAccessToken` reader closure (`init(readAccessToken:userAccessToken:)`, which defaults to `{ nil }`), and `requestInterceptor(for:)` passes a `UserAccessTokenInterceptor` per request (`session.request(endpoint, interceptor:)`) when `endpoint.authorization == .userAccessToken`. Alamofire runs the session's interceptor first and the request's second, and `HTTPHeaders.add` replaces the header, so the user token wins. The reader is called at send time; when it returns `nil`, the read token stays and TMDB answers 401.
+- **Session owner**: `AuthRepository` (an actor in `Data/Repositories/`) is the only writer of the Keychain item, through `CredentialRepository`. It writes the Keychain first and changes its phase second, in both directions, so a failed save never shows a signed-in state. `APIService`'s token reader only reads it. `IAuthRepository` exposes no token.
+- **Observing**: screens read the auth state through their Worker from `IAuthRepository.changes`, which yields the current state first. Only Profile starts a sign-in, so `AuthState` has no pending case; Profile shows its own pending row.
+- **Web sheet**: `WebAuthenticator` (`Common/Authentication/`) opens the approval page in an ephemeral `ASWebAuthenticationSession` with the `movieapp` callback scheme. Info.plist registers no URL type, so only that sheet receives the callback. It presents over the scene's window, so `SceneDelegate` creates the window first and builds `AppDependencies(window:)`.
 - **Callback exception**: Alamofire's interceptor API is callback-based. Implementing it is one of the two allowed exceptions (see Concurrency) to the no-completion-handler rule.
 
 ## Concurrency
@@ -739,13 +765,15 @@ SwiftLint enforces most of these rules. You are responsible for the rest.
   - Use `UpperCamelCase` for types and `lowerCamelCase` for everything else.
   - Keep acronyms in uniform case (`movieID`, `urlString`).
   - Booleans read as assertions (`isLoading`, `hasNextPage`).
+  - Types and protocols are role nouns: no `Manager` types and no `-ing` protocol names (`IImageLoader`, not `ImageLoading`).
   - Factory methods start with `make`.
-  - Scene boundary protocols, repository ports (`IMovieRepository`), `IAPIService` and `ICallbackAPIService` take an `I` prefix. This is a project rule; see VIP Scene.
+  - Scene boundary protocols, repository ports (`IMovieRepository`), `IWebAuthenticator` and service protocols (`IAPIService`, `ICallbackAPIService`, `IKeychainService`, `ISessionService`, `IImageLoader`) take an `I` prefix. This is a project rule; see VIP Scene.
   - Delegate methods take the source object as an unnamed first parameter.
   - Use US English.
 - **Organization**:
   - Order members as properties, `init`, lifecycle, then methods.
   - Put each protocol conformance in its own extension under `// MARK: - <Protocol>`.
+  - Declare a protocol at the top of its implementation's file (`IKeychainService` in `KeychainService.swift`). Domain ports stay in `Domain/Repositories/`, and a protocol with several implementations (`Coordinator`, `ZoomTransitionSourceProvider`) keeps its own file.
   - Put helpers in a `private extension`.
   - Delete unused code and template leftovers.
   - Import only what you use, sorted.
@@ -757,7 +785,7 @@ SwiftLint enforces most of these rules. You are responsible for the rest.
   - Use shorthand syntax (`[String]`, `Int?`).
   - Write `any` on every existential (`any ISearchPresenter`, `any Error`, `(any IHomeViewController)?`). Both targets set `SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES`, so a bare protocol type is a compile error. Use `some` or a generic instead when the concrete type is fixed and dispatch cost matters.
   - Prefer `let` over `var`.
-  - Put constants in case-less enums (`enum Layout { static let spacing: CGFloat = 16 }`).
+  - New code has no `static` members. Constants are instance `private let`s (`private let key = "tmdb-session"`, as in `AppearanceRepository`), and test values are instance properties of the suite. Existing statics stay until their file is reworked.
 - **Golden path**:
   - Exit early with `guard` instead of nesting conditions.
   - A `guard` `else` block only exits (return, throw, break, continue, `fatalError`).
@@ -889,6 +917,7 @@ private struct MovieListWorkerStub: IMovieListWorker {
 - Import Alamofire outside the `Networking` module and its tests, import `Networking` outside `Data/Repositories/`, `App/` and tests, use `AF` / `Session.default`, or let `AFError` escape `APIService`.
 - Import Nuke outside `Common/Images/` and `App/`, or use `ImagePipeline.shared` / `ImageCache.shared`.
 - Import CoreData outside `Data/Persistence/CoreData/` and its tests, or let an `NSManagedObject` leave a repository.
+- Import SimpleKeychain outside `Data/Persistence/` (only `KeychainService` uses it).
 - Push or present view controllers from a scene. Routers call coordinator closures.
 - Add a TMDB endpoint that `append_to_response` or an existing `TMDBEndpoint` case already covers, or add a `default:` to the `TMDBEndpoint` switches.
 - Add comments that describe what the code already says.

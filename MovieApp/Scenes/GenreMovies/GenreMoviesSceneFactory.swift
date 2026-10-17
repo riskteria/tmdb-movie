@@ -5,7 +5,7 @@ enum GenreMoviesSceneFactory {
         genre: Genre,
         movieRepository: any IMovieRepository,
         imageURLProvider: any ImageURLProvider,
-        imageLoader: any ImageLoading,
+        imageLoader: any IImageLoader,
         onSelectMovie: @escaping (Movie) -> Void
     ) -> UIViewController {
         let worker = GenreMoviesWorker(movieRepository: movieRepository)

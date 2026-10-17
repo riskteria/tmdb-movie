@@ -28,7 +28,7 @@ final class MovieDetailView: UIView {
         scrollView.verticalScrollIndicatorInsets.bottom = safeAreaInsets.bottom
     }
 
-    func configure(with detail: MovieDetailModel.DisplayedDetail, imageLoader: any ImageLoading) {
+    func configure(with detail: MovieDetailModel.DisplayedDetail, imageLoader: any IImageLoader) {
         titleLabel.text = detail.title
         metadataLabel.text = detail.metadata
         overviewLabel.text = detail.overview

@@ -17,12 +17,7 @@ extension ProfilePresenter: IProfilePresenter {
             ProfileModel.DisplayedSection(
                 section: .account,
                 header: nil,
-                rows: [
-                    .guest(
-                        title: String(localized: "Browsing as guest"),
-                        message: String(localized: "Saved movies and watch history stay on this device.")
-                    )
-                ]
+                rows: makeAccountRows(for: response.accountState)
             ),
             ProfileModel.DisplayedSection(
                 section: .data,
@@ -51,6 +46,45 @@ extension ProfilePresenter: IProfilePresenter {
 }
 
 private extension ProfilePresenter {
+    func makeAccountRows(for state: ProfileModel.AccountState) -> [ProfileModel.Row] {
+        let guestTitle = String(localized: "Browsing as guest")
+        let guestMessage = String(localized: "Saved movies and watch history stay on this device.")
+        let signInTitle = String(localized: "Sign in with TMDB")
+        switch state {
+        case .guest:
+            return [
+                .guest(title: guestTitle, message: guestMessage),
+                .signIn(title: signInTitle, isEnabled: true)
+            ]
+        case .signInPending:
+            return [
+                .guest(title: guestTitle, message: guestMessage),
+                .signIn(title: String(localized: "Signing in…"), isEnabled: false)
+            ]
+        case .signInFailed:
+            let failureMessage = String(localized: "Couldn't sign in. Check your connection and try again.")
+            return [
+                .guest(title: guestTitle, message: failureMessage),
+                .signIn(title: signInTitle, isEnabled: true)
+            ]
+        case .signedIn(let account):
+            let displayName = account.name.isEmpty ? account.username : account.name
+            return [
+                .account(name: displayName, username: "@\(account.username)"),
+                .signOut(title: String(localized: "Sign out"), confirmation: makeSignOutConfirmation())
+            ]
+        }
+    }
+
+    func makeSignOutConfirmation() -> ProfileModel.DisplayedConfirmation {
+        ProfileModel.DisplayedConfirmation(
+            title: String(localized: "Sign out of TMDB?"),
+            message: String(localized: "Saved movies and watch history stay on this device."),
+            confirmTitle: String(localized: "Sign Out"),
+            cancelTitle: String(localized: "Cancel")
+        )
+    }
+
     func makeAppearanceRow(selected: AppTheme) -> ProfileModel.Row {
         .appearance(
             title: String(localized: "Appearance"),

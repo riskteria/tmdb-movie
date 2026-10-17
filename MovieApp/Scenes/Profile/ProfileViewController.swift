@@ -7,15 +7,18 @@ protocol IProfileViewController: AnyObject {
 
 final class ProfileViewController: UIViewController {
     private let interactor: any IProfileInteractor
+    private let router: any IProfileRouter
     private var headers: [ProfileModel.Section: String] = [:]
     private var loadTask: Task<Void, Never>?
     private var changeAppearanceTask: Task<Void, Never>?
+    private var accountTask: Task<Void, Never>?
 
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
 
-    init(interactor: any IProfileInteractor) {
+    init(interactor: any IProfileInteractor, router: any IProfileRouter) {
         self.interactor = interactor
+        self.router = router
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -26,6 +29,7 @@ final class ProfileViewController: UIViewController {
     isolated deinit {
         loadTask?.cancel()
         changeAppearanceTask?.cancel()
+        accountTask?.cancel()
     }
 
     override func viewDidLoad() {
@@ -48,6 +52,42 @@ private extension ProfileViewController {
         changeAppearanceTask?.cancel()
         changeAppearanceTask = Task { [interactor] in
             await interactor.changeAppearance(request: ProfileModel.ChangeAppearance.Request(theme: theme))
+        }
+    }
+
+    func signIn() {
+        accountTask?.cancel()
+        accountTask = Task { [interactor] in
+            await interactor.signIn(request: ProfileModel.SignIn.Request())
+        }
+    }
+
+    func signOut() {
+        accountTask?.cancel()
+        accountTask = Task { [interactor] in
+            await interactor.signOut(request: ProfileModel.SignOut.Request())
+        }
+    }
+
+    func isActionRow(at indexPath: IndexPath) -> Bool {
+        switch dataSource.itemIdentifier(for: indexPath) {
+        case .signIn(_, let isEnabled):
+            isEnabled
+        case .signOut:
+            true
+        default:
+            false
+        }
+    }
+
+    func makeAccessibilityTraits(for row: ProfileModel.Row) -> UIAccessibilityTraits {
+        switch row {
+        case .signIn(_, let isEnabled):
+            isEnabled ? .button : [.button, .notEnabled]
+        case .signOut:
+            .button
+        default:
+            .none
         }
     }
 
@@ -77,6 +117,31 @@ extension ProfileViewController: IProfileViewController {
     }
 }
 
+// MARK: - UICollectionViewDelegate
+extension ProfileViewController: UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
+        isActionRow(at: indexPath)
+    }
+
+    func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
+        isActionRow(at: indexPath)
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        collectionView.deselectItem(at: indexPath, animated: true)
+        switch dataSource.itemIdentifier(for: indexPath) {
+        case .signIn(_, isEnabled: true):
+            signIn()
+        case .signOut(_, let confirmation):
+            router.routeToSignOutConfirmation(confirmation) { [weak self] in
+                self?.signOut()
+            }
+        default:
+            break
+        }
+    }
+}
+
 // MARK: - Layout
 private extension ProfileViewController {
     func setUpLayout() {
@@ -98,7 +163,7 @@ private extension ProfileViewController {
         let layout = UICollectionViewCompositionalLayout.list(using: configuration)
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .MVColor(.backgroundPrimary)
-        collectionView.allowsSelection = false
+        collectionView.delegate = self
         return collectionView
     }
 
@@ -107,6 +172,7 @@ private extension ProfileViewController {
         let rowRegistration = RowRegistration { [weak self] cell, _, row in
             cell.contentConfiguration = Self.makeContentConfiguration(for: row)
             cell.accessories = self?.makeAccessories(for: row) ?? []
+            cell.accessibilityTraits = self?.makeAccessibilityTraits(for: row) ?? .none
             var background = UIBackgroundConfiguration.listCell()
             background.backgroundColor = .MVColor(.backgroundSecondary)
             cell.backgroundConfiguration = background
@@ -135,15 +201,24 @@ private extension ProfileViewController {
 
     static func makeContentConfiguration(for row: ProfileModel.Row) -> UIListContentConfiguration {
         switch row {
-        case let .guest(title, message):
+        case let .guest(title, subtitle), let .account(title, subtitle):
             var configuration = UIListContentConfiguration.subtitleCell()
             configuration.image = UIImage(systemName: "person.crop.circle.fill")
             configuration.imageProperties.tintColor = .MVColor(.brand)
             let symbolConfiguration = UIImage.SymbolConfiguration(textStyle: .largeTitle)
             configuration.imageProperties.preferredSymbolConfiguration = symbolConfiguration
             configuration.text = title
-            configuration.secondaryText = message
+            configuration.secondaryText = subtitle
             return styled(configuration)
+        case let .signIn(title, isEnabled):
+            var configuration = styled(makeCell(title: title, systemImage: "person.badge.key"))
+            let color: UIColor = isEnabled ? .MVColor(.brand) : .MVColor(.textSecondary)
+            configuration.textProperties.color = color
+            configuration.imageProperties.tintColor = color
+            return configuration
+        case .signOut(let title, _):
+            let configuration = makeCell(title: title, systemImage: "rectangle.portrait.and.arrow.right")
+            return styled(configuration, isDestructive: true)
         case .clearSavedData(let title):
             return styled(makeCell(title: title, systemImage: "trash"), isDestructive: true)
         case .clearWatchHistory(let title):

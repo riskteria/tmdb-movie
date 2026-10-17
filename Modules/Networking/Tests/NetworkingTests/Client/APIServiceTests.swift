@@ -83,6 +83,44 @@ struct APIServiceTests {
         }
     }
 
+    @Test
+    func userTokenEndpointGetsUserTokenInterceptor() {
+        // Given
+        let service = APIService(readAccessToken: "read-token") { "user-token" }
+        let endpoint = TMDBEndpoint.accountMovies(accountObjectID: "4bc889", category: .watchlist, parameters: .init())
+
+        // When
+        let interceptor = service.requestInterceptor(for: endpoint)
+
+        // Assert
+        #expect(interceptor?.accessToken() == "user-token")
+    }
+
+    @Test
+    func contentEndpointGetsNoExtraInterceptor() {
+        // Given
+        let service = APIService(readAccessToken: "read-token") { "user-token" }
+
+        // When
+        let interceptor = service.requestInterceptor(for: Self.popularMovies(page: 1))
+
+        // Assert
+        #expect(interceptor == nil)
+    }
+
+    @Test
+    func authEndpointGetsNoExtraInterceptor() {
+        // Given
+        let service = APIService(readAccessToken: "read-token") { "user-token" }
+        let endpoint = TMDBEndpoint.createRequestToken(request: .init(redirectTo: "movieapp://auth"))
+
+        // When
+        let interceptor = service.requestInterceptor(for: endpoint)
+
+        // Assert
+        #expect(interceptor == nil)
+    }
+
     private static func popularMovies(page: Int) -> TMDBEndpoint {
         .movieList(category: .popular, parameters: .init(page: page))
     }

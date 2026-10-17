@@ -5,7 +5,7 @@ enum MovieDetailSceneFactory {
         movie: Movie,
         movieRepository: any IMovieRepository,
         imageURLProvider: any ImageURLProvider,
-        imageLoader: any ImageLoading
+        imageLoader: any IImageLoader
     ) -> UIViewController {
         let presenter = MovieDetailPresenter(imageURLProvider: imageURLProvider)
         let worker = MovieDetailWorker(movieRepository: movieRepository)

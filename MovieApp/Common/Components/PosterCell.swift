@@ -20,7 +20,7 @@ final class PosterCell: UICollectionViewCell {
         artwork: DisplayedArtwork,
         showsPlayBadge: Bool,
         rating: String? = nil,
-        imageLoader: any ImageLoading
+        imageLoader: any IImageLoader
     ) {
         artworkView.configure(with: artwork, imageLoader: imageLoader)
         playBadge.isHidden = !showsPlayBadge

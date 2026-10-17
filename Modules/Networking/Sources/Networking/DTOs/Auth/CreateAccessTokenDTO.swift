@@ -1,6 +1,10 @@
 public nonisolated enum CreateAccessTokenDTO {
     public struct Request: Encodable, Sendable {
         public let requestToken: String
+
+        public init(requestToken: String) {
+            self.requestToken = requestToken
+        }
     }
 
     public struct Response: Decodable, Sendable {

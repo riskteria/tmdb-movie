@@ -5,24 +5,34 @@ import UIKit
 final class AppDependencies {
     private static let imageDiskCacheSize = 150 * 1024 * 1024
 
-    private let imageLoader: any ImageLoading
+    private let imageLoader: any IImageLoader
     private let imageURLProvider: any ImageURLProvider = TMDBImageURLProvider()
     private let movieRepository: any IMovieRepository
     private let genreRepository: any IGenreRepository
     private let callbackGenreRepository: any ICallbackGenreRepository
+    private let authRepository: any IAuthRepository
     private let savedMoviesRepository: any ISavedMoviesRepository = SavedMoviesRepository()
     private let watchProgressRepository: any IWatchProgressRepository = WatchProgressRepository()
     let appearanceRepository: any IAppearanceRepository = AppearanceRepository()
 
-    init() {
+    init(window: UIWindow) {
         var configuration = ImagePipeline.Configuration.withDataCache(
             name: "com.enkidu.MovieApp.images",
             sizeLimit: Self.imageDiskCacheSize
         )
         configuration.imageCache = ImageCache()
-        imageLoader = NukeImageLoader(pipeline: ImagePipeline(configuration: configuration))
+        imageLoader = ImageLoader(pipeline: ImagePipeline(configuration: configuration))
         let readAccessToken = AppConfigs.shared.tmdbReadAccessToken
-        let apiService = APIService(readAccessToken: readAccessToken)
+        let credentialRepository = CredentialRepository(
+            keychain: KeychainService(service: "com.enkidu.MovieApp.tmdb-session")
+        )
+        let apiService = APIService(readAccessToken: readAccessToken) {
+            try? credentialRepository.load()?.accessToken
+        }
+        authRepository = AuthRepository(
+            sessionService: SessionService(apiService: apiService, webAuthenticator: WebAuthenticator(window: window)),
+            credentialRepository: credentialRepository
+        )
         movieRepository = MovieRepository(apiService: apiService)
         genreRepository = GenreRepository(apiService: apiService)
         callbackGenreRepository = CallbackGenreRepository(
@@ -85,8 +95,15 @@ extension AppDependencies: SavedFactory {
 
 // MARK: - ProfileFactory
 extension AppDependencies: ProfileFactory {
-    func makeProfile() -> UIViewController {
-        ProfileSceneFactory.make(appInfo: Self.makeAppInfo(from: .main), appearanceRepository: appearanceRepository)
+    func makeProfile(
+        onRequestSignOut: @escaping (ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void
+    ) -> UIViewController {
+        ProfileSceneFactory.make(
+            appInfo: Self.makeAppInfo(from: .main),
+            appearanceRepository: appearanceRepository,
+            authRepository: authRepository,
+            onRequestSignOut: onRequestSignOut
+        )
     }
 }
 

@@ -17,7 +17,7 @@ final class HeroBannerCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(title: String, metadata: String, artwork: DisplayedArtwork, imageLoader: any ImageLoading) {
+    func configure(title: String, metadata: String, artwork: DisplayedArtwork, imageLoader: any IImageLoader) {
         titleLabel.text = title
         metadataLabel.text = metadata
         artworkView.configure(with: artwork, imageLoader: imageLoader)

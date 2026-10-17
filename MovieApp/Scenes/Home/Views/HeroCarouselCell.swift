@@ -6,7 +6,7 @@ import UIKit
 final class HeroCarouselCell: UICollectionViewCell {
     var onSelectBanner: ((Movie, UIView) -> Void)?
     var onUserPageChange: (() -> Void)?
-    private var imageLoader: (any ImageLoading)?
+    private var imageLoader: (any IImageLoader)?
 
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
@@ -28,7 +28,7 @@ final class HeroCarouselCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(banners: [HomeModel.DisplayedBanner], imageLoader: any ImageLoading) {
+    func configure(banners: [HomeModel.DisplayedBanner], imageLoader: any IImageLoader) {
         self.imageLoader = imageLoader
         var snapshot = NSDiffableDataSourceSnapshot<Int, HomeModel.DisplayedBanner>()
         snapshot.appendSections([0])

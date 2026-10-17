@@ -6,7 +6,7 @@ enum HomeSceneFactory {
         let genreRepository: any IGenreRepository
         let watchProgressRepository: any IWatchProgressRepository
         let imageURLProvider: any ImageURLProvider
-        let imageLoader: any ImageLoading
+        let imageLoader: any IImageLoader
     }
 
     static func make(dependencies: Dependencies, onSelectMovie: @escaping (Movie) -> Void) -> UIViewController {

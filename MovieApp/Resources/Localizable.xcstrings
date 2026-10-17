@@ -23,6 +23,9 @@
     "Browsing as guest" : {
 
     },
+    "Cancel" : {
+
+    },
     "Clear Saved data" : {
 
     },
@@ -33,6 +36,9 @@
 
     },
     "Couldn’t load more movies" : {
+
+    },
+    "Couldn't sign in. Check your connection and try again." : {
 
     },
     "Dark" : {
@@ -81,6 +87,21 @@
 
     },
     "Search" : {
+
+    },
+    "Sign in with TMDB" : {
+
+    },
+    "Sign out" : {
+
+    },
+    "Sign Out" : {
+
+    },
+    "Sign out of TMDB?" : {
+
+    },
+    "Signing in…" : {
 
     },
     "System" : {

@@ -6,6 +6,10 @@ enum JSONFixture {
         case movieGenres = "movie-genres"
         case moviePage = "movie-page"
         case movieDetails = "movie-details"
+        case createRequestToken = "create-request-token"
+        case createAccessToken = "create-access-token"
+        case createSession = "create-session"
+        case accountDetails = "account-details"
     }
 
     static func named(_ name: JSONFiles) throws -> String {

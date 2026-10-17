@@ -8,14 +8,14 @@ protocol ISavedViewController: AnyObject {
 final class SavedViewController: UIViewController {
     private let interactor: any ISavedInteractor
     private let router: any ISavedRouter
-    private let imageLoader: any ImageLoading
+    private let imageLoader: any IImageLoader
     private var observeTask: Task<Void, Never>?
     private var header = ""
 
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
 
-    init(interactor: any ISavedInteractor, router: any ISavedRouter, imageLoader: any ImageLoading) {
+    init(interactor: any ISavedInteractor, router: any ISavedRouter, imageLoader: any IImageLoader) {
         self.interactor = interactor
         self.router = router
         self.imageLoader = imageLoader

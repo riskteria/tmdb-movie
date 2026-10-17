@@ -22,7 +22,7 @@ final class ContinueWatchingCell: UICollectionViewCell {
         subtitle: String,
         progress: Double,
         artwork: DisplayedArtwork,
-        imageLoader: any ImageLoading
+        imageLoader: any IImageLoader
     ) {
         titleLabel.text = title
         subtitleLabel.text = subtitle

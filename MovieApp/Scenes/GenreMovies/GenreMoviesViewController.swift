@@ -12,7 +12,7 @@ final class GenreMoviesViewController: UIViewController {
 
     private let interactor: any IGenreMoviesInteractor
     private let router: any IGenreMoviesRouter
-    private let imageLoader: any ImageLoading
+    private let imageLoader: any IImageLoader
     private var loadTask: Task<Void, Never>?
     private var loadMoreFooter = GenreMoviesModel.LoadMoreFooter.hidden
 
@@ -23,7 +23,7 @@ final class GenreMoviesViewController: UIViewController {
         title: String,
         interactor: any IGenreMoviesInteractor,
         router: any IGenreMoviesRouter,
-        imageLoader: any ImageLoading
+        imageLoader: any IImageLoader
     ) {
         self.interactor = interactor
         self.router = router

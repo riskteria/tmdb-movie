@@ -1,10 +1,14 @@
 nonisolated protocol IProfileWorker: Sendable {
     func observeTheme() async -> AsyncStream<AppTheme>
     func saveTheme(_ theme: AppTheme) async
+    func observeAuthState() async -> AsyncStream<AuthState>
+    func signIn() async throws -> Account
+    func signOut() async
 }
 
 nonisolated struct ProfileWorker {
     let appearanceRepository: any IAppearanceRepository
+    let authRepository: any IAuthRepository
 }
 
 // MARK: - IProfileWorker
@@ -15,5 +19,17 @@ nonisolated extension ProfileWorker: IProfileWorker {
 
     func saveTheme(_ theme: AppTheme) async {
         await appearanceRepository.setTheme(theme)
+    }
+
+    func observeAuthState() async -> AsyncStream<AuthState> {
+        await authRepository.changes
+    }
+
+    func signIn() async throws -> Account {
+        try await authRepository.signIn()
+    }
+
+    func signOut() async {
+        await authRepository.signOut()
     }
 }

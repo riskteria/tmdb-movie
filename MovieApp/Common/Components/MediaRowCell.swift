@@ -24,7 +24,7 @@ final class MediaRowCell: UICollectionViewListCell {
         metadata: String,
         rating: String?,
         artwork: DisplayedArtwork,
-        imageLoader: any ImageLoading
+        imageLoader: any IImageLoader
     ) {
         titleLabel.text = title
         metadataLabel.text = metadata

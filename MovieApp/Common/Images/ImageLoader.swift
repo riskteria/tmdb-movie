@@ -1,7 +1,11 @@
 import Nuke
 import UIKit
 
-final class NukeImageLoader {
+protocol IImageLoader: Sendable {
+    func image(for url: URL, targetSize: CGSize) async throws -> UIImage
+}
+
+final class ImageLoader {
     private let pipeline: ImagePipeline
 
     init(pipeline: ImagePipeline) {
@@ -9,8 +13,8 @@ final class NukeImageLoader {
     }
 }
 
-// MARK: - ImageLoading
-extension NukeImageLoader: ImageLoading {
+// MARK: - IImageLoader
+extension ImageLoader: IImageLoader {
     // Downsampling to the view's size keeps decoded images small in memory while scrolling.
     func image(for url: URL, targetSize: CGSize) async throws -> UIImage {
         let request = ImageRequest(url: url, processors: [.resize(size: targetSize)])

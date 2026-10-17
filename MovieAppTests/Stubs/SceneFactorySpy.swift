@@ -12,6 +12,7 @@ final class SceneFactorySpy {
     private(set) var searchSelectionHandler: ((Genre) -> Void)?
     private(set) var genreMoviesSelectionHandler: ((Movie) -> Void)?
     private(set) var savedSelectionHandler: ((Movie) -> Void)?
+    private(set) var profileSignOutHandler: ((ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void)?
     private(set) var genreMoviesRequests: [Genre] = []
     private(set) var movieDetailRequests: [Movie] = []
 }
@@ -51,8 +52,11 @@ extension SceneFactorySpy: SavedFactory {
 
 // MARK: - ProfileFactory
 extension SceneFactorySpy: ProfileFactory {
-    func makeProfile() -> UIViewController {
-        profile
+    func makeProfile(
+        onRequestSignOut: @escaping (ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void
+    ) -> UIViewController {
+        profileSignOutHandler = onRequestSignOut
+        return profile
     }
 }
 

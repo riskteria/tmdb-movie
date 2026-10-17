@@ -1,6 +1,10 @@
 public nonisolated enum CreateRequestTokenDTO {
     public struct Request: Encodable, Sendable {
         public var redirectTo: String?
+
+        public init(redirectTo: String? = nil) {
+            self.redirectTo = redirectTo
+        }
     }
 
     public struct Response: Decodable, Sendable {

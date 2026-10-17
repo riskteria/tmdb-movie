@@ -37,7 +37,7 @@ nonisolated extension CallbackAPIService: ICallbackAPIService {
             .validate()
             .responseDecodable(of: Response.self, decoder: decoder) { [responseLogger] response in
                 responseLogger.log(response, for: endpoint)
-                
+
                 switch response.result {
                 case .success(let value):
                     completion(.success(value))

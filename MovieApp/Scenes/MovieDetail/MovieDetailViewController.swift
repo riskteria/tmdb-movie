@@ -7,12 +7,12 @@ protocol IMovieDetailViewController: AnyObject {
 
 final class MovieDetailViewController: UIViewController {
     private let interactor: any IMovieDetailInteractor
-    private let imageLoader: any ImageLoading
+    private let imageLoader: any IImageLoader
     private var loadTask: Task<Void, Never>?
 
     private lazy var detailView = MovieDetailView()
 
-    init(interactor: any IMovieDetailInteractor, imageLoader: any ImageLoading) {
+    init(interactor: any IMovieDetailInteractor, imageLoader: any IImageLoader) {
         self.interactor = interactor
         self.imageLoader = imageLoader
         super.init(nibName: nil, bundle: nil)

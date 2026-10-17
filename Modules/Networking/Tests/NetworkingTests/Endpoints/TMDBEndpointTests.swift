@@ -47,6 +47,47 @@ struct TMDBEndpointTests {
         // Assert
         #expect(endpoint.authorization == .readAccessToken)
     }
+
+    @Test(arguments: [
+        TMDBEndpoint.createRequestToken(request: .init(redirectTo: "movieapp://auth")),
+        .createAccessToken(request: .init(requestToken: "request-token")),
+        .deleteAccessToken(request: .init(accessToken: "access-token")),
+        .createSessionFromAccessToken(request: .init(accessToken: "access-token")),
+        .deleteSession(request: .init(sessionID: "session")),
+        .accountDetails(parameters: .init(sessionID: "session")),
+        .addFavorite(
+            accountID: 548,
+            parameters: .init(sessionID: "session"),
+            request: .init(mediaID: 550, favorite: true)
+        ),
+        .addToWatchlist(
+            accountID: 548,
+            parameters: .init(sessionID: "session"),
+            request: .init(mediaID: 550, watchlist: false)
+        ),
+        .addRating(movieID: 550, parameters: .init(sessionID: "session"), request: .init(value: 8.5)),
+        .deleteRating(movieID: 550, parameters: .init(sessionID: "session"))
+    ])
+    func credentialEndpointsAreHiddenFromLog(endpoint: TMDBEndpoint) {
+        // Assert
+        #expect(endpoint.carriesCredentials)
+    }
+
+    @Test(arguments: [
+        TMDBEndpoint.configuration,
+        .movieGenres(parameters: .init(language: "en-US")),
+        .trendingMovies(timeWindow: .week, parameters: .init()),
+        .movieList(category: .popular, parameters: .init(page: 1)),
+        .discoverMovies(parameters: .init()),
+        .searchMovies(parameters: .init(query: "dune")),
+        .movieDetails(movieID: 693134, parameters: .init()),
+        .personDetails(personID: 287, parameters: .init()),
+        .accountMovies(accountObjectID: "4bc889", category: .watchlist, parameters: .init())
+    ])
+    func contentEndpointsAreLoggedInFull(endpoint: TMDBEndpoint) {
+        // Assert
+        #expect(!endpoint.carriesCredentials)
+    }
 }
 
 struct TMDBEndpointExpectation: Sendable, CustomTestStringConvertible {
@@ -156,9 +197,9 @@ extension TMDBEndpointExpectation {
             url: "\(baseURL)/4/account/4bc889/movie/rated?page=1&sort_by=created_at.desc"
         ),
         TMDBEndpointExpectation(
-            endpoint: .accountDetails(accountID: 548, parameters: .init(sessionID: "session")),
+            endpoint: .accountDetails(parameters: .init(sessionID: "session")),
             method: "GET",
-            url: "\(baseURL)/3/account/548?session_id=session"
+            url: "\(baseURL)/3/account?session_id=session"
         ),
         TMDBEndpointExpectation(
             endpoint: .addFavorite(
