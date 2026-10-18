@@ -5,6 +5,7 @@ import UIKit
 @MainActor
 struct ProfileCoordinatorTests {
     private let scenes = SceneFactorySpy()
+    private let sut: ProfileCoordinator
     private let confirmation = ProfileModel.DisplayedConfirmation(
         title: "Sign out of TMDB?",
         message: "Saved movies and watch history stay on this device.",
@@ -12,11 +13,12 @@ struct ProfileCoordinatorTests {
         cancelTitle: "Cancel"
     )
 
+    init() {
+        sut = ProfileCoordinator(dependencies: scenes)
+    }
+
     @Test
     func startShowsProfileAsRoot() {
-        // Given
-        let sut = ProfileCoordinator(dependencies: scenes)
-
         // When
         sut.start()
 
@@ -25,10 +27,16 @@ struct ProfileCoordinatorTests {
     }
 
     @Test
-    func startGivesProfileASignOutHandler() {
-        // Given
-        let sut = ProfileCoordinator(dependencies: scenes)
+    func startGivesProfileASignInHandler() {
+        // When
+        sut.start()
 
+        // Assert
+        #expect(scenes.profileSignInHandler != nil)
+    }
+
+    @Test
+    func startGivesProfileASignOutHandler() {
         // When
         sut.start()
 
@@ -37,10 +45,20 @@ struct ProfileCoordinatorTests {
     }
 
     @Test
-    func signOutAlertShowsConfirmationText() {
+    func signInRequestBuildsWelcome() throws {
         // Given
-        let sut = ProfileCoordinator(dependencies: scenes)
+        sut.start()
+        let requestSignIn = try #require(scenes.profileSignInHandler)
 
+        // When
+        requestSignIn {}
+
+        // Assert
+        #expect(scenes.welcomeRequestCount == 1)
+    }
+
+    @Test
+    func signOutAlertShowsConfirmationText() {
         // When
         let alert = sut.makeSignOutAlert(for: confirmation) {}
 
@@ -51,9 +69,6 @@ struct ProfileCoordinatorTests {
 
     @Test
     func signOutAlertOffersCancelAndDestructiveSignOut() {
-        // Given
-        let sut = ProfileCoordinator(dependencies: scenes)
-
         // When
         let alert = sut.makeSignOutAlert(for: confirmation) {}
 

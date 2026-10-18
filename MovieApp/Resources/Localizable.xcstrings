@@ -32,6 +32,12 @@
     "Clear watch history" : {
 
     },
+    "Connect your TMDB account. Saved movies and watch history stay on this device." : {
+
+    },
+    "Continue as guest" : {
+
+    },
     "Continue Watching" : {
 
     },
@@ -50,6 +56,9 @@
     "Home" : {
 
     },
+    "Let's get you signed in" : {
+
+    },
     "Light" : {
 
     },
@@ -63,6 +72,9 @@
 
     },
     "No movies to show yet" : {
+
+    },
+    "or" : {
 
     },
     "Popular" : {
@@ -132,6 +144,9 @@
 
     },
     "Version" : {
+
+    },
+    "You'll approve access on themoviedb.org" : {
 
     },
     "Your TMDB session ended. Sign in again." : {

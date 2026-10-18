@@ -96,6 +96,7 @@ extension AppDependencies: SavedFactory {
 // MARK: - ProfileFactory
 extension AppDependencies: ProfileFactory {
     func makeProfile(
+        onRequestSignIn: @escaping (@escaping () -> Void) -> Void,
         onRequestSignOut: @escaping (ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void
     ) -> UIViewController {
         ProfileSceneFactory.make(
@@ -106,8 +107,19 @@ extension AppDependencies: ProfileFactory {
                 imageURLProvider: imageURLProvider,
                 imageLoader: imageLoader
             ),
+            onRequestSignIn: onRequestSignIn,
             onRequestSignOut: onRequestSignOut
         )
+    }
+}
+
+// MARK: - WelcomeFactory
+extension AppDependencies: WelcomeFactory {
+    func makeWelcome(
+        onSignIn: @escaping () -> Void,
+        onContinueAsGuest: @escaping () -> Void
+    ) -> UIViewController {
+        WelcomeSceneFactory.make(onSignIn: onSignIn, onContinueAsGuest: onContinueAsGuest)
     }
 }
 

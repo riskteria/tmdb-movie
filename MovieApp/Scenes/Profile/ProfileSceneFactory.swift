@@ -11,6 +11,7 @@ enum ProfileSceneFactory {
 
     static func make(
         dependencies: Dependencies,
+        onRequestSignIn: @escaping (@escaping () -> Void) -> Void,
         onRequestSignOut: @escaping (ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void
     ) -> UIViewController {
         let worker = ProfileWorker(
@@ -19,7 +20,7 @@ enum ProfileSceneFactory {
         )
         let presenter = ProfilePresenter(imageURLProvider: dependencies.imageURLProvider)
         let interactor = ProfileInteractor(presenter: presenter, worker: worker, appInfo: dependencies.appInfo)
-        let router = ProfileRouter(onRequestSignOut: onRequestSignOut)
+        let router = ProfileRouter(onRequestSignIn: onRequestSignIn, onRequestSignOut: onRequestSignOut)
         let viewController = ProfileViewController(
             interactor: interactor,
             router: router,

@@ -123,7 +123,7 @@ MovieApp/
 │   │                       CredentialRepository, AuthSession); CoreData/ holds the Core Data stack and repositories
 │   └── Repositories/       MovieRepository and GenreRepository (TMDB, through IAPIService), String+TMDB, the in-memory
 │                           SavedMoviesRepository and WatchProgressRepository (MockResponseCatalog), TMDBImageURLProvider
-├── Scenes/                 Home, Search, GenreMovies, Saved, MovieDetail, Profile, each laid out like MovieList:
+├── Scenes/                 Home, Search, GenreMovies, Saved, MovieDetail, Profile, Welcome. Each is laid out like MovieList:
 │   └── MovieList/
 │       ├── MovieListModels.swift
 │       ├── MovieListViewController.swift
@@ -178,6 +178,7 @@ Rules:
 - Inject every dependency through `init` into a `private let`. Never use `var interactor: IMovieListInteractor!`.
 - Each scene use case (one `Request` / `Response` / `ViewData` triple) gets one method on each boundary: `loadMovies(request:)` → `presentMovies(response:)` → `displayMovies(viewData:)`. The Worker's methods are named for the data they fetch (`fetchPopularMovies(page:)`).
 - **Shared-Response variant**: an action whose only visible result is the screen's state can skip its own `Response` / `ViewData` and redraw through the screen's load use case. Profile's `changeAppearance(request:)`, `signIn(request:)` and `signOut(request:)` have a `Request` only, and every change reaches the screen through `presentProfile(response:)`.
+- **Scene with no use case**: a screen that loads nothing and has no business rules, such as Welcome, has only Models (its `DisplayedContent`), ViewController, Router, SceneFactory and Views. The ViewController builds the display strings, and every user action goes to the Router.
 - Name types `<Scene><Role>`. Put one type per file, with the type's boundary protocol in the same file. The models namespace is `enum <Scene>Model` in `<Scene>Models.swift`, and what the Presenter hands the ViewController is a `ViewData`, passed as `display…(viewData:)`.
 - Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is only for scene protocols, repository ports (`IMovieRepository`, implemented by `MovieRepository`), the `IWebAuthenticator` port and service protocols: `IAPIService` / `ICallbackAPIService` (see Networking), `IKeychainService`, `ISessionService` and `IImageLoader`. Other protocols keep role names (`ImageURLProvider`, `Coordinator`). A protocol that supplies something is named `<Thing>Provider` (`ImageURLProvider`, `ZoomTransitionSourceProvider`), never `<Thing>Providing`; only Apple's own protocols (`ASWebAuthenticationPresentationContextProviding`) keep that suffix.
 - **Workers are `nonisolated` and `Sendable`**: `nonisolated protocol I<Scene>Worker: Sendable` and `nonisolated struct <Scene>Worker`, with the conformance in a `nonisolated extension`. Interactors call them from child tasks (`async let`), and a nonisolated async method still runs on the Interactor's main actor when called directly. One Worker per scene; two scenes that need the same port each call it, and shared behavior such as caching belongs in a repository decorator.
@@ -422,6 +423,7 @@ Coordinators in `App/Coordinators/` own all navigation.
 - **Coordinators never see `AppDependencies`.** Each one declares `typealias Dependencies` as the `<Scene>Factory` protocols it needs (`HomeFactory & MovieDetailFactory`) and stores `any Dependencies`. A protocol lives in the file of the coordinator (or `MovieDetailFlow`) that uses it. A parent's alias combines its children's (`HomeCoordinator.Dependencies & SearchCoordinator.Dependencies & …`). A new scene means a new protocol, a conformance on `AppDependencies`, and a conformance on `SceneFactorySpy`, which stands in for it in coordinator tests.
 - `SearchCoordinator` pushes Genre Movies when a genre is tapped, and its lazy `MovieDetailFlow` pushes Movie Detail from a poster with `.push`.
 - `MovieDetailFlow` pushes Movie Detail on its tab's stack. A `.zoom` transition starts from the view the source screen returns through `ZoomTransitionSourceProvider`, and is skipped under Reduce Motion.
+- `ProfileCoordinator` presents Welcome as a page sheet when Profile's sign-in row is tapped, and ignores the request while something is already presented. It also presents the sign-out confirmation alert. Welcome's sign-in action awaits Welcome's dismissal (`withCheckedContinuation` over `dismiss(animated:completion:)`), then calls Profile's own `signIn()`, so the approval sheet never presents over a closing sheet.
 - The tab bar stays visible on pushed screens (`hidesBottomBarWhenPushed` stays `false`). Only full-screen modals cover it.
 
 ### Images (Nuke)

@@ -133,7 +133,9 @@ extension ProfileViewController: UICollectionViewDelegate {
         collectionView.deselectItem(at: indexPath, animated: true)
         switch dataSource.itemIdentifier(for: indexPath) {
         case .signIn(_, isEnabled: true):
-            signIn()
+            router.routeToWelcome { [weak self] in
+                self?.signIn()
+            }
         case .signOut(_, let confirmation):
             router.routeToSignOutConfirmation(confirmation) { [weak self] in
                 self?.signOut()
