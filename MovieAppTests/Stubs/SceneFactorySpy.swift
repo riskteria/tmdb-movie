@@ -18,6 +18,11 @@ final class SceneFactorySpy {
     private(set) var welcomeRequestCount = 0
     private(set) var genreMoviesRequests: [Genre] = []
     private(set) var movieDetailRequests: [Movie] = []
+    private(set) var movieDetailSelectionHandler: ((Movie) -> Void)?
+    private(set) var movieDetailTrailerHandler: ((Video) -> Void)?
+    private(set) var movieDetailShareHandler: ((Movie) -> Void)?
+    private(set) var trailerRequests: [Video] = []
+    private(set) var shareRequests: [Movie] = []
 }
 
 // MARK: - HomeFactory
@@ -78,8 +83,32 @@ extension SceneFactorySpy: WelcomeFactory {
 
 // MARK: - MovieDetailFactory
 extension SceneFactorySpy: MovieDetailFactory {
-    func makeMovieDetail(movie: Movie) -> UIViewController {
+    func makeMovieDetail(
+        movie: Movie,
+        onSelectMovie: @escaping (Movie) -> Void,
+        onWatchTrailer: @escaping (Video) -> Void,
+        onShare: @escaping (Movie) -> Void
+    ) -> UIViewController {
         movieDetailRequests.append(movie)
+        movieDetailSelectionHandler = onSelectMovie
+        movieDetailTrailerHandler = onWatchTrailer
+        movieDetailShareHandler = onShare
+        return UIViewController()
+    }
+}
+
+// MARK: - TrailerFactory
+extension SceneFactorySpy: TrailerFactory {
+    func makeTrailer(video: Video) -> UIViewController? {
+        trailerRequests.append(video)
+        return UIViewController()
+    }
+}
+
+// MARK: - ShareFactory
+extension SceneFactorySpy: ShareFactory {
+    func makeShareSheet(movie: Movie) -> UIViewController? {
+        shareRequests.append(movie)
         return UIViewController()
     }
 }

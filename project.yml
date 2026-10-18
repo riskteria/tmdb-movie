@@ -6,7 +6,6 @@ options:
   developmentLanguage: en
   deploymentTarget:
     iOS: "26.5"
-    visionOS: "26.5"
 
 settings:
   DEVELOPMENT_TEAM: 2H46N4N76A
@@ -38,7 +37,7 @@ packages:
 targets:
   MovieApp:
     type: application
-    supportedDestinations: [iOS, visionOS]
+    supportedDestinations: [iOS]
     sources:
       - path: MovieApp
         type: syncedFolder
@@ -86,7 +85,7 @@ targets:
 
   MovieAppTests:
     type: bundle.unit-test
-    supportedDestinations: [iOS, visionOS]
+    supportedDestinations: [iOS]
     sources:
       - path: MovieAppTests
         type: syncedFolder

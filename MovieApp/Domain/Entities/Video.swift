@@ -14,5 +14,6 @@ nonisolated struct Video: Identifiable, Hashable, Sendable {
     let key: String
     let name: String
     let kind: Kind
+    let isOfficial: Bool
     let publishedAt: Date?
 }

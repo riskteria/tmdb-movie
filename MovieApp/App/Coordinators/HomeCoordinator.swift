@@ -6,11 +6,11 @@ protocol HomeFactory {
 }
 
 final class HomeCoordinator {
-    typealias Dependencies = HomeFactory & MovieDetailFactory
+    typealias Dependencies = HomeFactory & MovieDetailFlow.Dependencies
 
     let navigationController = UINavigationController()
     private let dependencies: any Dependencies
-    private lazy var movieDetailFlow = MovieDetailFlow(
+    private lazy var movieDetailFlow: any MovieDetailNavigator = MovieDetailFlow(
         navigationController: navigationController,
         dependencies: dependencies
     )
@@ -20,8 +20,8 @@ final class HomeCoordinator {
     }
 }
 
-// MARK: - Coordinator
-extension HomeCoordinator: Coordinator {
+// MARK: - TabCoordinator
+extension HomeCoordinator: TabCoordinator {
     func start() {
         NavigationBarStyle.apply(to: navigationController.navigationBar, prefersLargeTitles: false)
         let home = dependencies.makeHome { [weak self] movie in

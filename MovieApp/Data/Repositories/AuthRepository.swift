@@ -8,7 +8,7 @@ actor AuthRepository {
     }
 
     private let sessionService: any ISessionService
-    private let credentialRepository: CredentialRepository
+    private let credentialRepository: any ICredentialRepository
     private let broadcaster = AsyncBroadcaster<AuthState>()
     private var phase: Phase
 
@@ -21,7 +21,7 @@ actor AuthRepository {
         }
     }
 
-    init(sessionService: any ISessionService, credentialRepository: CredentialRepository) {
+    init(sessionService: any ISessionService, credentialRepository: any ICredentialRepository) {
         self.sessionService = sessionService
         self.credentialRepository = credentialRepository
         if let authSession = try? credentialRepository.load() {

@@ -1,16 +1,32 @@
 import UIKit
 
 enum MovieDetailSceneFactory {
+    struct Dependencies {
+        let movieRepository: any IMovieRepository
+        let imageURLProvider: any ImageURLProvider
+        let videoURLProvider: any VideoURLProvider
+        let imageLoader: any IImageLoader
+    }
+
     static func make(
         movie: Movie,
-        movieRepository: any IMovieRepository,
-        imageURLProvider: any ImageURLProvider,
-        imageLoader: any IImageLoader
+        dependencies: Dependencies,
+        onSelectMovie: @escaping (Movie) -> Void,
+        onWatchTrailer: @escaping (Video) -> Void,
+        onShare: @escaping (Movie) -> Void
     ) -> UIViewController {
-        let presenter = MovieDetailPresenter(imageURLProvider: imageURLProvider)
-        let worker = MovieDetailWorker(movieRepository: movieRepository)
+        let presenter = MovieDetailPresenter(
+            imageURLProvider: dependencies.imageURLProvider,
+            videoURLProvider: dependencies.videoURLProvider
+        )
+        let worker = MovieDetailWorker(movieRepository: dependencies.movieRepository)
         let interactor = MovieDetailInteractor(movie: movie, presenter: presenter, worker: worker)
-        let viewController = MovieDetailViewController(interactor: interactor, imageLoader: imageLoader)
+        let router = MovieDetailRouter(onSelectMovie: onSelectMovie, onWatchTrailer: onWatchTrailer, onShare: onShare)
+        let viewController = MovieDetailViewController(
+            interactor: interactor,
+            router: router,
+            imageLoader: dependencies.imageLoader
+        )
         presenter.viewController = viewController
         return viewController
     }

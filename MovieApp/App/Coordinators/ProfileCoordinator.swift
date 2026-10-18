@@ -8,6 +8,13 @@ protocol ProfileFactory {
     ) -> UIViewController
 }
 
+protocol SignOutAlertProvider {
+    func makeSignOutAlert(
+        for confirmation: ProfileModel.DisplayedConfirmation,
+        onConfirm: @escaping () -> Void
+    ) -> UIAlertController
+}
+
 protocol WelcomeFactory {
     func makeWelcome(
         onSignIn: @escaping () -> Void,
@@ -29,7 +36,10 @@ final class ProfileCoordinator {
     isolated deinit {
         signInTask?.cancel()
     }
+}
 
+// MARK: - SignOutAlertProvider
+extension ProfileCoordinator: SignOutAlertProvider {
     func makeSignOutAlert(
         for confirmation: ProfileModel.DisplayedConfirmation,
         onConfirm: @escaping () -> Void
@@ -41,8 +51,8 @@ final class ProfileCoordinator {
     }
 }
 
-// MARK: - Coordinator
-extension ProfileCoordinator: Coordinator {
+// MARK: - TabCoordinator
+extension ProfileCoordinator: TabCoordinator {
     func start() {
         NavigationBarStyle.apply(to: navigationController.navigationBar, prefersLargeTitles: true)
         let profile = dependencies.makeProfile(

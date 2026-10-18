@@ -5,7 +5,7 @@ import UIKit
 @MainActor
 struct SearchCoordinatorTests {
     private let scenes = SceneFactorySpy()
-    private let sut: SearchCoordinator
+    private let sut: any TabCoordinator
 
     init() {
         sut = SearchCoordinator(dependencies: scenes)

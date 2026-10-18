@@ -42,18 +42,46 @@ extension MovieDetails {
         movie: Movie = .fixture(),
         runtime: Duration? = .seconds(166 * 60),
         genres: [Genre] = [.scienceFiction, .adventure],
-        certification: String? = "PG-13"
+        voteCount: Int = 6123,
+        certification: String? = "PG-13",
+        cast: [CastMember] = [],
+        videos: [Video] = [],
+        recommendations: [Movie] = []
     ) -> MovieDetails {
         MovieDetails(
             movie: movie,
             runtime: runtime,
             genres: genres,
+            voteCount: voteCount,
             tagline: nil,
             certification: certification,
-            cast: [],
-            videos: [],
-            recommendations: []
+            cast: cast,
+            videos: videos,
+            recommendations: recommendations
         )
+    }
+}
+
+extension CastMember {
+    static func fixture(
+        id: Int = 1190667,
+        name: String = "Timothée Chalamet",
+        character: String = "Paul Atreides",
+        profilePath: ImagePath? = nil
+    ) -> CastMember {
+        CastMember(id: id, name: name, character: character, profilePath: profilePath)
+    }
+}
+
+extension Video {
+    static func fixture(
+        key: String = "trailer-key",
+        name: String = "Official Trailer",
+        kind: Kind = .trailer,
+        isOfficial: Bool = true,
+        publishedAt: Date? = .fixture(year: 2023, month: 12, day: 21)
+    ) -> Video {
+        Video(id: key, key: key, name: name, kind: kind, isOfficial: isOfficial, publishedAt: publishedAt)
     }
 }
 

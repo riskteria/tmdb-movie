@@ -82,6 +82,18 @@ struct MovieRepositoryDetailsTests {
     }
 
     @Test
+    func detailsMapsTheVoteCount() async throws {
+        // Given
+        let sut = try makeSUT()
+
+        // When
+        let details = try await sut.details(movieID: 693134)
+
+        // Assert
+        #expect(details.voteCount == 6123)
+    }
+
+    @Test
     func detailsMapsTheGenres() async throws {
         // Given
         let sut = try makeSUT()
@@ -115,6 +127,18 @@ struct MovieRepositoryDetailsTests {
     }
 
     @Test
+    func detailsKeepsTheFirstFifteenCastMembersInBillingOrder() async throws {
+        // Given
+        let sut = try makeSUT(json: makeDetailsJSON(castCount: 16))
+
+        // When
+        let details = try await sut.details(movieID: 693134)
+
+        // Assert
+        #expect(details.cast.map(\.id) == Array(1...15))
+    }
+
+    @Test
     func detailsKeepsOnlyYouTubeVideos() async throws {
         // Given
         let sut = try makeSUT()
@@ -136,6 +160,18 @@ struct MovieRepositoryDetailsTests {
 
         // Assert
         #expect(details.videos.map(\.kind) == [.trailer, .teaser, .other])
+    }
+
+    @Test
+    func detailsMapsWhetherEachVideoIsOfficial() async throws {
+        // Given
+        let sut = try makeSUT()
+
+        // When
+        let details = try await sut.details(movieID: 693134)
+
+        // Assert
+        #expect(details.videos.map(\.isOfficial) == [true, true, false])
     }
 
     @Test
@@ -172,15 +208,32 @@ struct MovieRepositoryDetailsTests {
         #expect(details.recommendations == [expectedRecommendation])
     }
 
-    private func makeSUT(region: String = "US") throws -> any IMovieRepository {
+    private func makeSUT(region: String = "US", json: String? = nil) throws -> any IMovieRepository {
         let parameters = MovieDetailsDTO.Parameters(
             appendToResponse: [.credits, .videos, .releaseDates, .recommendations],
             language: "en-US"
         )
         let apiService = APIServiceStub(
             endpoint: .movieDetails(movieID: 693134, parameters: parameters),
-            result: .success(try JSONFixture.named(.movieDetails))
+            result: .success(try json ?? JSONFixture.named(.movieDetails))
         )
         return MovieRepository(apiService: apiService, region: region)
+    }
+
+    private func makeDetailsJSON(castCount: Int) throws -> String {
+        let fixture = Data(try JSONFixture.named(.movieDetails).utf8)
+        var details = try #require(try JSONSerialization.jsonObject(with: fixture) as? [String: Any])
+        var credits = try #require(details["credits"] as? [String: Any])
+        let template = try #require((credits["cast"] as? [[String: Any]])?.first)
+        credits["cast"] = (1...castCount).reversed().map { billingOrder in
+            var member = template
+            member["id"] = billingOrder
+            member["order"] = billingOrder
+            member["name"] = "Actor \(billingOrder)"
+            return member
+        }
+        details["credits"] = credits
+        let data = try JSONSerialization.data(withJSONObject: details)
+        return try #require(String(data: data, encoding: .utf8))
     }
 }

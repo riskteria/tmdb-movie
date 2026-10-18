@@ -9,6 +9,13 @@ final class MediaRowCell: UICollectionViewListCell {
     private lazy var separatorDot = makeSeparatorDot()
     private lazy var starView = makeStarView()
     private lazy var ratingLabel = makeMetadataLabel()
+    private lazy var playBadge = PlayBadgeView()
+
+    var showsPlayBadge = false {
+        didSet {
+            playBadge.isHidden = !showsPlayBadge
+        }
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -49,22 +56,36 @@ private extension MediaRowCell {
         textStack.axis = .vertical
         textStack.alignment = .leading
         textStack.spacing = Spacing.xxSmall
-        [artworkView, textStack].forEach { subview in
+        [artworkView, textStack, playBadge].forEach { subview in
             subview.translatesAutoresizingMaskIntoConstraints = false
             contentView.addSubview(subview)
         }
+        playBadge.isHidden = true
+        updateTitleLineLimit()
+        registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (cell: MediaRowCell, _) in
+            cell.updateTitleLineLimit()
+        }
         NSLayoutConstraint.activate([
-            artworkView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 9),
-            artworkView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -9),
+            artworkView.topAnchor.constraint(greaterThanOrEqualTo: contentView.topAnchor, constant: 9),
+            artworkView.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -9),
+            artworkView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             artworkView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Spacing.large),
             artworkView.widthAnchor.constraint(equalToConstant: 128),
             artworkView.heightAnchor.constraint(equalTo: artworkView.widthAnchor, multiplier: 9.4 / 16.0),
+            textStack.topAnchor.constraint(greaterThanOrEqualTo: contentView.topAnchor, constant: 9),
+            textStack.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -9),
             textStack.leadingAnchor.constraint(equalTo: artworkView.trailingAnchor, constant: 14),
             textStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Spacing.large),
             textStack.centerYAnchor.constraint(equalTo: artworkView.centerYAnchor),
             separatorDot.widthAnchor.constraint(equalToConstant: 3),
-            separatorDot.heightAnchor.constraint(equalToConstant: 3)
+            separatorDot.heightAnchor.constraint(equalToConstant: 3),
+            playBadge.leadingAnchor.constraint(equalTo: artworkView.leadingAnchor, constant: Spacing.xSmall),
+            playBadge.bottomAnchor.constraint(equalTo: artworkView.bottomAnchor, constant: -Spacing.xSmall)
         ])
+    }
+
+    func updateTitleLineLimit() {
+        titleLabel.numberOfLines = traitCollection.preferredContentSizeCategory.isAccessibilityCategory ? 0 : 1
     }
 
     func makeArtworkView() -> ArtworkView {

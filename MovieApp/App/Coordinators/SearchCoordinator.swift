@@ -10,11 +10,11 @@ protocol GenreMoviesFactory {
 }
 
 final class SearchCoordinator {
-    typealias Dependencies = SearchFactory & GenreMoviesFactory & MovieDetailFactory
+    typealias Dependencies = SearchFactory & GenreMoviesFactory & MovieDetailFlow.Dependencies
 
     let navigationController = UINavigationController()
     private let dependencies: any Dependencies
-    private lazy var movieDetailFlow = MovieDetailFlow(
+    private lazy var movieDetailFlow: any MovieDetailNavigator = MovieDetailFlow(
         navigationController: navigationController,
         dependencies: dependencies
     )
@@ -24,8 +24,8 @@ final class SearchCoordinator {
     }
 }
 
-// MARK: - Coordinator
-extension SearchCoordinator: Coordinator {
+// MARK: - TabCoordinator
+extension SearchCoordinator: TabCoordinator {
     func start() {
         NavigationBarStyle.apply(to: navigationController.navigationBar, prefersLargeTitles: true)
         let search = dependencies.makeSearch { [weak self] genre in

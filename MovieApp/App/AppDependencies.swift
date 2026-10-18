@@ -1,5 +1,6 @@
 import Networking
 import Nuke
+import SafariServices
 import UIKit
 
 final class AppDependencies {
@@ -7,6 +8,8 @@ final class AppDependencies {
 
     private let imageLoader: any IImageLoader
     private let imageURLProvider: any ImageURLProvider = TMDBImageURLProvider()
+    private let videoURLProvider: any VideoURLProvider = YouTubeURLProvider()
+    private let webURLProvider: any WebURLProvider = TMDBWebURLProvider()
     private let movieRepository: any IMovieRepository
     private let genreRepository: any IGenreRepository
     private let callbackGenreRepository: any ICallbackGenreRepository
@@ -125,13 +128,40 @@ extension AppDependencies: WelcomeFactory {
 
 // MARK: - MovieDetailFactory
 extension AppDependencies: MovieDetailFactory {
-    func makeMovieDetail(movie: Movie) -> UIViewController {
+    func makeMovieDetail(
+        movie: Movie,
+        onSelectMovie: @escaping (Movie) -> Void,
+        onWatchTrailer: @escaping (Video) -> Void,
+        onShare: @escaping (Movie) -> Void
+    ) -> UIViewController {
         MovieDetailSceneFactory.make(
             movie: movie,
-            movieRepository: movieRepository,
-            imageURLProvider: imageURLProvider,
-            imageLoader: imageLoader
+            dependencies: MovieDetailSceneFactory.Dependencies(
+                movieRepository: movieRepository,
+                imageURLProvider: imageURLProvider,
+                videoURLProvider: videoURLProvider,
+                imageLoader: imageLoader
+            ),
+            onSelectMovie: onSelectMovie,
+            onWatchTrailer: onWatchTrailer,
+            onShare: onShare
         )
+    }
+}
+
+// MARK: - TrailerFactory
+extension AppDependencies: TrailerFactory {
+    func makeTrailer(video: Video) -> UIViewController? {
+        guard let url = videoURLProvider.watchURL(for: video) else { return nil }
+        return SFSafariViewController(url: url)
+    }
+}
+
+// MARK: - ShareFactory
+extension AppDependencies: ShareFactory {
+    func makeShareSheet(movie: Movie) -> UIViewController? {
+        guard let url = webURLProvider.movieURL(for: movie.id) else { return nil }
+        return UIActivityViewController(activityItems: [url], applicationActivities: nil)
     }
 }
 

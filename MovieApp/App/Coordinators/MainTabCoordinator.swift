@@ -15,10 +15,10 @@ final class MainTabCoordinator {
     }
 
     let tabBarController = UITabBarController()
-    private let homeCoordinator: HomeCoordinator
-    private let searchCoordinator: SearchCoordinator
-    private let savedCoordinator: SavedCoordinator
-    private let profileCoordinator: ProfileCoordinator
+    private let homeCoordinator: any TabCoordinator
+    private let searchCoordinator: any TabCoordinator
+    private let savedCoordinator: any TabCoordinator
+    private let profileCoordinator: any TabCoordinator
 
     init(dependencies: any Dependencies) {
         homeCoordinator = HomeCoordinator(dependencies: dependencies)
@@ -31,7 +31,7 @@ final class MainTabCoordinator {
 // MARK: - Coordinator
 extension MainTabCoordinator: Coordinator {
     func start() {
-        let coordinators: [any Coordinator] = [homeCoordinator, searchCoordinator, savedCoordinator, profileCoordinator]
+        let coordinators = [homeCoordinator, searchCoordinator, savedCoordinator, profileCoordinator]
         coordinators.forEach { coordinator in coordinator.start() }
         let homeController = homeCoordinator.navigationController
         let searchController = searchCoordinator.navigationController

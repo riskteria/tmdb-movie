@@ -6,11 +6,11 @@ protocol SavedFactory {
 }
 
 final class SavedCoordinator {
-    typealias Dependencies = SavedFactory & MovieDetailFactory
+    typealias Dependencies = SavedFactory & MovieDetailFlow.Dependencies
 
     let navigationController = UINavigationController()
     private let dependencies: any Dependencies
-    private lazy var movieDetailFlow = MovieDetailFlow(
+    private lazy var movieDetailFlow: any MovieDetailNavigator = MovieDetailFlow(
         navigationController: navigationController,
         dependencies: dependencies
     )
@@ -20,8 +20,8 @@ final class SavedCoordinator {
     }
 }
 
-// MARK: - Coordinator
-extension SavedCoordinator: Coordinator {
+// MARK: - TabCoordinator
+extension SavedCoordinator: TabCoordinator {
     func start() {
         NavigationBarStyle.apply(to: navigationController.navigationBar, prefersLargeTitles: true)
         let saved = dependencies.makeSaved { [weak self] movie in

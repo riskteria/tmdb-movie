@@ -1,6 +1,26 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ • %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ • %2$@"
+          }
+        }
+      }
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
     "%lld of %lld · the oldest is removed when full" : {
       "localizations" : {
         "en" : {
@@ -24,6 +44,9 @@
 
     },
     "Cancel" : {
+
+    },
+    "Cast" : {
 
     },
     "Clear Saved data" : {
@@ -62,6 +85,9 @@
     "Light" : {
 
     },
+    "More Like This" : {
+
+    },
     "Movie" : {
 
     },
@@ -74,6 +100,12 @@
     "No movies to show yet" : {
 
     },
+    "No similar movies yet" : {
+
+    },
+    "No trailers yet" : {
+
+    },
     "or" : {
 
     },
@@ -84,6 +116,22 @@
 
     },
     "Profile" : {
+
+    },
+    "Rated %@ out of 10, %@ votes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rated %1$@ out of 10, %2$@ votes"
+          }
+        }
+      }
+    },
+    "Rated %@ out of 10, 1 vote" : {
+
+    },
+    "Read More" : {
 
     },
     "Retry" : {
@@ -101,6 +149,12 @@
     "Search" : {
 
     },
+    "Share" : {
+
+    },
+    "Show Less" : {
+
+    },
     "Sign in with TMDB" : {
 
     },
@@ -116,19 +170,37 @@
     "Signing in…" : {
 
     },
+    "Synopsis" : {
+
+    },
     "System" : {
 
     },
     "Tap Save on any movie. Up to %lld stay on this device, even offline." : {
 
     },
+    "Teaser" : {
+
+    },
     "This product uses the TMDB API but is not endorsed or certified by TMDB." : {
+
+    },
+    "TMDB · %@ votes" : {
+
+    },
+    "TMDB · 1 vote" : {
 
     },
     "Top Rated" : {
 
     },
+    "Trailer" : {
+
+    },
     "Trailer · %@ left" : {
+
+    },
+    "Trailers" : {
 
     },
     "Unable to load genres" : {
@@ -144,6 +216,9 @@
 
     },
     "Version" : {
+
+    },
+    "Watch" : {
 
     },
     "You'll approve access on themoviedb.org" : {

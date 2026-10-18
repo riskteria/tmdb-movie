@@ -5,7 +5,7 @@ import UIKit
 @MainActor
 struct ProfileCoordinatorTests {
     private let scenes = SceneFactorySpy()
-    private let sut: ProfileCoordinator
+    private let sut: any TabCoordinator & SignOutAlertProvider
     private let confirmation = ProfileModel.DisplayedConfirmation(
         title: "Sign out of TMDB?",
         message: "Saved movies and watch history stay on this device.",

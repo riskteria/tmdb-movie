@@ -101,6 +101,7 @@ private nonisolated extension MovieRepository {
             ),
             runtime: response.runtime.flatMap { minutes in minutes > 0 ? .seconds(minutes * 60) : nil },
             genres: response.genres.map { genre in Genre(id: genre.id, name: genre.name) },
+            voteCount: response.voteCount,
             tagline: response.tagline?.nonEmpty,
             certification: makeCertification(from: response.releaseDates, countryCode: region),
             cast: (response.credits?.cast ?? [])
@@ -134,6 +135,7 @@ private nonisolated extension MovieRepository {
             key: video.key,
             name: video.name,
             kind: makeVideoKind(from: video.type),
+            isOfficial: video.isOfficial,
             publishedAt: video.publishedAt.tmdbTimestamp()
         )
     }

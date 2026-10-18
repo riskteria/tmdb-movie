@@ -69,6 +69,7 @@ nonisolated enum MockResponseCatalog {
             movie: movie,
             runtime: .seconds((runtimeMinutes[movie.id] ?? 118) * 60),
             genres: movie.genreIDs.compactMap { genreID in genres.first { $0.id == genreID } },
+            voteCount: 0,
             tagline: nil,
             certification: "PG-13",
             cast: [],

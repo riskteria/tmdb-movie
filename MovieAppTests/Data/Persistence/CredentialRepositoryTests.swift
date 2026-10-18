@@ -16,7 +16,7 @@ struct CredentialRepositoryTests {
     @Test
     func loadIsNilWhenEmpty() throws {
         // Given
-        let sut = CredentialRepository(keychain: KeychainServiceStub())
+        let sut: any ICredentialRepository = CredentialRepository(keychain: KeychainServiceStub())
 
         // When
         let loaded = try sut.load()
@@ -28,7 +28,7 @@ struct CredentialRepositoryTests {
     @Test
     func saveThenLoadRoundTrips() throws {
         // Given
-        let sut = CredentialRepository(keychain: KeychainServiceStub())
+        let sut: any ICredentialRepository = CredentialRepository(keychain: KeychainServiceStub())
 
         // When
         try sut.save(authSession)
@@ -41,7 +41,7 @@ struct CredentialRepositoryTests {
     func saveWritesUnderSessionKey() throws {
         // Given
         let keychain = KeychainServiceStub()
-        let sut = CredentialRepository(keychain: keychain)
+        let sut: any ICredentialRepository = CredentialRepository(keychain: keychain)
 
         // When
         try sut.save(authSession)
@@ -54,7 +54,7 @@ struct CredentialRepositoryTests {
     func deleteRemovesCredentials() throws {
         // Given
         let keychain = KeychainServiceStub()
-        let sut = CredentialRepository(keychain: keychain)
+        let sut: any ICredentialRepository = CredentialRepository(keychain: keychain)
         try sut.save(authSession)
 
         // When
@@ -72,7 +72,7 @@ struct CredentialRepositoryTests {
             "accountID":548,"username":"moviefan","name":"Movie Fan"}
             """
         let keychain = KeychainServiceStub(items: ["tmdb-session": Data(previousVersionJSON.utf8)])
-        let sut = CredentialRepository(keychain: keychain)
+        let sut: any ICredentialRepository = CredentialRepository(keychain: keychain)
 
         // When
         let loaded = try sut.load()
@@ -93,7 +93,7 @@ struct CredentialRepositoryTests {
             name: "Movie Fan",
             avatarPath: "/avatar.jpg"
         )
-        let sut = CredentialRepository(keychain: KeychainServiceStub())
+        let sut: any ICredentialRepository = CredentialRepository(keychain: KeychainServiceStub())
 
         // When
         try sut.save(sessionWithAvatar)
@@ -105,7 +105,8 @@ struct CredentialRepositoryTests {
     @Test
     func loadThrowsOnInvalidData() {
         // Given
-        let sut = CredentialRepository(keychain: KeychainServiceStub(items: ["tmdb-session": Data("not json".utf8)]))
+        let keychain = KeychainServiceStub(items: ["tmdb-session": Data("not json".utf8)])
+        let sut: any ICredentialRepository = CredentialRepository(keychain: keychain)
 
         // When & Assert
         #expect(throws: DecodingError.self) {
