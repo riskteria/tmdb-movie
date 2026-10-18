@@ -3,6 +3,8 @@ import UIKit
 
 protocol IProfileViewController: AnyObject {
     func displayProfile(viewData: ProfileModel.LoadProfile.ViewData)
+    func displayClearSavedData(viewData: ProfileModel.ClearSavedData.ViewData)
+    func displayClearWatchHistory(viewData: ProfileModel.ClearWatchHistory.ViewData)
 }
 
 final class ProfileViewController: UIViewController {
@@ -13,6 +15,7 @@ final class ProfileViewController: UIViewController {
     private var loadTask: Task<Void, Never>?
     private var changeAppearanceTask: Task<Void, Never>?
     private var accountTask: Task<Void, Never>?
+    private var clearTask: Task<Void, Never>?
 
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
@@ -32,6 +35,7 @@ final class ProfileViewController: UIViewController {
         loadTask?.cancel()
         changeAppearanceTask?.cancel()
         accountTask?.cancel()
+        clearTask?.cancel()
     }
 
     override func viewDidLoad() {
@@ -71,11 +75,25 @@ private extension ProfileViewController {
         }
     }
 
+    func clearSavedData() {
+        clearTask?.cancel()
+        clearTask = Task { [interactor] in
+            await interactor.clearSavedData(request: ProfileModel.ClearSavedData.Request())
+        }
+    }
+
+    func clearWatchHistory() {
+        clearTask?.cancel()
+        clearTask = Task { [interactor] in
+            await interactor.clearWatchHistory(request: ProfileModel.ClearWatchHistory.Request())
+        }
+    }
+
     func isActionRow(at indexPath: IndexPath) -> Bool {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .signIn(_, let isEnabled):
             isEnabled
-        case .signOut:
+        case .signOut, .clearSavedData, .clearWatchHistory:
             true
         default:
             false
@@ -86,7 +104,7 @@ private extension ProfileViewController {
         switch row {
         case .signIn(_, let isEnabled):
             isEnabled ? .button : [.button, .notEnabled]
-        case .signOut:
+        case .signOut, .clearSavedData, .clearWatchHistory:
             .button
         default:
             .none
@@ -117,6 +135,14 @@ extension ProfileViewController: IProfileViewController {
         }
         dataSource.apply(snapshot, animatingDifferences: false)
     }
+
+    func displayClearSavedData(viewData: ProfileModel.ClearSavedData.ViewData) {
+        router.routeToAlert(viewData.alert)
+    }
+
+    func displayClearWatchHistory(viewData: ProfileModel.ClearWatchHistory.ViewData) {
+        router.routeToAlert(viewData.alert)
+    }
 }
 
 // MARK: - UICollectionViewDelegate
@@ -137,8 +163,16 @@ extension ProfileViewController: UICollectionViewDelegate {
                 self?.signIn()
             }
         case .signOut(_, let confirmation):
-            router.routeToSignOutConfirmation(confirmation) { [weak self] in
+            router.routeToConfirmation(confirmation) { [weak self] in
                 self?.signOut()
+            }
+        case .clearSavedData(_, let confirmation):
+            router.routeToConfirmation(confirmation) { [weak self] in
+                self?.clearSavedData()
+            }
+        case .clearWatchHistory(_, let confirmation):
+            router.routeToConfirmation(confirmation) { [weak self] in
+                self?.clearWatchHistory()
             }
         default:
             break
@@ -237,9 +271,9 @@ private extension ProfileViewController {
         case .signOut(let title, _):
             let configuration = makeCell(title: title, systemImage: "rectangle.portrait.and.arrow.right")
             return styled(configuration, isDestructive: true)
-        case .clearSavedData(let title):
+        case .clearSavedData(let title, _):
             return styled(makeCell(title: title, systemImage: "trash"), isDestructive: true)
-        case .clearWatchHistory(let title):
+        case .clearWatchHistory(let title, _):
             return styled(makeCell(title: title, systemImage: "clock.arrow.circlepath"), isDestructive: true)
         case .appearance(let title, _):
             return styled(makeCell(title: title, systemImage: "circle.lefthalf.filled"))

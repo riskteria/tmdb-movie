@@ -2,6 +2,8 @@ import Foundation
 
 protocol IProfilePresenter {
     func presentProfile(response: ProfileModel.LoadProfile.Response)
+    func presentClearSavedData(response: ProfileModel.ClearSavedData.Response)
+    func presentClearWatchHistory(response: ProfileModel.ClearWatchHistory.Response)
 }
 
 final class ProfilePresenter {
@@ -17,6 +19,12 @@ final class ProfilePresenter {
 extension ProfilePresenter: IProfilePresenter {
     func presentProfile(response: ProfileModel.LoadProfile.Response) {
         let appInfo = response.appInfo
+        let clearSavedMessage = String(
+            localized: "Your saved movies on this device will be removed. This can't be undone."
+        )
+        let clearHistoryMessage = String(
+            localized: "Continue Watching on this device will be emptied. This can't be undone."
+        )
         let attribution = String(localized: "This product uses the TMDB API but is not endorsed or certified by TMDB.")
         let sections = [
             ProfileModel.DisplayedSection(
@@ -28,8 +36,20 @@ extension ProfilePresenter: IProfilePresenter {
                 section: .data,
                 header: String(localized: "Data"),
                 rows: [
-                    .clearSavedData(title: String(localized: "Clear Saved data")),
-                    .clearWatchHistory(title: String(localized: "Clear watch history"))
+                    .clearSavedData(
+                        title: String(localized: "Clear Saved data"),
+                        confirmation: makeClearConfirmation(
+                            title: String(localized: "Clear Saved data?"),
+                            message: clearSavedMessage
+                        )
+                    ),
+                    .clearWatchHistory(
+                        title: String(localized: "Clear watch history"),
+                        confirmation: makeClearConfirmation(
+                            title: String(localized: "Clear watch history?"),
+                            message: clearHistoryMessage
+                        )
+                    )
                 ]
             ),
             ProfileModel.DisplayedSection(
@@ -47,6 +67,16 @@ extension ProfilePresenter: IProfilePresenter {
             )
         ]
         viewController?.displayProfile(viewData: ProfileModel.LoadProfile.ViewData(sections: sections))
+    }
+
+    func presentClearSavedData(response: ProfileModel.ClearSavedData.Response) {
+        let alert = makeClearFailureAlert(title: String(localized: "Couldn't clear Saved data"))
+        viewController?.displayClearSavedData(viewData: ProfileModel.ClearSavedData.ViewData(alert: alert))
+    }
+
+    func presentClearWatchHistory(response: ProfileModel.ClearWatchHistory.Response) {
+        let alert = makeClearFailureAlert(title: String(localized: "Couldn't clear watch history"))
+        viewController?.displayClearWatchHistory(viewData: ProfileModel.ClearWatchHistory.ViewData(alert: alert))
     }
 }
 
@@ -109,6 +139,23 @@ private extension ProfilePresenter {
             message: String(localized: "Saved movies and watch history stay on this device."),
             confirmTitle: String(localized: "Sign Out"),
             cancelTitle: String(localized: "Cancel")
+        )
+    }
+
+    func makeClearConfirmation(title: String, message: String) -> ProfileModel.DisplayedConfirmation {
+        ProfileModel.DisplayedConfirmation(
+            title: title,
+            message: message,
+            confirmTitle: String(localized: "Clear"),
+            cancelTitle: String(localized: "Cancel")
+        )
+    }
+
+    func makeClearFailureAlert(title: String) -> ProfileModel.DisplayedAlert {
+        ProfileModel.DisplayedAlert(
+            title: title,
+            message: String(localized: "Nothing was deleted. Try again."),
+            actionTitle: String(localized: "OK")
         )
     }
 

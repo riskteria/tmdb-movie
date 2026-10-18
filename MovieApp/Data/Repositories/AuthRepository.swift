@@ -9,7 +9,7 @@ actor AuthRepository {
 
     private let sessionService: any ISessionService
     private let credentialRepository: any ICredentialRepository
-    private let broadcaster = AsyncBroadcaster<AuthState>()
+    private var broadcaster = AsyncBroadcaster<AuthState>()
     private var phase: Phase
 
     private var state: AuthState {
@@ -31,18 +31,16 @@ actor AuthRepository {
         }
     }
 
-    private func transition(to newPhase: Phase) async {
+    private func transition(to newPhase: Phase) {
         phase = newPhase
-        await broadcaster.send(state)
+        broadcaster.send(state)
     }
 }
 
 // MARK: - IAuthRepository
 extension AuthRepository: IAuthRepository {
     var changes: AsyncStream<AuthState> {
-        get async {
-            await broadcaster.subscribe(startingWith: state)
-        }
+        broadcaster.subscribe(startingWith: state)
     }
 
     func signIn() async throws -> Account {
@@ -65,7 +63,7 @@ extension AuthRepository: IAuthRepository {
         } catch {
             return
         }
-        await transition(to: .signedOut)
+        transition(to: .signedOut)
         await sessionService.revokeSession(authSession)
     }
 
@@ -75,11 +73,11 @@ extension AuthRepository: IAuthRepository {
             let refreshed = try await sessionService.fetchAccount(for: authSession)
             guard isSignedIn(with: authSession) else { return .unchanged }
             try credentialRepository.save(refreshed)
-            await transition(to: .signedIn(refreshed))
+            transition(to: .signedIn(refreshed))
             return .refreshed
         } catch SessionServiceError.sessionRejected {
             guard isSignedIn(with: authSession) else { return .unchanged }
-            return await endRejectedSession()
+            return endRejectedSession()
         } catch {
             return .unchanged
         }
@@ -91,7 +89,7 @@ private extension AuthRepository {
         do {
             let authSession = try await sessionService.createSession()
             try credentialRepository.save(authSession)
-            await transition(to: .signedIn(authSession))
+            transition(to: .signedIn(authSession))
             return authSession
         } catch {
             phase = .signedOut
@@ -99,13 +97,13 @@ private extension AuthRepository {
         }
     }
 
-    func endRejectedSession() async -> AccountRefreshResult {
+    func endRejectedSession() -> AccountRefreshResult {
         do {
             try credentialRepository.delete()
         } catch {
             return .unchanged
         }
-        await transition(to: .signedOut)
+        transition(to: .signedOut)
         return .sessionEnded
     }
 

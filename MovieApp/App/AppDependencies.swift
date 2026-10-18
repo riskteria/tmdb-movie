@@ -14,8 +14,8 @@ final class AppDependencies {
     private let genreRepository: any IGenreRepository
     private let callbackGenreRepository: any ICallbackGenreRepository
     private let authRepository: any IAuthRepository
-    private let savedMoviesRepository: any ISavedMoviesRepository = SavedMoviesRepository()
-    private let watchProgressRepository: any IWatchProgressRepository = WatchProgressRepository()
+    private let savedMoviesRepository: any ISavedMoviesRepository
+    private let watchProgressRepository: any IWatchProgressRepository
     let appearanceRepository: any IAppearanceRepository = AppearanceRepository()
 
     init(window: UIWindow) {
@@ -36,6 +36,17 @@ final class AppDependencies {
             sessionService: SessionService(apiService: apiService, webAuthenticator: WebAuthenticator(window: window)),
             credentialRepository: credentialRepository
         )
+        let modelContainer = AppModelContainer()
+        let currentUser = AuthCurrentUserProvider(
+            authRepository: authRepository,
+            guestID: GuestIDStore().loadOrCreate()
+        )
+        savedMoviesRepository = SavedMoviesRepository(
+            container: modelContainer,
+            currentUser: currentUser,
+            evictionPolicy: OldestSavedFirstEvictionPolicy()
+        )
+        watchProgressRepository = WatchProgressRepository(container: modelContainer, currentUser: currentUser)
         movieRepository = MovieRepository(apiService: apiService)
         genreRepository = GenreRepository(apiService: apiService)
         callbackGenreRepository = CallbackGenreRepository(
@@ -100,18 +111,22 @@ extension AppDependencies: SavedFactory {
 extension AppDependencies: ProfileFactory {
     func makeProfile(
         onRequestSignIn: @escaping (@escaping () -> Void) -> Void,
-        onRequestSignOut: @escaping (ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void
+        onRequestConfirmation: @escaping (ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void,
+        onShowAlert: @escaping (ProfileModel.DisplayedAlert) -> Void
     ) -> UIViewController {
         ProfileSceneFactory.make(
             dependencies: ProfileSceneFactory.Dependencies(
                 appInfo: Self.makeAppInfo(from: .main),
                 appearanceRepository: appearanceRepository,
                 authRepository: authRepository,
+                savedMoviesRepository: savedMoviesRepository,
+                watchProgressRepository: watchProgressRepository,
                 imageURLProvider: imageURLProvider,
                 imageLoader: imageLoader
             ),
             onRequestSignIn: onRequestSignIn,
-            onRequestSignOut: onRequestSignOut
+            onRequestConfirmation: onRequestConfirmation,
+            onShowAlert: onShowAlert
         )
     }
 }
@@ -138,6 +153,8 @@ extension AppDependencies: MovieDetailFactory {
             movie: movie,
             dependencies: MovieDetailSceneFactory.Dependencies(
                 movieRepository: movieRepository,
+                savedMoviesRepository: savedMoviesRepository,
+                watchProgressRepository: watchProgressRepository,
                 imageURLProvider: imageURLProvider,
                 videoURLProvider: videoURLProvider,
                 imageLoader: imageLoader

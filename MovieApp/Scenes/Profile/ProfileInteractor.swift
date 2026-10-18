@@ -3,6 +3,8 @@ protocol IProfileInteractor {
     func changeAppearance(request: ProfileModel.ChangeAppearance.Request) async
     func signIn(request: ProfileModel.SignIn.Request) async
     func signOut(request: ProfileModel.SignOut.Request) async
+    func clearSavedData(request: ProfileModel.ClearSavedData.Request) async
+    func clearWatchHistory(request: ProfileModel.ClearWatchHistory.Request) async
 }
 
 final class ProfileInteractor {
@@ -48,6 +50,26 @@ extension ProfileInteractor: IProfileInteractor {
 
     func signOut(request: ProfileModel.SignOut.Request) async {
         await worker.signOut()
+    }
+
+    func clearSavedData(request: ProfileModel.ClearSavedData.Request) async {
+        do {
+            try await worker.clearSavedMovies()
+        } catch is CancellationError {
+            return
+        } catch {
+            presenter.presentClearSavedData(response: ProfileModel.ClearSavedData.Response())
+        }
+    }
+
+    func clearWatchHistory(request: ProfileModel.ClearWatchHistory.Request) async {
+        do {
+            try await worker.clearWatchHistory()
+        } catch is CancellationError {
+            return
+        } catch {
+            presenter.presentClearWatchHistory(response: ProfileModel.ClearWatchHistory.Response())
+        }
     }
 }
 

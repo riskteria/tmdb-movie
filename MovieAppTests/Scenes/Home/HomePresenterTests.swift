@@ -80,6 +80,23 @@ struct HomePresenterTests {
     }
 
     @Test
+    func unknownDurationReadsJustStarted() throws {
+        // Given
+        let item = ContinueWatchingItem(
+            progress: .fixture(contentID: 1, position: .zero, duration: .zero),
+            details: .fixture(movie: .fixture(id: 1, title: "Oppenheimer"))
+        )
+
+        // When
+        sut.presentHome(response: makeResponse(continueWatching: .success([item])))
+
+        // Assert
+        let displayed = try #require(viewController.sections.first?.items.first?.continueWatching)
+        #expect(displayed.subtitle == "Trailer · Just started")
+        #expect(displayed.progress == 0)
+    }
+
+    @Test
     func presentHomeUsesPosterURLsAndTitledPlaceholders() throws {
         // Given
         let movie = Movie.fixture(id: 1, title: "Wicked", posterPath: ImagePath(rawValue: "/wicked.jpg"))

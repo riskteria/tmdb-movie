@@ -3,6 +3,8 @@ import UIKit
 enum MovieDetailSceneFactory {
     struct Dependencies {
         let movieRepository: any IMovieRepository
+        let savedMoviesRepository: any ISavedMoviesRepository
+        let watchProgressRepository: any IWatchProgressRepository
         let imageURLProvider: any ImageURLProvider
         let videoURLProvider: any VideoURLProvider
         let imageLoader: any IImageLoader
@@ -19,7 +21,11 @@ enum MovieDetailSceneFactory {
             imageURLProvider: dependencies.imageURLProvider,
             videoURLProvider: dependencies.videoURLProvider
         )
-        let worker = MovieDetailWorker(movieRepository: dependencies.movieRepository)
+        let worker = MovieDetailWorker(
+            movieRepository: dependencies.movieRepository,
+            savedMoviesRepository: dependencies.savedMoviesRepository,
+            watchProgressRepository: dependencies.watchProgressRepository
+        )
         let interactor = MovieDetailInteractor(movie: movie, presenter: presenter, worker: worker)
         let router = MovieDetailRouter(onSelectMovie: onSelectMovie, onWatchTrailer: onWatchTrailer, onShare: onShare)
         let viewController = MovieDetailViewController(

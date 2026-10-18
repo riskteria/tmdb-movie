@@ -3,65 +3,47 @@ import Testing
 
 struct AsyncBroadcasterTests {
     @Test
-    func everySubscriberReceivesSentValue() async {
+    func subscriberReceivesStartingValue() async {
         // Given
-        let sut = AsyncBroadcaster<Int>()
-        let first = await sut.subscribe()
-        let second = await sut.subscribe()
+        var sut = AsyncBroadcaster<Int>()
 
         // When
-        await sut.send(7)
-
-        // Assert
-        #expect(await first.first { _ in true } == 7)
-        #expect(await second.first { _ in true } == 7)
-    }
-
-    @Test
-    func subscriberStartsWithInitialValue() async {
-        // Given
-        let sut = AsyncBroadcaster<Int>()
-
-        // When
-        let stream = await sut.subscribe(startingWith: 3)
+        let stream = sut.subscribe(startingWith: 3)
 
         // Assert
         #expect(await stream.first { _ in true } == 3)
     }
 
     @Test
-    func slowSubscriberGetsNewestValue() async {
+    func sendReachesEverySubscriber() async {
         // Given
-        let sut = AsyncBroadcaster<Int>()
-        let stream = await sut.subscribe()
+        var sut = AsyncBroadcaster<Int>()
+        let first = sut.subscribe()
+        let second = sut.subscribe()
 
         // When
-        await sut.send(1)
-        await sut.send(2)
+        sut.send(7)
 
         // Assert
-        #expect(await stream.first { _ in true } == 2)
+        #expect(await first.first { _ in true } == 7)
+        #expect(await second.first { _ in true } == 7)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func cancelledSubscriberIsRemoved() async {
+    func terminatedSubscriberIsDroppedOnNextSend() async {
         // Given
-        let sut = AsyncBroadcaster<Int>()
+        var sut = AsyncBroadcaster<Int>()
+        let stream = sut.subscribe()
         let subscriber = Task {
-            for await _ in await sut.subscribe() {}
+            for await _ in stream {}
         }
-        while await sut.subscriberCount == 0 {
-            await Task.yield()
-        }
-
-        // When
         subscriber.cancel()
         await subscriber.value
-        while await sut.subscriberCount > 0 {
-            await Task.yield()
-        }
+
+        // When
+        sut.send(1)
 
         // Assert
-        #expect(await sut.subscriberCount == 0)
+        #expect(sut.subscriberCount == 0)
     }
 }

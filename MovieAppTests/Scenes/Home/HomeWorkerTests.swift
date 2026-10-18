@@ -146,6 +146,19 @@ struct HomeWorkerTests {
         }
     }
 
+    @Test
+    func observeWatchProgressForwardsRepositoryChanges() async {
+        // Given
+        let records = [WatchProgress.fixture(contentID: 1)]
+        let sut = makeSUT(watchProgressRepository: WatchProgressRepositoryStub(result: .success(records)))
+
+        // When
+        let stream = await sut.observeWatchProgress()
+
+        // Assert
+        #expect(await stream.first { _ in true } == records)
+    }
+
     private func makeSUT(
         movieRepository: any IMovieRepository = MovieRepositoryStub(),
         genreRepository: any IGenreRepository = GenreRepositoryStub(result: .success([])),

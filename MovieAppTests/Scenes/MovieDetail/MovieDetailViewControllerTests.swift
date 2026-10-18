@@ -236,6 +236,12 @@ private final class MovieDetailInteractorSpy: IMovieDetailInteractor {
         for await _ in pendingLoad {}
         cancellationsContinuation.yield()
     }
+
+    func observeSavedState(request: MovieDetailModel.ObserveSavedState.Request) async {}
+
+    func toggleSave(request: MovieDetailModel.ToggleSave.Request) async {}
+
+    func watch(request: MovieDetailModel.Watch.Request) async {}
 }
 
 @MainActor

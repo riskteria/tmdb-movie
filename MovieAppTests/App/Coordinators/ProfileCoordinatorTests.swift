@@ -5,7 +5,7 @@ import UIKit
 @MainActor
 struct ProfileCoordinatorTests {
     private let scenes = SceneFactorySpy()
-    private let sut: any TabCoordinator & SignOutAlertProvider
+    private let sut: any TabCoordinator & ProfileAlertProvider
     private let confirmation = ProfileModel.DisplayedConfirmation(
         title: "Sign out of TMDB?",
         message: "Saved movies and watch history stay on this device.",
@@ -36,12 +36,12 @@ struct ProfileCoordinatorTests {
     }
 
     @Test
-    func startGivesProfileASignOutHandler() {
+    func startGivesProfileAConfirmationHandler() {
         // When
         sut.start()
 
         // Assert
-        #expect(scenes.profileSignOutHandler != nil)
+        #expect(scenes.profileConfirmationHandler != nil)
     }
 
     @Test
@@ -58,9 +58,9 @@ struct ProfileCoordinatorTests {
     }
 
     @Test
-    func signOutAlertShowsConfirmationText() {
+    func confirmationAlertShowsConfirmationText() {
         // When
-        let alert = sut.makeSignOutAlert(for: confirmation) {}
+        let alert = sut.makeConfirmationAlert(for: confirmation) {}
 
         // Assert
         #expect(alert.title == "Sign out of TMDB?")
@@ -68,12 +68,30 @@ struct ProfileCoordinatorTests {
     }
 
     @Test
-    func signOutAlertOffersCancelAndDestructiveSignOut() {
+    func confirmationAlertOffersCancelAndDestructiveAction() {
         // When
-        let alert = sut.makeSignOutAlert(for: confirmation) {}
+        let alert = sut.makeConfirmationAlert(for: confirmation) {}
 
         // Assert
         #expect(alert.actions.map(\.title) == ["Cancel", "Sign Out"])
         #expect(alert.actions.map(\.style) == [.cancel, .destructive])
+    }
+
+    @Test
+    func alertHasSingleOKAction() {
+        // Given
+        let failure = ProfileModel.DisplayedAlert(
+            title: "Couldn't clear watch history",
+            message: "Nothing was deleted. Try again.",
+            actionTitle: "OK"
+        )
+
+        // When
+        let alert = sut.makeAlert(for: failure)
+
+        // Assert
+        #expect(alert.title == "Couldn't clear watch history")
+        #expect(alert.actions.map(\.title) == ["OK"])
+        #expect(alert.actions.map(\.style) == [.default])
     }
 }

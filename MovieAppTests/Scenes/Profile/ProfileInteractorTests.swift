@@ -1,5 +1,4 @@
 @testable import MovieApp
-import Synchronization
 import Testing
 
 @MainActor
@@ -257,6 +256,58 @@ struct ProfileInteractorTests {
     }
 
     @Test
+    func clearSavedDataPresentsNothingOnSuccess() async {
+        // Given
+        let worker = ProfileWorkerStub()
+        let sut = makeSUT(worker: worker)
+
+        // When
+        await sut.clearSavedData(request: ProfileModel.ClearSavedData.Request())
+
+        // Assert
+        #expect(worker.clearCalls == [.savedMovies])
+        #expect(presenter.clearSavedDataCount == 0)
+    }
+
+    @Test
+    func clearSavedDataPresentsFailure() async {
+        // Given
+        let sut = makeSUT(worker: ProfileWorkerStub(clearSavedMovies: .failure(StubError.failed)))
+
+        // When
+        await sut.clearSavedData(request: ProfileModel.ClearSavedData.Request())
+
+        // Assert
+        #expect(presenter.clearSavedDataCount == 1)
+    }
+
+    @Test
+    func clearWatchHistoryPresentsNothingOnSuccess() async {
+        // Given
+        let worker = ProfileWorkerStub()
+        let sut = makeSUT(worker: worker)
+
+        // When
+        await sut.clearWatchHistory(request: ProfileModel.ClearWatchHistory.Request())
+
+        // Assert
+        #expect(worker.clearCalls == [.watchHistory])
+        #expect(presenter.clearWatchHistoryCount == 0)
+    }
+
+    @Test
+    func clearWatchHistoryPresentsFailure() async {
+        // Given
+        let sut = makeSUT(worker: ProfileWorkerStub(clearWatchHistory: .failure(StubError.failed)))
+
+        // When
+        await sut.clearWatchHistory(request: ProfileModel.ClearWatchHistory.Request())
+
+        // Assert
+        #expect(presenter.clearWatchHistoryCount == 1)
+    }
+
+    @Test
     func unchangedRefreshKeepsAccountState() async throws {
         // Given
         let worker = ProfileWorkerStub(authStates: makeFinishedStream([.signedIn(account)]), refreshAccount: .unchanged)
@@ -288,12 +339,22 @@ private extension ProfileInteractorTests {
 private final class ProfilePresenterSpy: IProfilePresenter {
     private(set) var responses: [ProfileModel.LoadProfile.Response] = []
     private var responseWaiters: [ResponseWaiter] = []
+    private(set) var clearSavedDataCount = 0
+    private(set) var clearWatchHistoryCount = 0
 
     func presentProfile(response: ProfileModel.LoadProfile.Response) {
         responses.append(response)
         let matching = responseWaiters.filter { waiter in waiter.isMatch(response) }
         responseWaiters.removeAll { waiter in waiter.isMatch(response) }
         matching.forEach { waiter in waiter.continuation.resume() }
+    }
+
+    func presentClearSavedData(response: ProfileModel.ClearSavedData.Response) {
+        clearSavedDataCount += 1
+    }
+
+    func presentClearWatchHistory(response: ProfileModel.ClearWatchHistory.Response) {
+        clearWatchHistoryCount += 1
     }
 
     func waitForFirstResponse() async {
@@ -312,79 +373,4 @@ private final class ProfilePresenterSpy: IProfilePresenter {
 private struct ResponseWaiter {
     let isMatch: (ProfileModel.LoadProfile.Response) -> Bool
     let continuation: CheckedContinuation<Void, Never>
-}
-
-private final class ProfileWorkerStub: IProfileWorker {
-    private let themes: AsyncStream<AppTheme>
-    private let authStates: AsyncStream<AuthState>
-    private let signInResult: Result<Account, any Error>
-    private let refreshAccountResult: AccountRefreshResult
-    private let refreshGate: AsyncStream<Void>?
-    private let recordedThemes = Mutex<[AppTheme]>([])
-    private let recordedSignOuts = Mutex(0)
-    private let recordedRefreshes = Mutex(0)
-
-    var savedThemes: [AppTheme] {
-        recordedThemes.withLock { $0 }
-    }
-
-    var signOutCount: Int {
-        recordedSignOuts.withLock { $0 }
-    }
-
-    var refreshAccountCount: Int {
-        recordedRefreshes.withLock { $0 }
-    }
-
-    init(
-        themes: AsyncStream<AppTheme> = AsyncStream { continuation in
-            continuation.yield(.system)
-            continuation.finish()
-        },
-        authStates: AsyncStream<AuthState> = AsyncStream { continuation in
-            continuation.yield(.signedOut)
-            continuation.finish()
-        },
-        signIn: Result<Account, any Error> = .success(
-            Account(id: 548, username: "moviefan", name: "Movie Fan", avatarPath: nil)
-        ),
-        refreshAccount: AccountRefreshResult = .unchanged,
-        refreshGate: AsyncStream<Void>? = nil
-    ) {
-        self.themes = themes
-        self.authStates = authStates
-        signInResult = signIn
-        refreshAccountResult = refreshAccount
-        self.refreshGate = refreshGate
-    }
-
-    func observeTheme() async -> AsyncStream<AppTheme> {
-        themes
-    }
-
-    func saveTheme(_ theme: AppTheme) async {
-        recordedThemes.withLock { $0.append(theme) }
-    }
-
-    func observeAuthState() async -> AsyncStream<AuthState> {
-        authStates
-    }
-
-    func signIn() async throws -> Account {
-        try signInResult.get()
-    }
-
-    func signOut() async {
-        recordedSignOuts.withLock { $0 += 1 }
-    }
-
-    func refreshAccount() async -> AccountRefreshResult {
-        recordedRefreshes.withLock { $0 += 1 }
-        if let refreshGate {
-            for await _ in refreshGate {
-                break
-            }
-        }
-        return refreshAccountResult
-    }
 }

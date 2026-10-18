@@ -3,7 +3,7 @@ import Foundation
 actor AppearanceRepository {
     private let themeKey = "appearance.theme"
     private let defaults: UserDefaults
-    private let broadcaster = AsyncBroadcaster<AppTheme>()
+    private var broadcaster = AsyncBroadcaster<AppTheme>()
 
     init(suiteName: String? = nil) {
         defaults = UserDefaults(suiteName: suiteName) ?? .standard
@@ -13,14 +13,12 @@ actor AppearanceRepository {
 // MARK: - IAppearanceRepository
 extension AppearanceRepository: IAppearanceRepository {
     var changes: AsyncStream<AppTheme> {
-        get async {
-            await broadcaster.subscribe(startingWith: storedTheme())
-        }
+        broadcaster.subscribe(startingWith: storedTheme())
     }
 
-    func setTheme(_ theme: AppTheme) async {
+    func setTheme(_ theme: AppTheme) {
         defaults.set(theme.rawValue, forKey: themeKey)
-        await broadcaster.send(theme)
+        broadcaster.send(theme)
     }
 }
 

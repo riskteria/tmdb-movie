@@ -9,37 +9,61 @@ struct ProfileRouterTests {
         confirmTitle: "Sign Out",
         cancelTitle: "Cancel"
     )
+    private let alert = ProfileModel.DisplayedAlert(
+        title: "Couldn't clear Saved data",
+        message: "Nothing was deleted. Try again.",
+        actionTitle: "OK"
+    )
 
     @Test
-    func routeToSignOutConfirmationPassesConfirmationToCoordinator() {
+    func routeToConfirmationPassesConfirmation() {
         // Given
         var routedConfirmations: [ProfileModel.DisplayedConfirmation] = []
         let sut: any IProfileRouter = ProfileRouter(
             onRequestSignIn: { _ in },
-            onRequestSignOut: { confirmation, _ in routedConfirmations.append(confirmation) }
+            onRequestConfirmation: { confirmation, _ in routedConfirmations.append(confirmation) },
+            onShowAlert: { _ in }
         )
 
         // When
-        sut.routeToSignOutConfirmation(confirmation) {}
+        sut.routeToConfirmation(confirmation) {}
 
         // Assert
         #expect(routedConfirmations == [confirmation])
     }
 
     @Test
-    func confirmingRunsTheSignOutAction() {
+    func confirmingRunsTheConfirmedAction() {
         // Given
-        var signOutCount = 0
+        var confirmCount = 0
         let sut: any IProfileRouter = ProfileRouter(
             onRequestSignIn: { _ in },
-            onRequestSignOut: { _, onConfirm in onConfirm() }
+            onRequestConfirmation: { _, onConfirm in onConfirm() },
+            onShowAlert: { _ in }
         )
 
         // When
-        sut.routeToSignOutConfirmation(confirmation) { signOutCount += 1 }
+        sut.routeToConfirmation(confirmation) { confirmCount += 1 }
 
         // Assert
-        #expect(signOutCount == 1)
+        #expect(confirmCount == 1)
+    }
+
+    @Test
+    func routeToAlertPassesAlert() {
+        // Given
+        var routedAlerts: [ProfileModel.DisplayedAlert] = []
+        let sut: any IProfileRouter = ProfileRouter(
+            onRequestSignIn: { _ in },
+            onRequestConfirmation: { _, _ in },
+            onShowAlert: { alert in routedAlerts.append(alert) }
+        )
+
+        // When
+        sut.routeToAlert(alert)
+
+        // Assert
+        #expect(routedAlerts == [alert])
     }
 
     @Test
@@ -48,7 +72,8 @@ struct ProfileRouterTests {
         var signInCount = 0
         let sut: any IProfileRouter = ProfileRouter(
             onRequestSignIn: { onSignIn in onSignIn() },
-            onRequestSignOut: { _, _ in }
+            onRequestConfirmation: { _, _ in },
+            onShowAlert: { _ in }
         )
 
         // When

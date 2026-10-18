@@ -386,12 +386,3 @@ private extension MovieDetailModel.DisplayedTabContent {
         if case .items(let items) = self { items } else { [] }
     }
 }
-
-@MainActor
-private final class MovieDetailViewControllerSpy: IMovieDetailViewController {
-    private(set) var displayedViewData: [MovieDetailModel.LoadDetails.ViewData] = []
-
-    func displayDetails(viewData: MovieDetailModel.LoadDetails.ViewData) {
-        displayedViewData.append(viewData)
-    }
-}

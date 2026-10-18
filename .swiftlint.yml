@@ -173,3 +173,9 @@ custom_rules:
     regex: '^\s*(@testable\s+)?import\s+Networking\b'
     message: "Only Data/Repositories and App import Networking. Use the Domain ports."
     severity: error
+  no_swiftdata_outside_persistence:
+    name: "SwiftData stays in Data/Persistence/SwiftData"
+    included: 'MovieApp/(Domain|Scenes|Common|App)/.*\.swift'
+    regex: '^\s*(@testable\s+)?import\s+SwiftData\b'
+    message: "Only Data/Persistence/SwiftData imports SwiftData. Use the Domain ports."
+    severity: error

@@ -68,6 +68,32 @@ struct ProfileWorkerTests {
     }
 
     @Test
+    func clearSavedMoviesCallsRemoveAll() async throws {
+        // Given
+        let repository = SavedMoviesRepositoryStub(removeAll: .success(()))
+        let sut = makeSUT(savedMoviesRepository: repository)
+
+        // When
+        try await sut.clearSavedMovies()
+
+        // Assert
+        #expect(repository.calls == [.removeAll])
+    }
+
+    @Test
+    func clearWatchHistoryCallsRemoveAll() async throws {
+        // Given
+        let repository = WatchProgressRepositoryStub(result: .success([]), removeAll: .success(()))
+        let sut = makeSUT(watchProgressRepository: repository)
+
+        // When
+        try await sut.clearWatchHistory()
+
+        // Assert
+        #expect(repository.calls == [.removeAll])
+    }
+
+    @Test
     func refreshAccountReturnsRepositoryResult() async {
         // Given
         let sut = makeSUT(authRepository: AuthRepositoryStub(refreshAccount: .sessionEnded))
@@ -83,8 +109,15 @@ struct ProfileWorkerTests {
 private extension ProfileWorkerTests {
     func makeSUT(
         appearanceRepository: AppearanceRepositoryStub = AppearanceRepositoryStub(),
-        authRepository: AuthRepositoryStub = AuthRepositoryStub()
+        authRepository: AuthRepositoryStub = AuthRepositoryStub(),
+        savedMoviesRepository: SavedMoviesRepositoryStub = SavedMoviesRepositoryStub(),
+        watchProgressRepository: WatchProgressRepositoryStub = WatchProgressRepositoryStub(result: .success([]))
     ) -> any IProfileWorker {
-        ProfileWorker(appearanceRepository: appearanceRepository, authRepository: authRepository)
+        ProfileWorker(
+            appearanceRepository: appearanceRepository,
+            authRepository: authRepository,
+            savedMoviesRepository: savedMoviesRepository,
+            watchProgressRepository: watchProgressRepository
+        )
     }
 }

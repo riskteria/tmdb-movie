@@ -3,11 +3,23 @@ import Synchronization
 import Testing
 
 final class WatchProgressRepositoryStub: IWatchProgressRepository {
+    enum Call: Equatable {
+        case upsert(WatchProgress)
+        case removeAll
+    }
+
     private let result: Result<[WatchProgress], any Error>
+    private let upsertResult: Result<Void, any Error>?
+    private let removeAllResult: Result<Void, any Error>?
     private let recordedLimits = Mutex<[Int]>([])
+    private let recordedCalls = Mutex<[Call]>([])
 
     var requestedLimits: [Int] {
         recordedLimits.withLock { $0 }
+    }
+
+    var calls: [Call] {
+        recordedCalls.withLock { $0 }
     }
 
     var changes: AsyncStream<[WatchProgress]> {
@@ -20,12 +32,18 @@ final class WatchProgressRepositoryStub: IWatchProgressRepository {
         }
     }
 
-    init(result: Result<[WatchProgress], any Error>) {
+    init(
+        result: Result<[WatchProgress], any Error>,
+        upsert: Result<Void, any Error>? = nil,
+        removeAll: Result<Void, any Error>? = nil
+    ) {
         self.result = result
+        upsertResult = upsert
+        removeAllResult = removeAll
     }
 
     func upsert(_ progress: WatchProgress) async throws {
-        Issue.record("Unexpected call to upsert(_:)")
+        try record(.upsert(progress), result: upsertResult, unexpected: "upsert(_:)")
     }
 
     func progress(for contentID: Int, mediaType: MediaType) async throws -> WatchProgress? {
@@ -38,6 +56,15 @@ final class WatchProgressRepositoryStub: IWatchProgressRepository {
     }
 
     func removeAll() async throws {
-        Issue.record("Unexpected call to removeAll()")
+        try record(.removeAll, result: removeAllResult, unexpected: "removeAll()")
+    }
+
+    private func record(_ call: Call, result: Result<Void, any Error>?, unexpected name: String) throws {
+        guard let result else {
+            Issue.record("Unexpected call to \(name)")
+            return
+        }
+        recordedCalls.withLock { $0.append(call) }
+        try result.get()
     }
 }

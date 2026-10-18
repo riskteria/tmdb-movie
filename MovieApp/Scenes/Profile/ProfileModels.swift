@@ -19,13 +19,19 @@ enum ProfileModel {
         let cancelTitle: String
     }
 
+    nonisolated struct DisplayedAlert: Hashable, Sendable {
+        let title: String
+        let message: String
+        let actionTitle: String
+    }
+
     nonisolated enum Row: Hashable, Sendable {
         case guest(title: String, message: String)
         case signIn(title: String, isEnabled: Bool)
         case account(name: String, username: String, avatar: DisplayedArtwork)
         case signOut(title: String, confirmation: DisplayedConfirmation)
-        case clearSavedData(title: String)
-        case clearWatchHistory(title: String)
+        case clearSavedData(title: String, confirmation: DisplayedConfirmation)
+        case clearWatchHistory(title: String, confirmation: DisplayedConfirmation)
         case appearance(title: String, options: [DisplayedThemeOption])
         case version(title: String, value: String)
         case attribution(text: String)
@@ -71,5 +77,25 @@ enum ProfileModel {
 
     enum SignOut {
         struct Request {}
+    }
+
+    enum ClearSavedData {
+        struct Request {}
+
+        struct Response {}
+
+        struct ViewData: Equatable {
+            let alert: DisplayedAlert
+        }
+    }
+
+    enum ClearWatchHistory {
+        struct Request {}
+
+        struct Response {}
+
+        struct ViewData: Equatable {
+            let alert: DisplayedAlert
+        }
     }
 }

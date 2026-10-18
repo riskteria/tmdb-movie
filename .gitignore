@@ -21,6 +21,8 @@ DerivedData/
 *.dSYM
 docs/
 .claude
+.agents
+openspec
 
 # Swift Package Manager
 .build/

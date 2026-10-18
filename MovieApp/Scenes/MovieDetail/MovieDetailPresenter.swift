@@ -2,6 +2,9 @@ import Foundation
 
 protocol IMovieDetailPresenter {
     func presentDetails(response: MovieDetailModel.LoadDetails.Response)
+    func presentSavedState(response: MovieDetailModel.ObserveSavedState.Response)
+    func presentToggleSave(response: MovieDetailModel.ToggleSave.Response)
+    func presentWatch(response: MovieDetailModel.Watch.Response)
 }
 
 final class MovieDetailPresenter {
@@ -26,6 +29,36 @@ extension MovieDetailPresenter: IMovieDetailPresenter {
             viewController?.displayDetails(viewData: .content(detail, makeExtras(from: details)))
         case .failure:
             viewController?.displayDetails(viewData: .failure(message: String(localized: "Unable to load this movie")))
+        }
+    }
+
+    func presentSavedState(response: MovieDetailModel.ObserveSavedState.Response) {
+        let title = response.isSaved ? String(localized: "Saved") : String(localized: "Save")
+        viewController?.displaySavedState(
+            viewData: MovieDetailModel.ObserveSavedState.ViewData(title: title, isSaved: response.isSaved)
+        )
+    }
+
+    func presentToggleSave(response: MovieDetailModel.ToggleSave.Response) {
+        let title = response.movie.title
+        let message = switch response.action {
+        case .save:
+            String(localized: "Couldn't save “\(title)”")
+        case .remove:
+            String(localized: "Couldn't remove “\(title)”")
+        }
+        viewController?.displayToggleSave(viewData: MovieDetailModel.ToggleSave.ViewData(message: message))
+    }
+
+    func presentWatch(response: MovieDetailModel.Watch.Response) {
+        switch response.result {
+        case .success(let video):
+            viewController?.displayWatch(viewData: .trailer(video))
+        case .failure:
+            let title = response.movie.title
+            viewController?.displayWatch(
+                viewData: .failure(message: String(localized: "Couldn't add “\(title)” to Continue Watching"))
+            )
         }
     }
 }

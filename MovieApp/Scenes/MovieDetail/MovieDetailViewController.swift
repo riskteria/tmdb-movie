@@ -3,6 +3,9 @@ import UIKit
 
 protocol IMovieDetailViewController: AnyObject {
     func displayDetails(viewData: MovieDetailModel.LoadDetails.ViewData)
+    func displaySavedState(viewData: MovieDetailModel.ObserveSavedState.ViewData)
+    func displayToggleSave(viewData: MovieDetailModel.ToggleSave.ViewData)
+    func displayWatch(viewData: MovieDetailModel.Watch.ViewData)
 }
 
 final class MovieDetailViewController: UIViewController {
@@ -22,6 +25,11 @@ final class MovieDetailViewController: UIViewController {
     private let layout = MovieDetailLayout()
     private let fixedItems: [Item] = [.header, .actions, .rating, .synopsis, .tabs]
     private var loadTask: Task<Void, Never>?
+    private var observeTask: Task<Void, Never>?
+    private var saveTask: Task<Void, Never>?
+    private var watchTask: Task<Void, Never>?
+    private var savedState: MovieDetailModel.ObserveSavedState.ViewData?
+    private var isSaveTapPending = false
     private var detail: MovieDetailModel.DisplayedDetail?
     private var extras: MovieDetailModel.DisplayedExtras?
     private var selectedTab = Tab.moreLikeThis
@@ -29,6 +37,7 @@ final class MovieDetailViewController: UIViewController {
 
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
+    private lazy var toastView = StatusToastView()
 
     init(interactor: any IMovieDetailInteractor, router: any IMovieDetailRouter, imageLoader: any IImageLoader) {
         self.interactor = interactor
@@ -43,6 +52,9 @@ final class MovieDetailViewController: UIViewController {
 
     isolated deinit {
         loadTask?.cancel()
+        observeTask?.cancel()
+        saveTask?.cancel()
+        watchTask?.cancel()
     }
 
     override func viewDidLoad() {
@@ -50,6 +62,7 @@ final class MovieDetailViewController: UIViewController {
         navigationItem.largeTitleDisplayMode = .never
         setUpLayout()
         loadDetails()
+        observeSavedState()
     }
 
     override func viewSafeAreaInsetsDidChange() {
@@ -67,6 +80,32 @@ private extension MovieDetailViewController {
         }
     }
 
+    func observeSavedState() {
+        observeTask?.cancel()
+        observeTask = Task { [interactor] in
+            await interactor.observeSavedState(request: MovieDetailModel.ObserveSavedState.Request())
+        }
+    }
+
+    func toggleSave() {
+        isSaveTapPending = true
+        saveTask = Task { [interactor] in
+            await interactor.toggleSave(request: MovieDetailModel.ToggleSave.Request())
+        }
+    }
+
+    func watch(_ video: Video) {
+        watchTask?.cancel()
+        watchTask = Task { [interactor] in
+            await interactor.watch(request: MovieDetailModel.Watch.Request(video: video))
+        }
+    }
+
+    var actionsCell: MovieDetailActionsCell? {
+        guard let indexPath = dataSource.indexPath(for: .actions) else { return nil }
+        return collectionView.cellForItem(at: indexPath) as? MovieDetailActionsCell
+    }
+
     func show(detail: MovieDetailModel.DisplayedDetail, extras: MovieDetailModel.DisplayedExtras?) {
         contentUnavailableConfiguration = nil
         self.detail = detail
@@ -77,18 +116,18 @@ private extension MovieDetailViewController {
     func applySnapshot() {
         guard let detail else { return }
         var snapshot = Snapshot()
-        append([.header], to: .header, in: &snapshot)
-        append([.actions], to: .actions, in: &snapshot)
+        snapshot.append([.header], to: .header)
+        snapshot.append([.actions], to: .actions)
         if extras?.rating != nil {
-            append([.rating], to: .rating, in: &snapshot)
+            snapshot.append([.rating], to: .rating)
         }
         if !detail.overview.isEmpty {
-            append([.synopsis], to: .synopsis, in: &snapshot)
+            snapshot.append([.synopsis], to: .synopsis)
         }
         if let extras {
             appendExtras(extras, to: &snapshot)
         } else {
-            append([.status(.loading)], to: .status, in: &snapshot)
+            snapshot.append([.status(.loading)], to: .status)
         }
         let currentItems = Set(dataSource.snapshot().itemIdentifiers)
         let newItems = Set(snapshot.itemIdentifiers)
@@ -98,34 +137,15 @@ private extension MovieDetailViewController {
 
     func appendExtras(_ extras: MovieDetailModel.DisplayedExtras, to snapshot: inout Snapshot) {
         if !extras.cast.isEmpty {
-            append(extras.cast.map(Item.castMember), to: .cast, in: &snapshot)
+            snapshot.append(extras.cast.map(Item.castMember), to: .cast)
         }
-        append([.tabs], to: .tabs, in: &snapshot)
+        snapshot.append([.tabs], to: .tabs)
         switch selectedTab {
         case .moreLikeThis:
-            appendTabContent(extras.moreLikeThis, as: .moreLikeThis, makeItem: Item.movie, to: &snapshot)
+            snapshot.appendTabContent(extras.moreLikeThis, as: .moreLikeThis, makeItem: Item.movie)
         case .trailers:
-            appendTabContent(extras.trailers, as: .trailers, makeItem: Item.trailer, to: &snapshot)
+            snapshot.appendTabContent(extras.trailers, as: .trailers, makeItem: Item.trailer)
         }
-    }
-
-    func appendTabContent<Content: Hashable & Sendable>(
-        _ content: MovieDetailModel.DisplayedTabContent<Content>,
-        as section: Section,
-        makeItem: (Content) -> Item,
-        to snapshot: inout Snapshot
-    ) {
-        switch content {
-        case .items(let items):
-            append(items.map(makeItem), to: section, in: &snapshot)
-        case .empty(let message):
-            append([.status(.empty(message: message))], to: .status, in: &snapshot)
-        }
-    }
-
-    func append(_ items: [Item], to section: Section, in snapshot: inout Snapshot) {
-        snapshot.appendSections([section])
-        snapshot.appendItems(items, toSection: section)
     }
 
     func sectionTitle(at sectionIndex: Int) -> String {
@@ -160,13 +180,32 @@ extension MovieDetailViewController: IMovieDetailViewController {
             contentUnavailableConfiguration = configuration
         }
     }
+
+    func displaySavedState(viewData: MovieDetailModel.ObserveSavedState.ViewData) {
+        savedState = viewData
+        actionsCell?.configure(savedState: viewData, shareTitle: String(localized: "Share"), animated: isSaveTapPending)
+        isSaveTapPending = false
+    }
+
+    func displayToggleSave(viewData: MovieDetailModel.ToggleSave.ViewData) {
+        isSaveTapPending = false
+        toastView.show(message: viewData.message, in: view)
+    }
+
+    func displayWatch(viewData: MovieDetailModel.Watch.ViewData) {
+        switch viewData {
+        case .trailer(let video):
+            router.routeToTrailer(video: video)
+        case .failure(let message):
+            toastView.show(message: message, in: view)
+        }
+    }
 }
 
 // MARK: - ShareSourceProvider
 extension MovieDetailViewController: ShareSourceProvider {
     var shareSourceItem: (any UIPopoverPresentationControllerSourceItem)? {
-        guard let indexPath = dataSource.indexPath(for: .actions) else { return nil }
-        return (collectionView.cellForItem(at: indexPath) as? MovieDetailActionsCell)?.shareButton
+        actionsCell?.shareButton
     }
 }
 
@@ -174,12 +213,16 @@ extension MovieDetailViewController: ShareSourceProvider {
 extension MovieDetailViewController: MovieDetailHeaderCellDelegate {
     func movieDetailHeaderCellDidTapWatch(_ cell: MovieDetailHeaderCell) {
         guard case .available(let video)? = detail?.watch else { return }
-        router.routeToTrailer(video: video)
+        watch(video)
     }
 }
 
 // MARK: - MovieDetailActionsCellDelegate
 extension MovieDetailViewController: MovieDetailActionsCellDelegate {
+    func movieDetailActionsCellDidTapSave(_ cell: MovieDetailActionsCell) {
+        toggleSave()
+    }
+
     func movieDetailActionsCellDidTapShare(_ cell: MovieDetailActionsCell) {
         guard let movie = detail?.movie else { return }
         router.routeToShare(movie: movie)
@@ -222,7 +265,7 @@ extension MovieDetailViewController: UICollectionViewDelegate {
         case .movie(let displayedMovie):
             router.routeToMovieDetail(movie: displayedMovie.movie)
         case .trailer(let trailer):
-            router.routeToTrailer(video: trailer.video)
+            watch(trailer.video)
         default:
             return
         }
@@ -267,10 +310,11 @@ private extension MovieDetailViewController {
         let rating = makeRatingRegistration()
         let synopsis = makeSynopsisRegistration()
         let tabs = makeTabsRegistration()
-        let castMember = makeCastMemberRegistration()
-        let poster = makePosterRegistration()
-        let trailer = makeTrailerRegistration()
-        let status = makeStatusRegistration()
+        let registrations = MovieDetailCellRegistrations(imageLoader: imageLoader)
+        let castMember = registrations.makeCastMemberRegistration()
+        let poster = registrations.makePosterRegistration()
+        let trailer = registrations.makeTrailerRegistration()
+        let status = registrations.makeStatusRegistration()
         let sectionHeader = UICollectionView.SupplementaryRegistration<SectionHeaderView>(
             elementKind: UICollectionView.elementKindSectionHeader
         ) { [weak self] view, _, indexPath in
@@ -317,7 +361,7 @@ private extension MovieDetailViewController {
 
     func makeActionsRegistration() -> UICollectionView.CellRegistration<MovieDetailActionsCell, Item> {
         UICollectionView.CellRegistration { [weak self] cell, _, _ in
-            cell.configure(shareTitle: String(localized: "Share"))
+            cell.configure(savedState: self?.savedState, shareTitle: String(localized: "Share"), animated: false)
             cell.delegate = self
         }
     }
@@ -344,56 +388,6 @@ private extension MovieDetailViewController {
             let titles = [String(localized: "More Like This"), String(localized: "Trailers")]
             cell.configure(titles: titles, selectedIndex: selectedTab.rawValue)
             cell.delegate = self
-        }
-    }
-
-    func makeCastMemberRegistration() -> UICollectionView.CellRegistration<
-        CastMemberCell,
-        MovieDetailModel.DisplayedCastMember
-    > {
-        UICollectionView.CellRegistration { [imageLoader] cell, _, member in
-            cell.configure(with: member, imageLoader: imageLoader)
-        }
-    }
-
-    func makePosterRegistration() -> UICollectionView.CellRegistration<PosterCell, MovieDetailModel.DisplayedMovie> {
-        UICollectionView.CellRegistration { [imageLoader] cell, _, movie in
-            cell.configure(
-                title: movie.title,
-                artwork: movie.artwork,
-                showsPlayBadge: false,
-                rating: movie.rating,
-                imageLoader: imageLoader
-            )
-        }
-    }
-
-    func makeTrailerRegistration() -> UICollectionView.CellRegistration<MediaRowCell, MovieDetailModel.DisplayedTrailer> {
-        UICollectionView.CellRegistration { [imageLoader] cell, _, trailer in
-            cell.configure(
-                title: trailer.title,
-                metadata: trailer.metadata,
-                rating: nil,
-                artwork: trailer.artwork,
-                imageLoader: imageLoader
-            )
-            cell.showsPlayBadge = true
-            cell.accessibilityValue = trailer.accessibilityValue
-        }
-    }
-
-    func makeStatusRegistration() -> UICollectionView.CellRegistration<UICollectionViewCell, MovieDetailLayout.Status> {
-        UICollectionView.CellRegistration { cell, _, status in
-            switch status {
-            case .loading:
-                cell.contentConfiguration = UIContentUnavailableConfiguration.loading()
-            case .empty(let message):
-                var configuration = UIContentUnavailableConfiguration.empty()
-                configuration.text = message
-                configuration.textProperties.font = .MVFont(.body)
-                configuration.textProperties.color = .MVColor(.textSecondary)
-                cell.contentConfiguration = configuration
-            }
         }
     }
 }

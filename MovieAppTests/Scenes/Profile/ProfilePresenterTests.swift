@@ -31,14 +31,44 @@ struct ProfilePresenterTests {
     }
 
     @Test
-    func presentProfileOffersClearSavedData() {
+    func clearRowsCarryConfirmations() {
         // Assert
         let dataRows = viewController.displayedViewData.last?.sections.first { $0.section == .data }?.rows ?? []
         let expected: [ProfileModel.Row] = [
-            .clearSavedData(title: "Clear Saved data"),
-            .clearWatchHistory(title: "Clear watch history")
+            .clearSavedData(
+                title: "Clear Saved data",
+                confirmation: ProfileModel.DisplayedConfirmation(
+                    title: "Clear Saved data?",
+                    message: "Your saved movies on this device will be removed. This can't be undone.",
+                    confirmTitle: "Clear",
+                    cancelTitle: "Cancel"
+                )
+            ),
+            .clearWatchHistory(
+                title: "Clear watch history",
+                confirmation: ProfileModel.DisplayedConfirmation(
+                    title: "Clear watch history?",
+                    message: "Continue Watching on this device will be emptied. This can't be undone.",
+                    confirmTitle: "Clear",
+                    cancelTitle: "Cancel"
+                )
+            )
         ]
         #expect(dataRows == expected)
+    }
+
+    @Test
+    func clearFailureAlerts() {
+        // When
+        sut.presentClearSavedData(response: ProfileModel.ClearSavedData.Response())
+        sut.presentClearWatchHistory(response: ProfileModel.ClearWatchHistory.Response())
+
+        // Assert
+        let message = "Nothing was deleted. Try again."
+        #expect(viewController.displayedAlerts == [
+            ProfileModel.DisplayedAlert(title: "Couldn't clear Saved data", message: message, actionTitle: "OK"),
+            ProfileModel.DisplayedAlert(title: "Couldn't clear watch history", message: message, actionTitle: "OK")
+        ])
     }
 
     @Test
@@ -203,8 +233,17 @@ private extension ProfilePresenterTests {
 @MainActor
 private final class ProfileViewControllerSpy: IProfileViewController {
     private(set) var displayedViewData: [ProfileModel.LoadProfile.ViewData] = []
+    private(set) var displayedAlerts: [ProfileModel.DisplayedAlert] = []
 
     func displayProfile(viewData: ProfileModel.LoadProfile.ViewData) {
         displayedViewData.append(viewData)
+    }
+
+    func displayClearSavedData(viewData: ProfileModel.ClearSavedData.ViewData) {
+        displayedAlerts.append(viewData.alert)
+    }
+
+    func displayClearWatchHistory(viewData: ProfileModel.ClearWatchHistory.ViewData) {
+        displayedAlerts.append(viewData.alert)
     }
 }

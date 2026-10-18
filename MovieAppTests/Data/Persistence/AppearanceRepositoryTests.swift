@@ -28,6 +28,20 @@ struct AppearanceRepositoryTests {
         let reloaded: any IAppearanceRepository = AppearanceRepository(suiteName: suiteName)
         #expect(await reloaded.changes.first { _ in true } == .dark)
     }
+
+    @Test
+    func quickThemeChangesEndOnLastTheme() async {
+        // Given
+        let sut: any IAppearanceRepository = AppearanceRepository(suiteName: makeSuiteName())
+        let stream = await sut.changes
+
+        // When
+        await sut.setTheme(.light)
+        await sut.setTheme(.dark)
+
+        // Assert
+        #expect(await stream.first { _ in true } == .dark)
+    }
 }
 
 private extension AppearanceRepositoryTests {

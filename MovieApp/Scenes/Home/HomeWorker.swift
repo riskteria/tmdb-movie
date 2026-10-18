@@ -3,6 +3,7 @@ nonisolated protocol IHomeWorker: Sendable {
     func fetchMovies(in category: MovieCategory, page: Int) async throws -> Page<Movie>
     func fetchContinueWatching(limit: Int) async throws -> [ContinueWatchingItem]
     func fetchGenres() async throws -> [Genre]
+    func observeWatchProgress() async -> AsyncStream<[WatchProgress]>
 }
 
 nonisolated struct HomeWorker {
@@ -46,5 +47,9 @@ nonisolated extension HomeWorker: IHomeWorker {
 
     func fetchGenres() async throws -> [Genre] {
         try await genreRepository.movieGenres()
+    }
+
+    func observeWatchProgress() async -> AsyncStream<[WatchProgress]> {
+        await watchProgressRepository.changes
     }
 }

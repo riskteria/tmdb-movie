@@ -5,11 +5,15 @@ nonisolated protocol IProfileWorker: Sendable {
     func signIn() async throws -> Account
     func signOut() async
     func refreshAccount() async -> AccountRefreshResult
+    func clearSavedMovies() async throws
+    func clearWatchHistory() async throws
 }
 
 nonisolated struct ProfileWorker {
     let appearanceRepository: any IAppearanceRepository
     let authRepository: any IAuthRepository
+    let savedMoviesRepository: any ISavedMoviesRepository
+    let watchProgressRepository: any IWatchProgressRepository
 }
 
 // MARK: - IProfileWorker
@@ -36,5 +40,13 @@ nonisolated extension ProfileWorker: IProfileWorker {
 
     func refreshAccount() async -> AccountRefreshResult {
         await authRepository.refreshAccount()
+    }
+
+    func clearSavedMovies() async throws {
+        try await savedMoviesRepository.removeAll()
+    }
+
+    func clearWatchHistory() async throws {
+        try await watchProgressRepository.removeAll()
     }
 }

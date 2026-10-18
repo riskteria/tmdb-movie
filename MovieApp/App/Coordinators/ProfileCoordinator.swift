@@ -4,15 +4,17 @@ import UIKit
 protocol ProfileFactory {
     func makeProfile(
         onRequestSignIn: @escaping (@escaping () -> Void) -> Void,
-        onRequestSignOut: @escaping (ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void
+        onRequestConfirmation: @escaping (ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void,
+        onShowAlert: @escaping (ProfileModel.DisplayedAlert) -> Void
     ) -> UIViewController
 }
 
-protocol SignOutAlertProvider {
-    func makeSignOutAlert(
+protocol ProfileAlertProvider {
+    func makeConfirmationAlert(
         for confirmation: ProfileModel.DisplayedConfirmation,
         onConfirm: @escaping () -> Void
     ) -> UIAlertController
+    func makeAlert(for alert: ProfileModel.DisplayedAlert) -> UIAlertController
 }
 
 protocol WelcomeFactory {
@@ -38,9 +40,9 @@ final class ProfileCoordinator {
     }
 }
 
-// MARK: - SignOutAlertProvider
-extension ProfileCoordinator: SignOutAlertProvider {
-    func makeSignOutAlert(
+// MARK: - ProfileAlertProvider
+extension ProfileCoordinator: ProfileAlertProvider {
+    func makeConfirmationAlert(
         for confirmation: ProfileModel.DisplayedConfirmation,
         onConfirm: @escaping () -> Void
     ) -> UIAlertController {
@@ -48,6 +50,12 @@ extension ProfileCoordinator: SignOutAlertProvider {
         alert.addAction(UIAlertAction(title: confirmation.cancelTitle, style: .cancel))
         alert.addAction(UIAlertAction(title: confirmation.confirmTitle, style: .destructive) { _ in onConfirm() })
         return alert
+    }
+
+    func makeAlert(for alert: ProfileModel.DisplayedAlert) -> UIAlertController {
+        let controller = UIAlertController(title: alert.title, message: alert.message, preferredStyle: .alert)
+        controller.addAction(UIAlertAction(title: alert.actionTitle, style: .default))
+        return controller
     }
 }
 
@@ -59,8 +67,11 @@ extension ProfileCoordinator: TabCoordinator {
             onRequestSignIn: { [weak self] onSignIn in
                 self?.showWelcome(onSignIn: onSignIn)
             },
-            onRequestSignOut: { [weak self] confirmation, onConfirm in
-                self?.confirmSignOut(confirmation, onConfirm: onConfirm)
+            onRequestConfirmation: { [weak self] confirmation, onConfirm in
+                self?.showConfirmation(confirmation, onConfirm: onConfirm)
+            },
+            onShowAlert: { [weak self] alert in
+                self?.showAlert(alert)
             }
         )
         navigationController.setViewControllers([profile], animated: false)
@@ -100,7 +111,13 @@ private extension ProfileCoordinator {
         }
     }
 
-    func confirmSignOut(_ confirmation: ProfileModel.DisplayedConfirmation, onConfirm: @escaping () -> Void) {
-        navigationController.present(makeSignOutAlert(for: confirmation, onConfirm: onConfirm), animated: true)
+    func showConfirmation(_ confirmation: ProfileModel.DisplayedConfirmation, onConfirm: @escaping () -> Void) {
+        guard navigationController.presentedViewController == nil else { return }
+        navigationController.present(makeConfirmationAlert(for: confirmation, onConfirm: onConfirm), animated: true)
+    }
+
+    func showAlert(_ alert: ProfileModel.DisplayedAlert) {
+        guard navigationController.presentedViewController == nil else { return }
+        navigationController.present(makeAlert(for: alert), animated: true)
     }
 }

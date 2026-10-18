@@ -73,4 +73,51 @@ enum MovieDetailModel {
             case failure(message: String)
         }
     }
+
+    enum ObserveSavedState {
+        struct Request {}
+
+        struct Response {
+            let isSaved: Bool
+        }
+
+        struct ViewData: Equatable {
+            let title: String
+            let isSaved: Bool
+        }
+    }
+
+    enum ToggleSave {
+        enum Action {
+            case save
+            case remove
+        }
+
+        struct Request {}
+
+        struct Response {
+            let action: Action
+            let movie: Movie
+        }
+
+        struct ViewData: Equatable {
+            let message: String
+        }
+    }
+
+    enum Watch {
+        struct Request {
+            let video: Video
+        }
+
+        struct Response {
+            let movie: Movie
+            let result: Result<Video, any Error>
+        }
+
+        enum ViewData: Equatable {
+            case trailer(Video)
+            case failure(message: String)
+        }
+    }
 }

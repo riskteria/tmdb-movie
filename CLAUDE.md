@@ -116,15 +116,19 @@ MovieApp/
 │   └── Coordinators/       Coordinator and TabCoordinator (protocols), AppCoordinator, MainTabCoordinator, one coordinator per
 │                           tab, MovieDetailFlow
 ├── Domain/
-│   ├── Entities/           Movie, MovieDetails, Genre, Page, SavedMovie, WatchProgress, …
+│   ├── Entities/           Movie, MovieDetails, Genre, Page, SavedMovie, WatchProgress, UserID, …
+│   ├── Policies/           SavedMoviesEvictionPolicy (protocol) and OldestSavedFirstEvictionPolicy
 │   └── Repositories/       IMovieRepository, IGenreRepository, ISavedMoviesRepository, … (protocols), and the role
 │                           protocols ImageURLProvider, VideoURLProvider and WebURLProvider
 ├── Data/
 │   ├── Observation/        AsyncBroadcaster
-│   ├── Persistence/        UserDefaults stores; the Keychain session (IKeychainService, KeychainService,
-│   │                       ICredentialRepository + CredentialRepository, AuthSession); CoreData/ holds the Core Data stack and repositories
-│   └── Repositories/       MovieRepository and GenreRepository (TMDB, through IAPIService), String+TMDB, the in-memory
-│                           SavedMoviesRepository and WatchProgressRepository (MockResponseCatalog), TMDBImageURLProvider,
+│   ├── Persistence/        UserDefaults stores (AppearanceRepository, GuestIDStore); the current user (CurrentUserProvider +
+│   │                       AuthCurrentUserProvider); the Keychain session (IKeychainService, KeychainService,
+│   │                       ICredentialRepository + CredentialRepository, AuthSession)
+│   │   └── SwiftData/      MovieAppSchemaV1 (the @Model records), MovieAppMigrationPlan, AppModelContainer (falls back to
+│   │                       memory), the SavedMovieStore and WatchProgressStore model actors, StoreResult, and the
+│   │                       SavedMoviesRepository and WatchProgressRepository actors that scope them to the current user
+│   └── Repositories/       MovieRepository and GenreRepository (TMDB, through IAPIService), String+TMDB, TMDBImageURLProvider,
 │                           YouTubeURLProvider (trailer thumbnails and watch pages), TMDBWebURLProvider (TMDB page links)
 ├── Scenes/                 Home, Search, GenreMovies, Saved, MovieDetail, Profile, Welcome. Each is laid out like MovieList:
 │   └── MovieList/
@@ -138,7 +142,7 @@ MovieApp/
 │       └── Views/          Cells, custom UIViews
 ├── Common/
 │   ├── Authentication/     WebAuthenticator (the TMDB approval sheet, over ASWebAuthenticationSession)
-│   ├── Components/         Shared cells and views (ArtworkView, PosterCell, HeroBannerCell, …)
+│   ├── Components/         Shared cells and views (ArtworkView, PosterCell, HeroBannerCell, StatusToastView, …)
 │   ├── Configuration/      AppConfigs (keys from ArkanaKeys)
 │   ├── Images/             IImageLoader, ImageLoader
 │   ├── Transitions/        ZoomTransitionSourceProvider, ShareSourceProvider (anchors the share sheet's popover)
@@ -180,10 +184,10 @@ Rules:
 - **Ownership**: the ViewController holds the Interactor and Router strongly. The Interactor holds the Presenter and the Worker strongly. The Presenter holds the ViewController `weak`. The Router holds only the coordinator's closures, which capture the coordinator `[weak self]`.
 - Inject every dependency through `init` into a `private let`. Never use `var interactor: IMovieListInteractor!`.
 - Each scene use case (one `Request` / `Response` / `ViewData` triple) gets one method on each boundary: `loadMovies(request:)` → `presentMovies(response:)` → `displayMovies(viewData:)`. The Worker's methods are named for the data they fetch (`fetchPopularMovies(page:)`).
-- **Shared-Response variant**: an action whose only visible result is the screen's state can skip its own `Response` / `ViewData` and redraw through the screen's load use case. Profile's `changeAppearance(request:)`, `signIn(request:)` and `signOut(request:)` have a `Request` only, and every change reaches the screen through `presentProfile(response:)`.
+- **Shared-Response variant**: an action whose only visible result is the screen's state can skip its own `Response` / `ViewData` and redraw through the screen's load use case. Profile's `changeAppearance(request:)`, `signIn(request:)` and `signOut(request:)` have a `Request` only, and every change reaches the screen through `presentProfile(response:)`. Profile's `clearSavedData(request:)` and `clearWatchHistory(request:)` present a `Response` only when clearing fails; a successful clear reaches every screen through the repositories' `changes`. Movie Detail's `toggleSave(request:)` works the same way: the button follows `observeSavedState`, and only a failure is presented.
 - **Scene with no use case**: a screen that loads nothing and has no business rules, such as Welcome, has only Models (its `DisplayedContent`), ViewController, Router, SceneFactory and Views. The ViewController builds the display strings, and every user action goes to the Router.
 - Name types `<Scene><Role>`. Put one type per file, with the type's boundary protocol in the same file. The models namespace is `enum <Scene>Model` in `<Scene>Models.swift`, and what the Presenter hands the ViewController is a `ViewData`, passed as `display…(viewData:)`.
-- Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is only for scene protocols, repository ports (`IMovieRepository`, implemented by `MovieRepository`), the `IWebAuthenticator` port and service protocols: `IAPIService` / `ICallbackAPIService` (see Networking), `IKeychainService`, `ICredentialRepository`, `ISessionService` and `IImageLoader`. Other protocols keep role names (`ImageURLProvider`, `VideoURLProvider`, `WebURLProvider`, `Coordinator`, `TabCoordinator`, `MovieDetailNavigator`). A protocol that supplies something is named `<Thing>Provider` (`ImageURLProvider`, `ZoomTransitionSourceProvider`, `ShareSourceProvider`, `SignOutAlertProvider`), never `<Thing>Providing`; only Apple's own protocols (`ASWebAuthenticationPresentationContextProviding`) keep that suffix.
+- Name each boundary protocol `I` plus the type that implements it: `I<Scene>Interactor`, `I<Scene>Presenter`, `I<Scene>ViewController`, `I<Scene>Worker` and `I<Scene>Router`. The `MARK` above a conformance uses the same name (`// MARK: - IMovieListInteractor`). The `I` prefix is only for scene protocols, repository ports (`IMovieRepository`, implemented by `MovieRepository`), the `IWebAuthenticator` port and service protocols: `IAPIService` / `ICallbackAPIService` (see Networking), `IKeychainService`, `ICredentialRepository`, `ISessionService` and `IImageLoader`. Other protocols keep role names (`ImageURLProvider`, `VideoURLProvider`, `WebURLProvider`, `Coordinator`, `TabCoordinator`, `MovieDetailNavigator`). A protocol that supplies something is named `<Thing>Provider` (`ImageURLProvider`, `ZoomTransitionSourceProvider`, `ShareSourceProvider`, `ProfileAlertProvider`), never `<Thing>Providing`; only Apple's own protocols (`ASWebAuthenticationPresentationContextProviding`) keep that suffix.
 - **Workers are `nonisolated` and `Sendable`**: `nonisolated protocol I<Scene>Worker: Sendable` and `nonisolated struct <Scene>Worker`, with the conformance in a `nonisolated extension`. Interactors call them from child tasks (`async let`), and a nonisolated async method still runs on the Interactor's main actor when called directly. One Worker per scene; two scenes that need the same port each call it, and shared behavior such as caching belongs in a repository decorator.
 - Scenes never reach each other. The ViewController passes the data a route needs to its Router as a parameter, and the Router hands it to a coordinator closure (`onSelectMovie(Movie)`); the coordinator builds and shows the next scene. There is no data store, and a Router never depends on the Interactor. This keeps routers free of UIKit and state, and testable with a closure spy.
 - **Route data travels in the `ViewData`**: a displayed item the user can open carries the Domain entity its route needs (`let movie: Movie`, with `id` computed from it), so the ViewController can pass it on without asking the Interactor. Tapping, and anything else that only navigates, is not an Interactor use case.
@@ -427,9 +431,9 @@ Coordinators in `App/Coordinators/` own all navigation.
 - `SearchCoordinator` pushes Genre Movies when a genre is tapped, and its lazy `MovieDetailFlow` pushes Movie Detail from a poster with `.push`.
 - `MovieDetailFlow` conforms to `MovieDetailNavigator` (`showDetail(for:transition:)`, with `MovieDetailTransition` `.push` or `.zoom`), and the tab coordinators hold it as `any MovieDetailNavigator`. It pushes Movie Detail on its tab's stack. A `.zoom` transition starts from the view the source screen returns through `ZoomTransitionSourceProvider`, and is skipped under Reduce Motion. Its `Dependencies` is `MovieDetailFactory & TrailerFactory & ShareFactory`, which every tab coordinator that shows Movie Detail combines. From Movie Detail it:
   - pushes another Movie Detail with `.push` when a More Like This poster is tapped;
-  - presents `TrailerFactory.makeTrailer(video:)` (an `SFSafariViewController` on YouTube, built in `AppDependencies`) full screen, cross-dissolving under Reduce Motion, for Watch and the Trailers rows;
+  - presents `TrailerFactory.makeTrailer(video:)` (an `SFSafariViewController` on YouTube, built in `AppDependencies`) full screen, cross-dissolving under Reduce Motion, for Watch and the Trailers rows. Movie Detail reaches this route only after its Interactor has recorded the video in Continue Watching (`watch(request:)`), so a failed recording opens nothing;
   - presents `ShareFactory.makeShareSheet(movie:)` (a `UIActivityViewController` with the TMDB page link), anchored on iPad to the view the top screen returns through `ShareSourceProvider`, falling back to the navigation bar.
-- `ProfileCoordinator` presents Welcome as a page sheet when Profile's sign-in row is tapped, and ignores the request while something is already presented. It also presents the sign-out confirmation alert. Welcome's sign-in action awaits Welcome's dismissal (`withCheckedContinuation` over `dismiss(animated:completion:)`), then calls Profile's own `signIn()`, so the approval sheet never presents over a closing sheet.
+- `ProfileCoordinator` presents Welcome as a page sheet when Profile's sign-in row is tapped, and ignores the request while something is already presented. It also presents the confirmation alerts (sign-out and both Clear rows, through `routeToConfirmation(_:onConfirm:)`) and the failure alerts (`routeToAlert(_:)`), built by its `ProfileAlertProvider` conformance, with the same "ignore while something is presented" guard. Welcome's sign-in action awaits Welcome's dismissal (`withCheckedContinuation` over `dismiss(animated:completion:)`), then calls Profile's own `signIn()`, so the approval sheet never presents over a closing sheet.
 - The tab bar stays visible on pushed screens (`hidesBottomBarWhenPushed` stays `false`). Only full-screen modals cover it.
 
 ### Images (Nuke)
@@ -744,6 +748,7 @@ public nonisolated enum CreateSessionFromAccessTokenDTO {
 - The ViewController owns each `Task` it starts. Store the task, cancel it in `isolated deinit` or when its work becomes irrelevant, and capture dependencies (`[interactor]`) rather than `self`. Avoid `Task.detached`.
 - `I<Scene>Interactor` methods that do work are `async` so tests can `await` them directly. `I<Scene>Presenter` and `I<Scene>ViewController` methods are synchronous.
 - Treat `CancellationError` as a normal outcome. Never present it as a failure.
+- **SwiftData**: `@Model` records are nested in `MovieAppSchemaV1`, a `nonisolated enum`, so they are nonisolated and never `Sendable`. They are created, read and changed only inside their `@ModelActor` store, and stores return Domain values (wrapped in `StoreResult` with the store's write revision), never a record. A store is created lazily inside its repository actor (`private lazy var store`), never on the main actor, because a model actor created on the main thread can run its context there. Each write saves once and rolls back on any error. The repositories own their `AsyncBroadcaster` as a `var` and apply a write's result only when its revision is newer than the last one applied, so observers end on the stored state.
 - The test targets have no default isolation. Mark suites and test doubles that touch scene types `@MainActor`.
 
 ## UIKit
@@ -832,7 +837,7 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
 
 - **Config**: `.swiftlint.yml` starts from Kodeco's base rules, adds stricter opt-in rules, and defines custom rules.
 - **Custom rules**:
-  - Errors: `no_swiftui`, `no_combine`, `no_storyboard_or_nib`, `no_networking_outside_data` (only `Data/Repositories/` and `App/` import `Networking`).
+  - Errors: `no_swiftui`, `no_combine`, `no_storyboard_or_nib`, `no_networking_outside_data` (only `Data/Repositories/` and `App/` import `Networking`), `no_swiftdata_outside_persistence` (`Domain/`, `Scenes/`, `Common/` and `App/` never import `SwiftData`).
   - Warnings: `no_dispatch_queue`, `no_print`.
 - **Build phase**: the `MovieApp` target's **SwiftLint** Run Script phase (`postCompileScripts` in `project.yml`) runs after Compile Sources on every build. It lints `MovieApp`, `MovieAppTests` and `Modules`. Violations show as Xcode warnings and errors, and errors fail the build.
 - **Sandboxing**: the app target sets `ENABLE_USER_SCRIPT_SANDBOXING = NO` so SwiftLint can read the sources. Don't revert it, and don't remove the phase.
@@ -853,7 +858,8 @@ Code explains *what*. Comments exist only for a non-obvious *why*, such as a con
 - **Coordinators**: inject `SceneFactorySpy`, call the routing closure it captured, and assert on the root view controller and the scenes requested. Keep the coordinator in a stored property of the suite, typed as its protocol (`any TabCoordinator`, `any MovieDetailNavigator`): its closures capture it `[weak self]`, and a local constant can be released before the closure runs.
 - Name test doubles after their protocol, dropping the `I`: `<Name>Spy` records calls and `<Name>Stub` returns canned results (`MovieListPresenterSpy` for `IMovieListPresenter`, `MovieListWorkerStub` for `IMovieListWorker`, `MovieRepositoryStub` for `IMovieRepository`, `SavedMoviesRepositoryStub` for `ISavedMoviesRepository`). Keep them `private` to the test file. Shared ones go in `MovieAppTests/Stubs/`.
 - **Shared stubs are configured, not edited**: they take a `Result` per method, defaulting to success (`MovieRepositoryStub(trending: .failure(StubError.failed))`), so a new scenario, including an error path, needs no change to the stub. A repository stub conforms to the whole port: reads answer from its canned data, and members no SUT should call (writes, `isPersistent`) call `Issue.record("Unexpected call to save(_:)")`, so an unexpected call fails the test instead of passing silently.
-- **Hold the SUT through its boundary protocol** (`let sut: any ISearchInteractor = SearchInteractor(...)`, `makeSUT() -> any IHomeWorker`), so a test can only use the contract callers use. This matters most where an implementation narrows the protocol: `SavedMoviesRepository` drops `throws`, so only a test through `any ISavedMoviesRepository` checks the contract Workers rely on. A Presenter is wired in the suite's `init` (`let presenter = SearchPresenter()`, set `viewController`, then `sut = presenter`). This holds for coordinators (`any TabCoordinator`, which exposes `navigationController`) and view controllers too: a ViewController test holds `any UIViewController & I<Scene>ViewController`, plus any delegate protocol the test drives. Keep the concrete type only for values with no boundary: `AsyncBroadcaster`, DTOs, `TMDBEndpoint` and entities.
+- **Hold the SUT through its boundary protocol** (`let sut: any ISearchInteractor = SearchInteractor(...)`, `makeSUT() -> any IHomeWorker`), so a test can only use the contract callers use. This matters most where an implementation narrows the protocol: `SavedMoviesRepository` drops `throws`, so only a test through `any ISavedMoviesRepository` checks the contract Workers rely on. A Presenter is wired in the suite's `init` (`let presenter = SearchPresenter()`, set `viewController`, then `sut = presenter`). This holds for coordinators (`any TabCoordinator`, which exposes `navigationController`) and view controllers too: a ViewController test holds `any UIViewController & I<Scene>ViewController`, plus any delegate protocol the test drives. Keep the concrete type only for values with no boundary: `AsyncBroadcaster`, DTOs, `TMDBEndpoint`, entities and the SwiftData stores.
+- **Persistence tests**: stores and the SwiftData repositories run on `AppModelContainer(isStoredInMemoryOnly: true)`, which gives each container its own in-memory store. Repository tests drive the current user with the shared `CurrentUserProviderStub` (`send(_:)` switches user) and await the next value of `changes` instead of sleeping. `AppModelContainer(storeURL:)` with a path under a regular file forces the in-memory fallback.
 - Test names describe behavior: `loadMoviesPresentsFetchedMovies()`. Each test checks one behavior; when its asserts cover several, split it.
 - **Given / When / Assert**: split each test body into blocks separated by one blank line, and open each block with its marker comment and nothing else:
   - `// Given`: inputs, stubs and the system under test.
@@ -926,7 +932,7 @@ private struct MovieListWorkerStub: IMovieListWorker {
 - Add third-party dependencies without asking first.
 - Import Alamofire outside the `Networking` module and its tests, import `Networking` outside `Data/Repositories/`, `App/` and tests, use `AF` / `Session.default`, or let `AFError` escape `APIService`.
 - Import Nuke outside `Common/Images/` and `App/`, or use `ImagePipeline.shared` / `ImageCache.shared`.
-- Import CoreData outside `Data/Persistence/CoreData/` and its tests, or let an `NSManagedObject` leave a repository.
+- Import SwiftData outside `Data/Persistence/SwiftData/` and its tests, or let a `@Model` record leave its store.
 - Import SimpleKeychain outside `Data/Persistence/` (only `KeychainService` uses it).
 - Push or present view controllers from a scene. Routers call coordinator closures.
 - Add a TMDB endpoint that `append_to_response` or an existing `TMDBEndpoint` case already covers, or add a `default:` to the `TMDBEndpoint` switches.

@@ -94,7 +94,6 @@ extension WatchProgress {
         lastWatchedAt: Date = Date(timeIntervalSince1970: 1_700_000_000)
     ) -> WatchProgress {
         WatchProgress(
-            userID: UserID(rawValue: "local:test"),
             contentID: contentID,
             mediaType: mediaType,
             position: position,

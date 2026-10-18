@@ -99,10 +99,13 @@ private extension HomePresenter {
     func makeContinueWatching(from item: ContinueWatchingItem) -> HomeModel.DisplayedContinueWatching {
         let movie = item.details.movie
         let remaining = item.progress.remaining.formatted(.time(pattern: .minuteSecond))
+        let subtitle = item.progress.duration == .zero
+            ? String(localized: "Trailer · Just started")
+            : String(localized: "Trailer · \(remaining) left")
         return HomeModel.DisplayedContinueWatching(
             movie: movie,
             title: movie.title,
-            subtitle: String(localized: "Trailer · \(remaining) left"),
+            subtitle: subtitle,
             progress: item.progress.progress,
             artwork: artwork(for: movie.backdropPath, size: .backdropMedium, movie: movie, showsTitle: false)
         )

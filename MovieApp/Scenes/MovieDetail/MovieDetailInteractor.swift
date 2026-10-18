@@ -1,11 +1,17 @@
 protocol IMovieDetailInteractor {
     func loadDetails(request: MovieDetailModel.LoadDetails.Request) async
+    func observeSavedState(request: MovieDetailModel.ObserveSavedState.Request) async
+    func toggleSave(request: MovieDetailModel.ToggleSave.Request) async
+    func watch(request: MovieDetailModel.Watch.Request) async
 }
 
 final class MovieDetailInteractor {
     private let movie: Movie
     private let presenter: any IMovieDetailPresenter
     private let worker: any IMovieDetailWorker
+    private var isSaved = false
+    private var isSavedStateKnown = false
+    private var isTogglingSave = false
 
     init(movie: Movie, presenter: any IMovieDetailPresenter, worker: any IMovieDetailWorker) {
         self.movie = movie
@@ -28,10 +34,55 @@ extension MovieDetailInteractor: IMovieDetailInteractor {
             present(details: .failure(error))
         }
     }
+
+    func observeSavedState(request: MovieDetailModel.ObserveSavedState.Request) async {
+        for await savedMovies in await worker.observeSavedMovies() {
+            let isSaved = savedMovies.contains { $0.id == movie.id }
+            guard !isSavedStateKnown || isSaved != self.isSaved else { continue }
+            isSavedStateKnown = true
+            self.isSaved = isSaved
+            presenter.presentSavedState(response: MovieDetailModel.ObserveSavedState.Response(isSaved: isSaved))
+        }
+    }
+
+    func toggleSave(request: MovieDetailModel.ToggleSave.Request) async {
+        guard isSavedStateKnown, !isTogglingSave else { return }
+        isTogglingSave = true
+        defer { isTogglingSave = false }
+        do {
+            if isSaved {
+                try await worker.removeMovie(movie.id)
+            } else {
+                try await worker.saveMovie(movie)
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            presenter.presentToggleSave(
+                response: MovieDetailModel.ToggleSave.Response(action: isSaved ? .remove : .save, movie: movie)
+            )
+        }
+    }
+
+    func watch(request: MovieDetailModel.Watch.Request) async {
+        do {
+            try await worker.startWatching(movieID: movie.id, video: request.video)
+            try Task.checkCancellation()
+            presentWatch(result: .success(request.video))
+        } catch is CancellationError {
+            return
+        } catch {
+            presentWatch(result: .failure(error))
+        }
+    }
 }
 
 private extension MovieDetailInteractor {
     func present(details: Result<MovieDetails, any Error>?) {
         presenter.presentDetails(response: MovieDetailModel.LoadDetails.Response(movie: movie, details: details))
+    }
+
+    func presentWatch(result: Result<Video, any Error>) {
+        presenter.presentWatch(response: MovieDetailModel.Watch.Response(movie: movie, result: result))
     }
 }

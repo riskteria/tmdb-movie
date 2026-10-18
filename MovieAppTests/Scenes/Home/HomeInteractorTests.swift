@@ -50,11 +50,51 @@ struct HomeInteractorTests {
         #expect(try response.popular.get() == page)
     }
 
+    @Test
+    func loadHomeWaitsForContinueWatchingBeforePresenting() async {
+        // Given
+        let sut = makeSUT(watchProgressEmissions: 0)
+
+        // When
+        await sut.loadHome(request: HomeModel.LoadHome.Request())
+
+        // Assert
+        #expect(presenter.responses.isEmpty)
+    }
+
+    @Test
+    func watchProgressChangePresentsHomeAgain() async {
+        // Given
+        let sut = makeSUT(watchProgressEmissions: 2)
+
+        // When
+        await sut.loadHome(request: HomeModel.LoadHome.Request())
+
+        // Assert
+        #expect(presenter.responses.count == 2)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func loadHomeReturnsWhenCancelled() async {
+        // Given
+        let sut = makeSUT(watchProgressEmissions: 0, finishesWatchProgress: false)
+        let loadHome = Task { await sut.loadHome(request: HomeModel.LoadHome.Request()) }
+
+        // When
+        loadHome.cancel()
+        await loadHome.value
+
+        // Assert
+        #expect(presenter.responses.isEmpty)
+    }
+
     private func makeSUT(
         trending: Result<[Movie], any Error> = .success([]),
         continueWatching: Result<[ContinueWatchingItem], any Error> = .success([]),
         movies: Result<Page<Movie>, any Error> = .success(.fixture([])),
-        genres: Result<[Genre], any Error> = .success([])
+        genres: Result<[Genre], any Error> = .success([]),
+        watchProgressEmissions: Int = 1,
+        finishesWatchProgress: Bool = true
     ) -> any IHomeInteractor {
         HomeInteractor(
             presenter: presenter,
@@ -62,7 +102,9 @@ struct HomeInteractorTests {
                 trending: trending,
                 continueWatching: continueWatching,
                 movies: movies,
-                genres: genres
+                genres: genres,
+                watchProgressEmissions: watchProgressEmissions,
+                finishesWatchProgress: finishesWatchProgress
             )
         )
     }
@@ -82,6 +124,8 @@ private struct HomeWorkerStub: IHomeWorker {
     let continueWatching: Result<[ContinueWatchingItem], any Error>
     let movies: Result<Page<Movie>, any Error>
     let genres: Result<[Genre], any Error>
+    let watchProgressEmissions: Int
+    let finishesWatchProgress: Bool
 
     func fetchTrendingMovies(window: TrendingWindow) async throws -> [Movie] {
         try trending.get()
@@ -97,5 +141,14 @@ private struct HomeWorkerStub: IHomeWorker {
 
     func fetchGenres() async throws -> [Genre] {
         try genres.get()
+    }
+
+    func observeWatchProgress() async -> AsyncStream<[WatchProgress]> {
+        AsyncStream { continuation in
+            (0..<watchProgressEmissions).forEach { _ in continuation.yield([]) }
+            if finishesWatchProgress {
+                continuation.finish()
+            }
+        }
     }
 }

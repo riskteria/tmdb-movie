@@ -3,7 +3,6 @@ import Foundation
 nonisolated struct WatchProgress: Hashable, Sendable {
     private static let finishedThreshold = 0.95
 
-    let userID: UserID
     let contentID: Int
     let mediaType: MediaType
     let position: Duration
