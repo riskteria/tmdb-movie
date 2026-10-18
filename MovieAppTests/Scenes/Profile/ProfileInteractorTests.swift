@@ -6,7 +6,7 @@ import Testing
 struct ProfileInteractorTests {
     private let presenter = ProfilePresenterSpy()
     private let appInfo = AppInfo(version: "1.0", build: "7")
-    private let account = Account(id: 548, username: "moviefan", name: "Movie Fan")
+    private let account = Account(id: 548, username: "moviefan", name: "Movie Fan", avatarPath: nil)
 
     @Test
     func loadProfilePresentsAppInfo() async throws {
@@ -170,37 +170,159 @@ struct ProfileInteractorTests {
         // Assert
         #expect(worker.savedThemes == [.light])
     }
+
+    @Test
+    func loadProfileRefreshesAccountOnce() async {
+        // Given
+        let worker = ProfileWorkerStub(authStates: makeFinishedStream([.signedIn(account)]))
+        let sut = makeSUT(worker: worker)
+
+        // When
+        await sut.loadProfile(request: ProfileModel.LoadProfile.Request())
+
+        // Assert
+        #expect(worker.refreshAccountCount == 1)
+    }
+
+    @Test
+    func storedAccountShownBeforeRefreshFinishes() async throws {
+        // Given
+        let (refreshGate, refreshRelease) = AsyncStream.makeStream(of: Void.self)
+        let worker = ProfileWorkerStub(authStates: makeFinishedStream([.signedIn(account)]), refreshGate: refreshGate)
+        let sut = makeSUT(worker: worker)
+        let loadProfile = Task { await sut.loadProfile(request: ProfileModel.LoadProfile.Request()) }
+
+        // When
+        await presenter.waitForFirstResponse()
+
+        // Assert
+        let response = try #require(presenter.responses.first)
+        #expect(response.accountState == .signedIn(account))
+        refreshRelease.finish()
+        await loadProfile.value
+    }
+
+    @Test
+    func sessionEndedPresentsSessionEnded() async throws {
+        // Given
+        let worker = ProfileWorkerStub(
+            authStates: makeFinishedStream([.signedIn(account), .signedOut]),
+            refreshAccount: .sessionEnded
+        )
+        let sut = makeSUT(worker: worker)
+
+        // When
+        await sut.loadProfile(request: ProfileModel.LoadProfile.Request())
+
+        // Assert
+        let response = try #require(presenter.responses.last)
+        #expect(response.accountState == .sessionEnded)
+    }
+
+    @Test
+    func sessionEndedSurvivesSignedOutBroadcast() async throws {
+        // Given
+        let (authStates, authContinuation) = AsyncStream.makeStream(of: AuthState.self)
+        authContinuation.yield(.signedIn(account))
+        let sut = makeSUT(worker: ProfileWorkerStub(authStates: authStates, refreshAccount: .sessionEnded))
+        let loadProfile = Task { await sut.loadProfile(request: ProfileModel.LoadProfile.Request()) }
+        await presenter.waitForResponse { response in response.accountState == .sessionEnded }
+
+        // When
+        authContinuation.yield(.signedOut)
+        authContinuation.finish()
+        await loadProfile.value
+
+        // Assert
+        let response = try #require(presenter.responses.last)
+        #expect(response.accountState == .sessionEnded)
+    }
+
+    @Test
+    func signInAfterSessionEndedPresentsPending() async {
+        // Given
+        let worker = ProfileWorkerStub(
+            authStates: makeFinishedStream([.signedIn(account), .signedOut]),
+            signIn: .failure(CancellationError()),
+            refreshAccount: .sessionEnded
+        )
+        let sut = makeSUT(worker: worker)
+        await sut.loadProfile(request: ProfileModel.LoadProfile.Request())
+
+        // When
+        await sut.signIn(request: ProfileModel.SignIn.Request())
+
+        // Assert
+        #expect(presenter.responses.suffix(2).map(\.accountState) == [.signInPending, .guest])
+    }
+
+    @Test
+    func unchangedRefreshKeepsAccountState() async throws {
+        // Given
+        let worker = ProfileWorkerStub(authStates: makeFinishedStream([.signedIn(account)]), refreshAccount: .unchanged)
+        let sut = makeSUT(worker: worker)
+
+        // When
+        await sut.loadProfile(request: ProfileModel.LoadProfile.Request())
+
+        // Assert
+        let response = try #require(presenter.responses.last)
+        #expect(response.accountState == .signedIn(account))
+    }
 }
 
 private extension ProfileInteractorTests {
     func makeSUT(worker: ProfileWorkerStub = ProfileWorkerStub()) -> any IProfileInteractor {
         ProfileInteractor(presenter: presenter, worker: worker, appInfo: appInfo)
     }
+
+    func makeFinishedStream<Element: Sendable>(_ elements: [Element]) -> AsyncStream<Element> {
+        AsyncStream { continuation in
+            elements.forEach { element in continuation.yield(element) }
+            continuation.finish()
+        }
+    }
 }
 
 @MainActor
 private final class ProfilePresenterSpy: IProfilePresenter {
     private(set) var responses: [ProfileModel.LoadProfile.Response] = []
-    private var responseWaiters: [CheckedContinuation<Void, Never>] = []
+    private var responseWaiters: [ResponseWaiter] = []
 
     func presentProfile(response: ProfileModel.LoadProfile.Response) {
         responses.append(response)
-        responseWaiters.forEach { $0.resume() }
-        responseWaiters.removeAll()
+        let matching = responseWaiters.filter { waiter in waiter.isMatch(response) }
+        responseWaiters.removeAll { waiter in waiter.isMatch(response) }
+        matching.forEach { waiter in waiter.continuation.resume() }
     }
 
     func waitForFirstResponse() async {
-        guard responses.isEmpty else { return }
-        await withCheckedContinuation { responseWaiters.append($0) }
+        await waitForResponse { _ in true }
     }
+
+    func waitForResponse(where isMatch: @escaping (ProfileModel.LoadProfile.Response) -> Bool) async {
+        guard !responses.contains(where: isMatch) else { return }
+        await withCheckedContinuation { continuation in
+            responseWaiters.append(ResponseWaiter(isMatch: isMatch, continuation: continuation))
+        }
+    }
+}
+
+@MainActor
+private struct ResponseWaiter {
+    let isMatch: (ProfileModel.LoadProfile.Response) -> Bool
+    let continuation: CheckedContinuation<Void, Never>
 }
 
 private final class ProfileWorkerStub: IProfileWorker {
     private let themes: AsyncStream<AppTheme>
     private let authStates: AsyncStream<AuthState>
     private let signInResult: Result<Account, any Error>
+    private let refreshAccountResult: AccountRefreshResult
+    private let refreshGate: AsyncStream<Void>?
     private let recordedThemes = Mutex<[AppTheme]>([])
     private let recordedSignOuts = Mutex(0)
+    private let recordedRefreshes = Mutex(0)
 
     var savedThemes: [AppTheme] {
         recordedThemes.withLock { $0 }
@@ -210,14 +332,30 @@ private final class ProfileWorkerStub: IProfileWorker {
         recordedSignOuts.withLock { $0 }
     }
 
+    var refreshAccountCount: Int {
+        recordedRefreshes.withLock { $0 }
+    }
+
     init(
-        themes: AsyncStream<AppTheme> = makeFinishedStream([.system]),
-        authStates: AsyncStream<AuthState> = makeFinishedStream([.signedOut]),
-        signIn: Result<Account, any Error> = .success(Account(id: 548, username: "moviefan", name: "Movie Fan"))
+        themes: AsyncStream<AppTheme> = AsyncStream { continuation in
+            continuation.yield(.system)
+            continuation.finish()
+        },
+        authStates: AsyncStream<AuthState> = AsyncStream { continuation in
+            continuation.yield(.signedOut)
+            continuation.finish()
+        },
+        signIn: Result<Account, any Error> = .success(
+            Account(id: 548, username: "moviefan", name: "Movie Fan", avatarPath: nil)
+        ),
+        refreshAccount: AccountRefreshResult = .unchanged,
+        refreshGate: AsyncStream<Void>? = nil
     ) {
         self.themes = themes
         self.authStates = authStates
         signInResult = signIn
+        refreshAccountResult = refreshAccount
+        self.refreshGate = refreshGate
     }
 
     func observeTheme() async -> AsyncStream<AppTheme> {
@@ -239,11 +377,14 @@ private final class ProfileWorkerStub: IProfileWorker {
     func signOut() async {
         recordedSignOuts.withLock { $0 += 1 }
     }
-}
 
-private func makeFinishedStream<Element>(_ elements: [Element]) -> AsyncStream<Element> {
-    AsyncStream { continuation in
-        elements.forEach { element in continuation.yield(element) }
-        continuation.finish()
+    func refreshAccount() async -> AccountRefreshResult {
+        recordedRefreshes.withLock { $0 += 1 }
+        if let refreshGate {
+            for await _ in refreshGate {
+                break
+            }
+        }
+        return refreshAccountResult
     }
 }

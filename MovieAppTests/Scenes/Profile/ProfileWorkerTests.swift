@@ -2,7 +2,7 @@
 import Testing
 
 struct ProfileWorkerTests {
-    private let account = Account(id: 548, username: "moviefan", name: "Movie Fan")
+    private let account = Account(id: 548, username: "moviefan", name: "Movie Fan", avatarPath: nil)
 
     @Test
     func observeThemeStreamsRepositoryChanges() async {
@@ -44,7 +44,7 @@ struct ProfileWorkerTests {
     @Test
     func signInReturnsRepositoryAccount() async throws {
         // Given
-        let ada = Account(id: 7, username: "ada", name: "Ada")
+        let ada = Account(id: 7, username: "ada", name: "Ada", avatarPath: nil)
         let sut = makeSUT(authRepository: AuthRepositoryStub(signIn: .success(ada)))
 
         // When
@@ -65,6 +65,18 @@ struct ProfileWorkerTests {
 
         // Assert
         #expect(repository.calls == [.signOut])
+    }
+
+    @Test
+    func refreshAccountReturnsRepositoryResult() async {
+        // Given
+        let sut = makeSUT(authRepository: AuthRepositoryStub(refreshAccount: .sessionEnded))
+
+        // When
+        let result = await sut.refreshAccount()
+
+        // Assert
+        #expect(result == .sessionEnded)
     }
 }
 

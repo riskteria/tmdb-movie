@@ -9,9 +9,10 @@ struct AuthRepositoryTests {
         sessionID: "session",
         accountID: 548,
         username: "moviefan",
-        name: "Movie Fan"
+        name: "Movie Fan",
+        avatarPath: nil
     )
-    private let account = Account(id: 548, username: "moviefan", name: "Movie Fan")
+    private let account = Account(id: 548, username: "moviefan", name: "Movie Fan", avatarPath: nil)
 
     @Test
     func changesStartsSignedInWhenKeychainHasCredentials() async throws {
@@ -269,44 +270,5 @@ private extension AuthRepositoryTests {
         removeData: Result<Void, any Error> = .success(())
     ) throws -> KeychainServiceStub {
         KeychainServiceStub(items: ["tmdb-session": try JSONEncoder().encode(authSession)], removeData: removeData)
-    }
-}
-
-private actor SessionServiceStub: ISessionService {
-    private let result: Result<AuthSession, any Error>
-    private var isReleased: Bool
-    private var releaseWaiters: [CheckedContinuation<Void, Never>] = []
-    private var createSessionWaiters: [CheckedContinuation<Void, Never>] = []
-    private(set) var createSessionCount = 0
-    private(set) var revokedSessions: [AuthSession] = []
-
-    init(result: Result<AuthSession, any Error>, isReleased: Bool = true) {
-        self.result = result
-        self.isReleased = isReleased
-    }
-
-    func createSession() async throws -> AuthSession {
-        createSessionCount += 1
-        createSessionWaiters.forEach { $0.resume() }
-        createSessionWaiters.removeAll()
-        if !isReleased {
-            await withCheckedContinuation { releaseWaiters.append($0) }
-        }
-        return try result.get()
-    }
-
-    func revokeSession(_ authSession: AuthSession) async {
-        revokedSessions.append(authSession)
-    }
-
-    func waitForCreateSession() async {
-        guard createSessionCount == 0 else { return }
-        await withCheckedContinuation { createSessionWaiters.append($0) }
-    }
-
-    func release() {
-        isReleased = true
-        releaseWaiters.forEach { $0.resume() }
-        releaseWaiters.removeAll()
     }
 }

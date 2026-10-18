@@ -4,6 +4,7 @@ nonisolated protocol IProfileWorker: Sendable {
     func observeAuthState() async -> AsyncStream<AuthState>
     func signIn() async throws -> Account
     func signOut() async
+    func refreshAccount() async -> AccountRefreshResult
 }
 
 nonisolated struct ProfileWorker {
@@ -31,5 +32,9 @@ nonisolated extension ProfileWorker: IProfileWorker {
 
     func signOut() async {
         await authRepository.signOut()
+    }
+
+    func refreshAccount() async -> AccountRefreshResult {
+        await authRepository.refreshAccount()
     }
 }

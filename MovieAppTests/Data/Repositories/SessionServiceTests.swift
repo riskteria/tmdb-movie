@@ -17,7 +17,17 @@ struct SessionServiceTests {
         sessionID: "session",
         accountID: 548,
         username: "moviefan",
-        name: "Movie Fan"
+        name: "Movie Fan",
+        avatarPath: "/avatar.jpg"
+    )
+    private let storedSession = AuthSession(
+        accessToken: "access-token",
+        accountObjectID: "4bc889",
+        sessionID: "session",
+        accountID: 548,
+        username: "moviefan",
+        name: "Old Name",
+        avatarPath: nil
     )
 
     @Test
@@ -91,6 +101,42 @@ struct SessionServiceTests {
     }
 
     @Test
+    func fetchAccountReturnsUpdatedSession() async throws {
+        // Given
+        let sut = makeSUT(apiService: try makeAccountAPIService(result: .success(JSONFixture.named(.accountDetails))))
+
+        // When
+        let refreshed = try await sut.fetchAccount(for: storedSession)
+
+        // Assert
+        #expect(refreshed == authSession)
+    }
+
+    @Test
+    func fetchAccountThrowsSessionRejectedOn401() async throws {
+        // Given
+        let sut = makeSUT(
+            apiService: try makeAccountAPIService(result: .failure(NetworkError.invalidResponse(statusCode: 401)))
+        )
+
+        // When & Assert
+        await #expect(throws: SessionServiceError.sessionRejected) {
+            try await sut.fetchAccount(for: storedSession)
+        }
+    }
+
+    @Test
+    func fetchAccountRethrowsOtherFailures() async throws {
+        // Given
+        let sut = makeSUT(apiService: try makeAccountAPIService(result: .failure(NetworkError.requestFailed)))
+
+        // When & Assert
+        await #expect(throws: NetworkError.requestFailed) {
+            try await sut.fetchAccount(for: storedSession)
+        }
+    }
+
+    @Test
     func revokeSessionDeletesTokenAndSession() async throws {
         // Given
         let apiService = try makeRevokeAPIService(
@@ -136,6 +182,10 @@ private extension SessionServiceTests {
             try CannedResponse(createSession, createSessionResult ?? .success(JSONFixture.named(.createSession))),
             try CannedResponse(accountDetails, .success(JSONFixture.named(.accountDetails)))
         ])
+    }
+
+    func makeAccountAPIService(result: Result<String, any Error>) throws -> MultiResponseAPIServiceStub {
+        MultiResponseAPIServiceStub(responses: [try CannedResponse(accountDetails, result)])
     }
 
     func makeRevokeAPIService(result: Result<String, any Error>) throws -> MultiResponseAPIServiceStub {

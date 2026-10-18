@@ -11,6 +11,7 @@ final class ProfileInteractor {
     private let appInfo: AppInfo
     private var theme: AppTheme?
     private var accountState: ProfileModel.AccountState?
+    private var isSessionEnded = false
 
     init(presenter: any IProfilePresenter, worker: any IProfileWorker, appInfo: AppInfo) {
         self.presenter = presenter
@@ -24,7 +25,8 @@ extension ProfileInteractor: IProfileInteractor {
     func loadProfile(request: ProfileModel.LoadProfile.Request) async {
         async let themes: Void = observeThemes()
         async let authStates: Void = observeAuthStates()
-        _ = await (themes, authStates)
+        async let refresh: Void = refreshAccount()
+        _ = await (themes, authStates, refresh)
     }
 
     func changeAppearance(request: ProfileModel.ChangeAppearance.Request) async {
@@ -32,6 +34,7 @@ extension ProfileInteractor: IProfileInteractor {
     }
 
     func signIn(request: ProfileModel.SignIn.Request) async {
+        isSessionEnded = false
         update(accountState: .signInPending)
         do {
             let account = try await worker.signIn()
@@ -60,11 +63,17 @@ private extension ProfileInteractor {
         for await state in await worker.observeAuthState() {
             switch state {
             case .signedOut:
-                update(accountState: .guest)
+                update(accountState: isSessionEnded ? .sessionEnded : .guest)
             case .signedIn(let account):
                 update(accountState: .signedIn(account))
             }
         }
+    }
+
+    func refreshAccount() async {
+        guard await worker.refreshAccount() == .sessionEnded else { return }
+        isSessionEnded = true
+        update(accountState: .sessionEnded)
     }
 
     func update(accountState: ProfileModel.AccountState) {

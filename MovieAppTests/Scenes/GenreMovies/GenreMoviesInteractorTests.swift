@@ -249,7 +249,7 @@ private final class GenreMoviesPresenterSpy: IGenreMoviesPresenter {
     }
 }
 
-private actor GenreMoviesWorkerStub: IGenreMoviesWorker {
+private actor GenreMoviesWorkerStub {
     private var resultsByPage: [Int: Result<Page<Movie>, any Error>]
     private(set) var requestedPages: [Int] = []
     private(set) var requestedGenreIDs: [Genre.ID] = []
@@ -261,7 +261,10 @@ private actor GenreMoviesWorkerStub: IGenreMoviesWorker {
     func setResult(_ result: Result<Page<Movie>, any Error>, forPage page: Int) {
         resultsByPage[page] = result
     }
+}
 
+// MARK: - IGenreMoviesWorker
+extension GenreMoviesWorkerStub: IGenreMoviesWorker {
     func fetchMovies(genreID: Genre.ID, page: Int) async throws -> Page<Movie> {
         requestedGenreIDs.append(genreID)
         requestedPages.append(page)

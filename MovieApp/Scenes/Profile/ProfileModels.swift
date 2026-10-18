@@ -22,7 +22,7 @@ enum ProfileModel {
     nonisolated enum Row: Hashable, Sendable {
         case guest(title: String, message: String)
         case signIn(title: String, isEnabled: Bool)
-        case account(name: String, username: String)
+        case account(name: String, username: String, avatar: DisplayedArtwork)
         case signOut(title: String, confirmation: DisplayedConfirmation)
         case clearSavedData(title: String)
         case clearWatchHistory(title: String)
@@ -35,6 +35,7 @@ enum ProfileModel {
         case guest
         case signInPending
         case signInFailed
+        case sessionEnded
         case signedIn(Account)
     }
 

@@ -99,9 +99,13 @@ extension AppDependencies: ProfileFactory {
         onRequestSignOut: @escaping (ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void
     ) -> UIViewController {
         ProfileSceneFactory.make(
-            appInfo: Self.makeAppInfo(from: .main),
-            appearanceRepository: appearanceRepository,
-            authRepository: authRepository,
+            dependencies: ProfileSceneFactory.Dependencies(
+                appInfo: Self.makeAppInfo(from: .main),
+                appearanceRepository: appearanceRepository,
+                authRepository: authRepository,
+                imageURLProvider: imageURLProvider,
+                imageLoader: imageLoader
+            ),
             onRequestSignOut: onRequestSignOut
         )
     }

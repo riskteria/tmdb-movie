@@ -4,6 +4,12 @@ import UIKit
 // Shows a generated gradient (with an optional title) until the image loads. Loading starts on the
 // first layout pass, so the request is downsampled to the view's real size.
 final class ArtworkView: UIView {
+    enum PlaceholderLayout {
+        case caption
+        case centered
+    }
+
+    private let placeholderLayout: PlaceholderLayout
     private var artwork: DisplayedArtwork?
     private var imageLoader: (any IImageLoader)?
     private var loadTask: Task<Void, Never>?
@@ -12,8 +18,9 @@ final class ArtworkView: UIView {
     private lazy var placeholderLabel = makePlaceholderLabel()
     private lazy var imageView = makeImageView()
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    init(placeholderLayout: PlaceholderLayout = .caption) {
+        self.placeholderLayout = placeholderLayout
+        super.init(frame: .zero)
         setUpLayout()
     }
 
@@ -83,19 +90,43 @@ private extension ArtworkView {
             imageView.topAnchor.constraint(equalTo: topAnchor),
             imageView.leadingAnchor.constraint(equalTo: leadingAnchor),
             imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            placeholderLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Spacing.small),
-            placeholderLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Spacing.small),
-            placeholderLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Spacing.small)
-        ])
+            imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ] + makePlaceholderLabelConstraints())
+    }
+
+    func makePlaceholderLabelConstraints() -> [NSLayoutConstraint] {
+        switch placeholderLayout {
+        case .caption:
+            [
+                placeholderLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Spacing.small),
+                placeholderLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Spacing.small),
+                placeholderLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Spacing.small)
+            ]
+        case .centered:
+            [
+                placeholderLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+                placeholderLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+                placeholderLabel.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: Spacing.small),
+                placeholderLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -Spacing.small)
+            ]
+        }
     }
 
     func makePlaceholderLabel() -> UILabel {
         let label = UILabel()
-        label.font = .MVFont(.artworkTitle)
         label.adjustsFontForContentSizeCategory = true
         label.textColor = .white
-        label.numberOfLines = 3
+        switch placeholderLayout {
+        case .caption:
+            label.font = .MVFont(.artworkTitle)
+            label.numberOfLines = 3
+        case .centered:
+            label.font = .MVFont(.sectionTitle)
+            label.numberOfLines = 1
+            label.textAlignment = .center
+            label.adjustsFontSizeToFitWidth = true
+            label.minimumScaleFactor = 0.5
+        }
         return label
     }
 

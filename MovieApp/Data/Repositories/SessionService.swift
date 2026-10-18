@@ -3,6 +3,7 @@ import Networking
 
 nonisolated protocol ISessionService: Sendable {
     func createSession() async throws -> AuthSession
+    func fetchAccount(for authSession: AuthSession) async throws -> AuthSession
     func revokeSession(_ authSession: AuthSession) async
 }
 
@@ -37,13 +38,26 @@ nonisolated extension SessionService: ISessionService {
         let details: AccountDetailsDTO.Response = try await apiService.request(
             .accountDetails(parameters: .init(sessionID: session.sessionID))
         )
-        return AuthSession(
+        return makeAuthSession(
             accessToken: accessToken.accessToken,
             accountObjectID: accessToken.accountObjectID,
             sessionID: session.sessionID,
-            accountID: details.id,
-            username: details.username,
-            name: details.name
+            details: details
+        )
+    }
+
+    func fetchAccount(for authSession: AuthSession) async throws -> AuthSession {
+        let details: AccountDetailsDTO.Response
+        do {
+            details = try await apiService.request(.accountDetails(parameters: .init(sessionID: authSession.sessionID)))
+        } catch NetworkError.invalidResponse(statusCode: 401) {
+            throw SessionServiceError.sessionRejected
+        }
+        return makeAuthSession(
+            accessToken: authSession.accessToken,
+            accountObjectID: authSession.accountObjectID,
+            sessionID: authSession.sessionID,
+            details: details
         )
     }
 
@@ -59,6 +73,23 @@ nonisolated extension SessionService: ISessionService {
 }
 
 private nonisolated extension SessionService {
+    func makeAuthSession(
+        accessToken: String,
+        accountObjectID: String,
+        sessionID: String,
+        details: AccountDetailsDTO.Response
+    ) -> AuthSession {
+        AuthSession(
+            accessToken: accessToken,
+            accountObjectID: accountObjectID,
+            sessionID: sessionID,
+            accountID: details.id,
+            username: details.username,
+            name: details.name,
+            avatarPath: details.avatar.tmdb.avatarPath
+        )
+    }
+
     func makeApprovalURL(for requestToken: String) throws -> URL {
         var components = URLComponents(string: approvalPage)
         components?.queryItems = [URLQueryItem(name: "request_token", value: requestToken)]

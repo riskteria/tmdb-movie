@@ -5,4 +5,5 @@ nonisolated struct AuthSession: Codable, Equatable, Sendable {
     let accountID: Int
     let username: String
     let name: String
+    let avatarPath: String?
 }

@@ -68,6 +68,22 @@ extension AuthRepository: IAuthRepository {
         await transition(to: .signedOut)
         await sessionService.revokeSession(authSession)
     }
+
+    func refreshAccount() async -> AccountRefreshResult {
+        guard case .signedIn(let authSession) = phase else { return .unchanged }
+        do {
+            let refreshed = try await sessionService.fetchAccount(for: authSession)
+            guard isSignedIn(with: authSession) else { return .unchanged }
+            try credentialRepository.save(refreshed)
+            await transition(to: .signedIn(refreshed))
+            return .refreshed
+        } catch SessionServiceError.sessionRejected {
+            guard isSignedIn(with: authSession) else { return .unchanged }
+            return await endRejectedSession()
+        } catch {
+            return .unchanged
+        }
+    }
 }
 
 private extension AuthRepository {
@@ -83,7 +99,27 @@ private extension AuthRepository {
         }
     }
 
+    func endRejectedSession() async -> AccountRefreshResult {
+        do {
+            try credentialRepository.delete()
+        } catch {
+            return .unchanged
+        }
+        await transition(to: .signedOut)
+        return .sessionEnded
+    }
+
+    func isSignedIn(with authSession: AuthSession) -> Bool {
+        guard case .signedIn(let current) = phase else { return false }
+        return current.sessionID == authSession.sessionID
+    }
+
     func makeAccount(from authSession: AuthSession) -> Account {
-        Account(id: authSession.accountID, username: authSession.username, name: authSession.name)
+        Account(
+            id: authSession.accountID,
+            username: authSession.username,
+            name: authSession.name,
+            avatarPath: authSession.avatarPath.map(ImagePath.init(rawValue:))
+        )
     }
 }

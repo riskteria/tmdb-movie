@@ -9,7 +9,8 @@ struct CredentialRepositoryTests {
         sessionID: "session",
         accountID: 548,
         username: "moviefan",
-        name: "Movie Fan"
+        name: "Movie Fan",
+        avatarPath: nil
     )
 
     @Test
@@ -61,6 +62,44 @@ struct CredentialRepositoryTests {
 
         // Assert
         #expect(keychain.storedKeys.isEmpty)
+    }
+
+    @Test
+    func loadReadsSessionSavedWithoutAvatarPath() throws {
+        // Given
+        let previousVersionJSON = """
+            {"accessToken":"access-token","accountObjectID":"4bc889","sessionID":"session",\
+            "accountID":548,"username":"moviefan","name":"Movie Fan"}
+            """
+        let keychain = KeychainServiceStub(items: ["tmdb-session": Data(previousVersionJSON.utf8)])
+        let sut = CredentialRepository(keychain: keychain)
+
+        // When
+        let loaded = try sut.load()
+
+        // Assert
+        #expect(loaded == authSession)
+    }
+
+    @Test
+    func saveThenLoadKeepsAvatarPath() throws {
+        // Given
+        let sessionWithAvatar = AuthSession(
+            accessToken: "access-token",
+            accountObjectID: "4bc889",
+            sessionID: "session",
+            accountID: 548,
+            username: "moviefan",
+            name: "Movie Fan",
+            avatarPath: "/avatar.jpg"
+        )
+        let sut = CredentialRepository(keychain: KeychainServiceStub())
+
+        // When
+        try sut.save(sessionWithAvatar)
+
+        // Assert
+        #expect(try sut.load() == sessionWithAvatar)
     }
 
     @Test

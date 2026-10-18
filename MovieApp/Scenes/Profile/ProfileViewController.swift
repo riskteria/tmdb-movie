@@ -8,6 +8,7 @@ protocol IProfileViewController: AnyObject {
 final class ProfileViewController: UIViewController {
     private let interactor: any IProfileInteractor
     private let router: any IProfileRouter
+    private let imageLoader: any IImageLoader
     private var headers: [ProfileModel.Section: String] = [:]
     private var loadTask: Task<Void, Never>?
     private var changeAppearanceTask: Task<Void, Never>?
@@ -16,9 +17,10 @@ final class ProfileViewController: UIViewController {
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
 
-    init(interactor: any IProfileInteractor, router: any IProfileRouter) {
+    init(interactor: any IProfileInteractor, router: any IProfileRouter, imageLoader: any IImageLoader) {
         self.interactor = interactor
         self.router = router
+        self.imageLoader = imageLoader
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -169,12 +171,17 @@ private extension ProfileViewController {
 
     func makeDataSource() -> UICollectionViewDiffableDataSource<ProfileModel.Section, ProfileModel.Row> {
         typealias RowRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, ProfileModel.Row>
+        typealias AccountRegistration = UICollectionView.CellRegistration<ProfileAccountCell, ProfileModel.Row>
+        let background = makeCellBackground()
         let rowRegistration = RowRegistration { [weak self] cell, _, row in
             cell.contentConfiguration = Self.makeContentConfiguration(for: row)
             cell.accessories = self?.makeAccessories(for: row) ?? []
             cell.accessibilityTraits = self?.makeAccessibilityTraits(for: row) ?? .none
-            var background = UIBackgroundConfiguration.listCell()
-            background.backgroundColor = .MVColor(.backgroundSecondary)
+            cell.backgroundConfiguration = background
+        }
+        let accountRegistration = AccountRegistration { [imageLoader] cell, _, row in
+            guard case let .account(name, username, avatar) = row else { return }
+            cell.configure(name: name, username: username, avatar: avatar, imageLoader: imageLoader)
             cell.backgroundConfiguration = background
         }
         let headerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
@@ -191,7 +198,16 @@ private extension ProfileViewController {
         let dataSource = UICollectionViewDiffableDataSource<ProfileModel.Section, ProfileModel.Row>(
             collectionView: collectionView
         ) { collectionView, indexPath, row in
-            collectionView.dequeueConfiguredReusableCell(using: rowRegistration, for: indexPath, item: row)
+            switch row {
+            case .account:
+                return collectionView.dequeueConfiguredReusableCell(
+                    using: accountRegistration,
+                    for: indexPath,
+                    item: row
+                )
+            default:
+                return collectionView.dequeueConfiguredReusableCell(using: rowRegistration, for: indexPath, item: row)
+            }
         }
         dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
             collectionView.dequeueConfiguredReusableSupplementary(using: headerRegistration, for: indexPath)
@@ -201,7 +217,7 @@ private extension ProfileViewController {
 
     static func makeContentConfiguration(for row: ProfileModel.Row) -> UIListContentConfiguration {
         switch row {
-        case let .guest(title, subtitle), let .account(title, subtitle):
+        case let .guest(title, subtitle), let .account(title, subtitle, _):
             var configuration = UIListContentConfiguration.subtitleCell()
             configuration.image = UIImage(systemName: "person.crop.circle.fill")
             configuration.imageProperties.tintColor = .MVColor(.brand)
@@ -234,6 +250,12 @@ private extension ProfileViewController {
             configuration.textProperties.color = .MVColor(.textSecondary)
             return configuration
         }
+    }
+
+    func makeCellBackground() -> UIBackgroundConfiguration {
+        var background = UIBackgroundConfiguration.listCell()
+        background.backgroundColor = .MVColor(.backgroundSecondary)
+        return background
     }
 
     static func makeCell(title: String, value: String? = nil, systemImage: String) -> UIListContentConfiguration {

@@ -1,17 +1,30 @@
 import UIKit
 
 enum ProfileSceneFactory {
+    struct Dependencies {
+        let appInfo: AppInfo
+        let appearanceRepository: any IAppearanceRepository
+        let authRepository: any IAuthRepository
+        let imageURLProvider: any ImageURLProvider
+        let imageLoader: any IImageLoader
+    }
+
     static func make(
-        appInfo: AppInfo,
-        appearanceRepository: any IAppearanceRepository,
-        authRepository: any IAuthRepository,
+        dependencies: Dependencies,
         onRequestSignOut: @escaping (ProfileModel.DisplayedConfirmation, @escaping () -> Void) -> Void
     ) -> UIViewController {
-        let worker = ProfileWorker(appearanceRepository: appearanceRepository, authRepository: authRepository)
-        let presenter = ProfilePresenter()
-        let interactor = ProfileInteractor(presenter: presenter, worker: worker, appInfo: appInfo)
+        let worker = ProfileWorker(
+            appearanceRepository: dependencies.appearanceRepository,
+            authRepository: dependencies.authRepository
+        )
+        let presenter = ProfilePresenter(imageURLProvider: dependencies.imageURLProvider)
+        let interactor = ProfileInteractor(presenter: presenter, worker: worker, appInfo: dependencies.appInfo)
         let router = ProfileRouter(onRequestSignOut: onRequestSignOut)
-        let viewController = ProfileViewController(interactor: interactor, router: router)
+        let viewController = ProfileViewController(
+            interactor: interactor,
+            router: router,
+            imageLoader: dependencies.imageLoader
+        )
         presenter.viewController = viewController
         return viewController
     }

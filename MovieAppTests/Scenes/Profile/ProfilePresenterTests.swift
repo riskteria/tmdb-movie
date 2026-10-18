@@ -1,14 +1,15 @@
+import Foundation
 @testable import MovieApp
 import Testing
 
 @MainActor
 struct ProfilePresenterTests {
     private let viewController = ProfileViewControllerSpy()
-    private let account = Account(id: 548, username: "moviefan", name: "Movie Fan")
+    private let account = Account(id: 548, username: "moviefan", name: "Movie Fan", avatarPath: nil)
     private let sut: any IProfilePresenter
 
     init() {
-        let presenter = ProfilePresenter()
+        let presenter = ProfilePresenter(imageURLProvider: ImageURLProviderStub())
         presenter.viewController = viewController
         sut = presenter
         sut.presentProfile(response: makeResponse(accountState: .guest))
@@ -95,7 +96,11 @@ struct ProfilePresenterTests {
             cancelTitle: "Cancel"
         )
         let expected: [ProfileModel.Row] = [
-            .account(name: "Movie Fan", username: "@moviefan"),
+            .account(
+                name: "Movie Fan",
+                username: "@moviefan",
+                avatar: DisplayedArtwork(url: nil, placeholderSeed: 548, placeholderTitle: "MF")
+            ),
             .signOut(title: "Sign out", confirmation: confirmation)
         ]
         #expect(accountRows() == expected)
@@ -104,13 +109,69 @@ struct ProfilePresenterTests {
     @Test
     func emptyNameFallsBackToUsername() {
         // Given
-        let unnamedAccount = Account(id: 548, username: "moviefan", name: "")
+        let unnamedAccount = Account(id: 548, username: "moviefan", name: "", avatarPath: nil)
 
         // When
         sut.presentProfile(response: makeResponse(accountState: .signedIn(unnamedAccount)))
 
         // Assert
-        #expect(accountRows().first == .account(name: "moviefan", username: "@moviefan"))
+        let expected = ProfileModel.Row.account(
+            name: "moviefan",
+            username: "@moviefan",
+            avatar: DisplayedArtwork(url: nil, placeholderSeed: 548, placeholderTitle: "M")
+        )
+        #expect(accountRows().first == expected)
+    }
+
+    @Test
+    func accountRowCarriesAvatarURL() {
+        // Given
+        let accountWithPhoto = Account(
+            id: 548,
+            username: "moviefan",
+            name: "Movie Fan",
+            avatarPath: ImagePath(rawValue: "/avatar.jpg")
+        )
+
+        // When
+        sut.presentProfile(response: makeResponse(accountState: .signedIn(accountWithPhoto)))
+
+        // Assert
+        #expect(accountAvatar()?.url == URL(string: "https://images.test/profile/avatar.jpg"))
+    }
+
+    @Test
+    func accountWithoutPhotoUsesInitials() {
+        // When
+        sut.presentProfile(response: makeResponse(accountState: .signedIn(account)))
+
+        // Assert
+        #expect(accountAvatar()?.placeholderTitle == "MF")
+    }
+
+    @Test
+    func emptyNameInitialsUseUsername() {
+        // Given
+        let unnamedAccount = Account(id: 548, username: "moviefan", name: "", avatarPath: nil)
+
+        // When
+        sut.presentProfile(response: makeResponse(accountState: .signedIn(unnamedAccount)))
+
+        // Assert
+        #expect(accountAvatar()?.placeholderTitle == "M")
+    }
+
+    @Test
+    func sessionEndedStateShowsMessage() {
+        // When
+        sut.presentProfile(response: makeResponse(accountState: .sessionEnded))
+
+        // Assert
+        let expected = ProfileModel.Row.guest(
+            title: "Browsing as guest",
+            message: "Your TMDB session ended. Sign in again."
+        )
+        #expect(accountRows().first == expected)
     }
 }
 
@@ -125,6 +186,11 @@ private extension ProfilePresenterTests {
 
     func accountRows() -> [ProfileModel.Row] {
         viewController.displayedViewData.last?.sections.first { $0.section == .account }?.rows ?? []
+    }
+
+    func accountAvatar() -> DisplayedArtwork? {
+        guard case let .account(_, _, avatar) = accountRows().first else { return nil }
+        return avatar
     }
 
     func appearanceOptions() throws -> [ProfileModel.DisplayedThemeOption] {

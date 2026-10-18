@@ -6,6 +6,11 @@ protocol IProfilePresenter {
 
 final class ProfilePresenter {
     weak var viewController: (any IProfileViewController)?
+    private let imageURLProvider: any ImageURLProvider
+
+    init(imageURLProvider: any ImageURLProvider) {
+        self.imageURLProvider = imageURLProvider
+    }
 }
 
 // MARK: - IProfilePresenter
@@ -67,13 +72,35 @@ private extension ProfilePresenter {
                 .guest(title: guestTitle, message: failureMessage),
                 .signIn(title: signInTitle, isEnabled: true)
             ]
+        case .sessionEnded:
+            let sessionEndedMessage = String(localized: "Your TMDB session ended. Sign in again.")
+            return [
+                .guest(title: guestTitle, message: sessionEndedMessage),
+                .signIn(title: signInTitle, isEnabled: true)
+            ]
         case .signedIn(let account):
             let displayName = account.name.isEmpty ? account.username : account.name
             return [
-                .account(name: displayName, username: "@\(account.username)"),
+                .account(name: displayName, username: "@\(account.username)", avatar: makeAvatar(for: account)),
                 .signOut(title: String(localized: "Sign out"), confirmation: makeSignOutConfirmation())
             ]
         }
+    }
+
+    func makeAvatar(for account: Account) -> DisplayedArtwork {
+        DisplayedArtwork(
+            path: account.avatarPath,
+            size: .profile,
+            placeholderSeed: account.id,
+            placeholderTitle: makeInitials(for: account),
+            imageURLProvider: imageURLProvider
+        )
+    }
+
+    func makeInitials(for account: Account) -> String {
+        let words = account.name.split(separator: " ").prefix(2)
+        guard !words.isEmpty else { return String(account.username.prefix(1)).uppercased() }
+        return String(words.compactMap(\.first)).uppercased()
     }
 
     func makeSignOutConfirmation() -> ProfileModel.DisplayedConfirmation {

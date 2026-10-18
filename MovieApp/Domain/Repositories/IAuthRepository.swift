@@ -3,4 +3,5 @@ nonisolated protocol IAuthRepository: Sendable {
 
     func signIn() async throws -> Account
     func signOut() async
+    func refreshAccount() async -> AccountRefreshResult
 }
