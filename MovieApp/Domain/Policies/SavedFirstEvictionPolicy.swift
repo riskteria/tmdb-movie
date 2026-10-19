@@ -1,9 +1,9 @@
 import Foundation
 
-nonisolated struct OldestSavedFirstEvictionPolicy {}
+nonisolated struct SavedFirstEvictionPolicy {}
 
-// MARK: - SavedMoviesEvictionPolicy
-nonisolated extension OldestSavedFirstEvictionPolicy: SavedMoviesEvictionPolicy {
+// MARK: - ISavedFirstEvictionPolicy
+nonisolated extension SavedFirstEvictionPolicy: ISavedFirstEvictionPolicy {
     func moviesToEvict(from savedMovies: [SavedMovie], capacity: Int) -> [Movie.ID] {
         let overflow = savedMovies.count - capacity
         guard overflow > 0 else { return [] }

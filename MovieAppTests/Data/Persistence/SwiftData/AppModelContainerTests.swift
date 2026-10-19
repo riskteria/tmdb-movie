@@ -1,5 +1,6 @@
 import Foundation
 @testable import MovieApp
+import SwiftData
 import Testing
 
 final class AppModelContainerTests {
@@ -11,12 +12,13 @@ final class AppModelContainerTests {
     }
 
     @Test
-    func inMemoryContainerIsNotPersistent() {
+    func openableStoreIsStoredOnDisk() throws {
         // When
-        let sut = AppModelContainer(isStoredInMemoryOnly: true)
+        let sut = AppModelContainer(temporaryStoreID: UUID())
 
         // Assert
-        #expect(!sut.isPersistent)
+        let configuration = try #require(sut.modelContainer.configurations.first)
+        #expect(!configuration.isStoredInMemoryOnly)
     }
 
     @Test
@@ -28,6 +30,7 @@ final class AppModelContainerTests {
         let sut = AppModelContainer(storeURL: blockingFileURL.appending(path: "MovieApp.store"))
 
         // Assert
-        #expect(!sut.isPersistent)
+        let configuration = try #require(sut.modelContainer.configurations.first)
+        #expect(configuration.isStoredInMemoryOnly)
     }
 }

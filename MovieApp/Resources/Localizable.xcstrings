@@ -21,16 +21,6 @@
         }
       }
     },
-    "%lld of %lld · saved since the app opened" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld of %2$lld · saved since the app opened"
-          }
-        }
-      }
-    },
     "%lld of %lld · the oldest is removed when full" : {
       "localizations" : {
         "en" : {
@@ -195,9 +185,6 @@
     "Saved movies and watch history stay on this device." : {
 
     },
-    "Saved movies can't be loaded" : {
-
-    },
     "Search" : {
 
     },
@@ -274,9 +261,6 @@
 
     },
     "Watch" : {
-
-    },
-    "You can still save movies, but they'll be lost when you close the app." : {
 
     },
     "You'll approve access on themoviedb.org" : {

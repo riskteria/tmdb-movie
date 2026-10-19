@@ -7,9 +7,7 @@ protocol ISavedViewController: AnyObject {
 }
 
 final class SavedViewController: UIViewController {
-    typealias Section = SavedModel.Section
-    typealias Item = SavedModel.Item
-    typealias DataSource = UICollectionViewDiffableDataSource<Section, Item>
+    typealias DataSource = UICollectionViewDiffableDataSource<Int, SavedModel.DisplayedMovie>
 
     private let interactor: any ISavedInteractor
     private let router: any ISavedRouter
@@ -89,10 +87,10 @@ private extension SavedViewController {
     }
 
     func updateHeader() {
-        guard let section = dataSource.index(for: .movies) else { return }
+        guard dataSource.snapshot().numberOfSections > 0 else { return }
         let headerView = collectionView.supplementaryView(
             forElementKind: UICollectionView.elementKindSectionHeader,
-            at: IndexPath(item: 0, section: section)
+            at: IndexPath(item: 0, section: 0)
         ) as? UICollectionViewListCell
         headerView?.contentConfiguration = makeHeaderConfiguration()
     }
@@ -101,17 +99,13 @@ private extension SavedViewController {
 // MARK: - ISavedViewController
 extension SavedViewController: ISavedViewController {
     func displaySavedMovies(viewData: SavedModel.ObserveSavedMovies.ViewData) {
-        var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
+        var snapshot = NSDiffableDataSourceSnapshot<Int, SavedModel.DisplayedMovie>()
         switch viewData {
-        case let .content(header, banner, movies):
+        case let .content(header, movies):
             self.header = header
             contentUnavailableConfiguration = nil
-            if let banner {
-                snapshot.appendSections([.banner])
-                snapshot.appendItems([.banner(banner)], toSection: .banner)
-            }
-            snapshot.appendSections([.movies])
-            snapshot.appendItems(movies.map(Item.movie), toSection: .movies)
+            snapshot.appendSections([0])
+            snapshot.appendItems(movies)
         case let .empty(title, message):
             contentUnavailableConfiguration = UIContentUnavailableConfiguration.message(
                 title,
@@ -136,15 +130,10 @@ extension SavedViewController: ISavedViewController {
 
 // MARK: - UICollectionViewDelegate
 extension SavedViewController: UICollectionViewDelegate {
-    func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
-        guard case .movie = dataSource.itemIdentifier(for: indexPath) else { return false }
-        return true
-    }
-
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        guard case .movie(let movie) = dataSource.itemIdentifier(for: indexPath) else { return }
-        router.routeToMovieDetail(movie: movie.movie)
+        guard let movie = dataSource.itemIdentifier(for: indexPath)?.movie else { return }
+        router.routeToMovieDetail(movie: movie)
     }
 }
 
@@ -163,25 +152,20 @@ private extension SavedViewController {
     }
 
     func makeCollectionView() -> UICollectionView {
-        let layout = UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
-            let section = self?.dataSource.sectionIdentifier(for: sectionIndex)
-            let configuration = self?.makeListConfiguration(for: section)
-                ?? UICollectionLayoutListConfiguration(appearance: .plain)
-            return NSCollectionLayoutSection.list(using: configuration, layoutEnvironment: environment)
-        }
+        let layout = UICollectionViewCompositionalLayout.list(using: makeListConfiguration())
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .MVColor(.backgroundPrimary)
         collectionView.delegate = self
         return collectionView
     }
 
-    func makeListConfiguration(for section: Section?) -> UICollectionLayoutListConfiguration {
+    func makeListConfiguration() -> UICollectionLayoutListConfiguration {
         var configuration = UICollectionLayoutListConfiguration(appearance: .plain)
         configuration.showsSeparators = false
         configuration.backgroundColor = .MVColor(.backgroundPrimary)
-        configuration.headerMode = section == .movies ? .supplementary : .none
+        configuration.headerMode = .supplementary
         configuration.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
-            guard let self, case .movie(let movie) = dataSource.itemIdentifier(for: indexPath) else { return nil }
+            guard let self, let movie = dataSource.itemIdentifier(for: indexPath) else { return nil }
             return UISwipeActionsConfiguration(actions: [makeRemoveAction(for: movie)])
         }
         return configuration
@@ -196,38 +180,8 @@ private extension SavedViewController {
         return configuration
     }
 
-    func makeBannerConfiguration(for banner: SavedModel.DisplayedBanner) -> UIListContentConfiguration {
-        var configuration = UIListContentConfiguration.subtitleCell()
-        configuration.image = UIImage(systemName: "exclamationmark.triangle.fill")
-        configuration.imageProperties.tintColor = .systemOrange
-        configuration.text = banner.title
-        configuration.textProperties.font = .MVFont(.rowTitle)
-        configuration.textProperties.color = .MVColor(.textPrimary)
-        configuration.secondaryText = banner.message
-        configuration.secondaryTextProperties.font = .MVFont(.footnote)
-        configuration.secondaryTextProperties.color = .MVColor(.textSecondary)
-        return configuration
-    }
-
-    func makeBannerBackground() -> UIBackgroundConfiguration {
-        var background = UIBackgroundConfiguration.listCell()
-        background.backgroundColor = .MVColor(.backgroundSecondary)
-        background.cornerRadius = Radius.medium
-        background.backgroundInsets = NSDirectionalEdgeInsets(
-            top: Spacing.xSmall,
-            leading: Spacing.large,
-            bottom: Spacing.xSmall,
-            trailing: Spacing.large
-        )
-        return background
-    }
-
     func makeDataSource() -> DataSource {
         typealias RowRegistration = UICollectionView.CellRegistration<MediaRowCell, SavedModel.DisplayedMovie>
-        typealias BannerRegistration = UICollectionView.CellRegistration<
-            UICollectionViewListCell,
-            SavedModel.DisplayedBanner
-        >
         let rowRegistration = RowRegistration { [weak self, imageLoader] cell, _, movie in
             cell.configure(
                 title: movie.title,
@@ -240,32 +194,13 @@ private extension SavedViewController {
                 [viewController.makeAccessibilityRemoveAction(for: movie)]
             }
         }
-        let bannerRegistration = BannerRegistration { [weak self] cell, _, banner in
-            guard let self else { return }
-            var configuration = makeBannerConfiguration(for: banner)
-            configuration.directionalLayoutMargins = NSDirectionalEdgeInsets(
-                top: Spacing.medium,
-                leading: Spacing.large + Spacing.medium,
-                bottom: Spacing.medium,
-                trailing: Spacing.large + Spacing.medium
-            )
-            cell.contentConfiguration = configuration
-            cell.backgroundConfiguration = makeBannerBackground()
-            cell.isAccessibilityElement = true
-            cell.accessibilityLabel = "\(banner.title), \(banner.message)"
-        }
         let headerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(
             elementKind: UICollectionView.elementKindSectionHeader
         ) { [weak self] header, _, _ in
             header.contentConfiguration = self?.makeHeaderConfiguration()
         }
-        let dataSource = DataSource(collectionView: collectionView) { collectionView, indexPath, item in
-            switch item {
-            case .banner(let banner):
-                collectionView.dequeueConfiguredReusableCell(using: bannerRegistration, for: indexPath, item: banner)
-            case .movie(let movie):
-                collectionView.dequeueConfiguredReusableCell(using: rowRegistration, for: indexPath, item: movie)
-            }
+        let dataSource = DataSource(collectionView: collectionView) { collectionView, indexPath, movie in
+            collectionView.dequeueConfiguredReusableCell(using: rowRegistration, for: indexPath, item: movie)
         }
         dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
             collectionView.dequeueConfiguredReusableSupplementary(using: headerRegistration, for: indexPath)

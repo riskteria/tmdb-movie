@@ -2,8 +2,8 @@ import Foundation
 @testable import MovieApp
 import Testing
 
-struct OldestSavedFirstEvictionPolicyTests {
-    private let sut: any SavedMoviesEvictionPolicy = OldestSavedFirstEvictionPolicy()
+struct SavedFirstEvictionPolicyTests {
+    private let sut: any ISavedFirstEvictionPolicy = SavedFirstEvictionPolicy()
     private let referenceDate = Date(timeIntervalSince1970: 1_700_000_000)
 
     @Test
@@ -58,7 +58,7 @@ struct OldestSavedFirstEvictionPolicyTests {
     }
 }
 
-private extension OldestSavedFirstEvictionPolicyTests {
+private extension SavedFirstEvictionPolicyTests {
     func makeSavedMovies(count: Int) -> [SavedMovie] {
         (1...count).reversed().map { movieID in
             SavedMovie(movie: .fixture(id: movieID), savedAt: referenceDate.addingTimeInterval(Double(movieID) * 60))

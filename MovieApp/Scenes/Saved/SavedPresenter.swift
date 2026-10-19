@@ -17,17 +17,14 @@ final class SavedPresenter {
 // MARK: - ISavedPresenter
 extension SavedPresenter: ISavedPresenter {
     func presentSavedMovies(response: SavedModel.ObserveSavedMovies.Response) {
-        let banner = response.isPersistent ? nil : makeStorageBanner()
-        if response.savedMovies.isEmpty {
-            viewController?.displaySavedMovies(viewData: makeEmptyViewData(capacity: response.capacity, banner: banner))
+        guard !response.savedMovies.isEmpty else {
+            viewController?.displaySavedMovies(viewData: makeEmptyViewData(capacity: response.capacity))
             return
         }
         let count = response.savedMovies.count
-        let header = response.isPersistent
-            ? String(localized: "\(count) of \(response.capacity) · the oldest is removed when full")
-            : String(localized: "\(count) of \(response.capacity) · saved since the app opened")
+        let header = String(localized: "\(count) of \(response.capacity) · the oldest is removed when full")
         let movies = response.savedMovies.map { makeDisplayedMovie(from: $0.movie) }
-        viewController?.displaySavedMovies(viewData: .content(header: header, banner: banner, movies: movies))
+        viewController?.displaySavedMovies(viewData: .content(header: header, movies: movies))
     }
 
     func presentRemoveMovie(response: SavedModel.RemoveMovie.Response) {
@@ -43,18 +40,8 @@ extension SavedPresenter: ISavedPresenter {
 }
 
 private extension SavedPresenter {
-    func makeStorageBanner() -> SavedModel.DisplayedBanner {
-        SavedModel.DisplayedBanner(
-            title: String(localized: "Saved movies can't be loaded"),
-            message: String(localized: "You can still save movies, but they'll be lost when you close the app.")
-        )
-    }
-
-    func makeEmptyViewData(capacity: Int, banner: SavedModel.DisplayedBanner?) -> SavedModel.ObserveSavedMovies.ViewData {
-        if let banner {
-            return .empty(title: banner.title, message: banner.message)
-        }
-        return .empty(
+    func makeEmptyViewData(capacity: Int) -> SavedModel.ObserveSavedMovies.ViewData {
+        .empty(
             title: String(localized: "Save movies to watch later"),
             message: String(localized: "Tap Save on any movie. Up to \(capacity) stay on this device, even offline.")
         )

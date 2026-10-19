@@ -12,32 +12,16 @@ enum SavedModel {
         }
     }
 
-    nonisolated struct DisplayedBanner: Hashable, Sendable {
-        let title: String
-        let message: String
-    }
-
-    nonisolated enum Section: Hashable, Sendable {
-        case banner
-        case movies
-    }
-
-    nonisolated enum Item: Hashable, Sendable {
-        case banner(DisplayedBanner)
-        case movie(DisplayedMovie)
-    }
-
     enum ObserveSavedMovies {
         struct Request {}
 
         struct Response {
             let savedMovies: [SavedMovie]
             let capacity: Int
-            let isPersistent: Bool
         }
 
         enum ViewData: Equatable {
-            case content(header: String, banner: DisplayedBanner?, movies: [DisplayedMovie])
+            case content(header: String, movies: [DisplayedMovie])
             case empty(title: String, message: String)
         }
     }

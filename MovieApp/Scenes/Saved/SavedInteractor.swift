@@ -17,13 +17,11 @@ final class SavedInteractor {
 // MARK: - ISavedInteractor
 extension SavedInteractor: ISavedInteractor {
     func observeSavedMovies(request: SavedModel.ObserveSavedMovies.Request) async {
-        let isPersistent = worker.isPersistent
         for await savedMovies in await worker.observeSavedMovies() {
             presenter.presentSavedMovies(
                 response: SavedModel.ObserveSavedMovies.Response(
                     savedMovies: savedMovies,
-                    capacity: SavedMovie.capacity,
-                    isPersistent: isPersistent
+                    capacity: SavedMovie.capacity
                 )
             )
         }

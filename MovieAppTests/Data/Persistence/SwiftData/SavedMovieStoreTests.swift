@@ -4,10 +4,10 @@ import Synchronization
 import Testing
 
 struct SavedMovieStoreTests {
-    private let sut = SavedMovieStore(modelContainer: AppModelContainer(isStoredInMemoryOnly: true).modelContainer)
+    private let sut = SavedMovieStore(modelContainer: AppModelContainer(temporaryStoreID: UUID()).modelContainer)
     private let guest = UserID(guestID: UUID())
     private let account = UserID(accountID: 548)
-    private let keepEverything = OldestSavedFirstEvictionPolicy()
+    private let keepEverything = SavedFirstEvictionPolicy()
 
     @Test
     func saveThenMoviesReturnsNewestFirst() async throws {
@@ -122,7 +122,7 @@ struct SavedMovieStoreTests {
     }
 }
 
-private final class EvictionPolicySpy: SavedMoviesEvictionPolicy {
+private final class EvictionPolicySpy: ISavedFirstEvictionPolicy {
     struct Request: Equatable {
         let movieIDs: [Movie.ID]
         let capacity: Int

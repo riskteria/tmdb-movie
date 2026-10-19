@@ -11,9 +11,9 @@ struct SavedMoviesRepositoryTests {
     init() {
         currentUser = CurrentUserProviderStub(userID: guest)
         sut = SavedMoviesRepository(
-            container: AppModelContainer(isStoredInMemoryOnly: true),
+            container: AppModelContainer(temporaryStoreID: UUID()),
             currentUser: currentUser,
-            evictionPolicy: OldestSavedFirstEvictionPolicy()
+            evictionPolicy: SavedFirstEvictionPolicy()
         )
     }
 
@@ -111,11 +111,5 @@ struct SavedMoviesRepositoryTests {
         currentUser.send(guest)
         let guestMovies = await changes.next(isolation: #isolation)
         #expect(guestMovies?.map(\.id) == [1])
-    }
-
-    @Test
-    func isPersistentComesFromContainer() {
-        // Assert
-        #expect(!sut.isPersistent)
     }
 }

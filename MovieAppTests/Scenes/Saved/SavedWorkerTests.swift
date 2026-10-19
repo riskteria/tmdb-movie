@@ -29,14 +29,4 @@ struct SavedWorkerTests {
 
         // Assert
         #expect(repository.calls == [.remove(7)])
-    }
-
-    @Test
-    func isPersistentComesFromRepository() {
-        // Given
-        let sut: any ISavedWorker = SavedWorker(savedMoviesRepository: SavedMoviesRepositoryStub(storage: .inMemory))
-
-        // Assert
-        #expect(!sut.isPersistent)
-    }
-}
+    }}

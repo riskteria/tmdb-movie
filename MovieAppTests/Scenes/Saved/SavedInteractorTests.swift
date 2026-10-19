@@ -23,18 +23,6 @@ struct SavedInteractorTests {
     }
 
     @Test
-    func observePassesIsPersistent() async {
-        // Given
-        let sut = makeSUT(worker: SavedWorkerStub(emissions: [[]], isPersistent: false))
-
-        // When
-        await sut.observeSavedMovies(request: SavedModel.ObserveSavedMovies.Request())
-
-        // Assert
-        #expect(presenter.responses.map(\.isPersistent) == [false])
-    }
-
-    @Test
     func removeMoviePresentsSuccess() async throws {
         // Given
         let sut = makeSUT(worker: SavedWorkerStub(remove: .success(())))
@@ -86,7 +74,6 @@ private final class SavedPresenterSpy: ISavedPresenter {
 
 private struct SavedWorkerStub: ISavedWorker {
     var emissions: [[SavedMovie]] = []
-    var isPersistent = true
     var remove: Result<Void, any Error> = .success(())
 
     func observeSavedMovies() async -> AsyncStream<[SavedMovie]> {

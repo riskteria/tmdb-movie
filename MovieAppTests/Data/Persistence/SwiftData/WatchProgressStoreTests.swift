@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 struct WatchProgressStoreTests {
-    private let sut = WatchProgressStore(modelContainer: AppModelContainer(isStoredInMemoryOnly: true).modelContainer)
+    private let sut = WatchProgressStore(modelContainer: AppModelContainer(temporaryStoreID: UUID()).modelContainer)
     private let guest = UserID(guestID: UUID())
     private let account = UserID(accountID: 548)
     private let older = WatchProgress.fixture(contentID: 1, lastWatchedAt: Date(timeIntervalSince1970: 1_000))

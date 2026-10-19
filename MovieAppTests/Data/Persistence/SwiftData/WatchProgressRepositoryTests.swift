@@ -13,7 +13,7 @@ struct WatchProgressRepositoryTests {
     init() {
         currentUser = CurrentUserProviderStub(userID: guest)
         sut = WatchProgressRepository(
-            container: AppModelContainer(isStoredInMemoryOnly: true),
+            container: AppModelContainer(temporaryStoreID: UUID()),
             currentUser: currentUser
         )
     }

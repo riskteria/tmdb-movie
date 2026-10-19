@@ -44,7 +44,7 @@ final class AppDependencies {
         savedMoviesRepository = SavedMoviesRepository(
             container: modelContainer,
             currentUser: currentUser,
-            evictionPolicy: OldestSavedFirstEvictionPolicy()
+            evictionPolicy: SavedFirstEvictionPolicy()
         )
         watchProgressRepository = WatchProgressRepository(container: modelContainer, currentUser: currentUser)
         movieRepository = MovieRepository(apiService: apiService)

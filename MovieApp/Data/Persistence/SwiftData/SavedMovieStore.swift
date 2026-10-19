@@ -6,14 +6,16 @@ actor SavedMovieStore {
     private var revision = 0
 
     func movies(for userID: UserID) throws -> StoreResult<[SavedMovie]> {
-        let savedMovies = try fetchRecords(for: userID).map { record in makeSavedMovie(from: record) }
+        let savedMovies = try fetchRecords(for: userID).map {
+            record in makeSavedMovie(from: record)
+        }
         return StoreResult(revision: revision, value: savedMovies)
     }
 
     func save(
         _ movie: Movie,
         for userID: UserID,
-        evictionPolicy: any SavedMoviesEvictionPolicy
+        evictionPolicy: any ISavedFirstEvictionPolicy
     ) throws -> StoreResult<[SavedMovie]> {
         try write(for: userID) {
             if let record = try fetchRecord(movie.id, for: userID) {

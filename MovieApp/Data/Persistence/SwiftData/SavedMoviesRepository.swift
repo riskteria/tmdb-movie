@@ -1,10 +1,9 @@
 import SwiftData
 
 actor SavedMoviesRepository {
-    nonisolated let isPersistent: Bool
     private let modelContainer: ModelContainer
     private let currentUser: any CurrentUserProvider
-    private let evictionPolicy: any SavedMoviesEvictionPolicy
+    private let evictionPolicy: any ISavedFirstEvictionPolicy
     private lazy var store = SavedMovieStore(modelContainer: modelContainer)
     private var userID: UserID?
     private var savedMovies: [SavedMovie] = []
@@ -16,9 +15,8 @@ actor SavedMoviesRepository {
     init(
         container: AppModelContainer,
         currentUser: any CurrentUserProvider,
-        evictionPolicy: any SavedMoviesEvictionPolicy
+        evictionPolicy: any ISavedFirstEvictionPolicy
     ) {
-        isPersistent = container.isPersistent
         modelContainer = container.modelContainer
         self.currentUser = currentUser
         self.evictionPolicy = evictionPolicy

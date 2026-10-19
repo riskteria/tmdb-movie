@@ -3,11 +3,6 @@ import Synchronization
 import Testing
 
 final class SavedMoviesRepositoryStub: ISavedMoviesRepository {
-    enum Storage {
-        case persistent
-        case inMemory
-    }
-
     enum Call: Equatable {
         case save(Movie.ID)
         case remove(Movie.ID)
@@ -15,7 +10,6 @@ final class SavedMoviesRepositoryStub: ISavedMoviesRepository {
     }
 
     private let savedMovies: [SavedMovie]
-    private let storage: Storage?
     private let saveResult: Result<Void, any Error>?
     private let removeResult: Result<Void, any Error>?
     private let removeAllResult: Result<Void, any Error>?
@@ -23,14 +17,6 @@ final class SavedMoviesRepositoryStub: ISavedMoviesRepository {
 
     var calls: [Call] {
         recordedCalls.withLock { $0 }
-    }
-
-    var isPersistent: Bool {
-        guard let storage else {
-            Issue.record("Unexpected read of isPersistent")
-            return false
-        }
-        return storage == .persistent
     }
 
     var changes: AsyncStream<[SavedMovie]> {
@@ -41,13 +27,11 @@ final class SavedMoviesRepositoryStub: ISavedMoviesRepository {
 
     init(
         savedMovies: [SavedMovie] = [],
-        storage: Storage? = nil,
         save: Result<Void, any Error>? = nil,
         remove: Result<Void, any Error>? = nil,
         removeAll: Result<Void, any Error>? = nil
     ) {
         self.savedMovies = savedMovies
-        self.storage = storage
         saveResult = save
         removeResult = remove
         removeAllResult = removeAll
