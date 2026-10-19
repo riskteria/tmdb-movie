@@ -78,12 +78,12 @@ enum MovieDetailModel {
         struct Request {}
 
         struct Response {
-            let isSaved: Bool
+            let savedState: AccountScoped<Bool>
         }
 
-        struct ViewData: Equatable {
-            let title: String
-            let isSaved: Bool
+        enum ViewData: Equatable {
+            case hidden
+            case visible(title: String, isSaved: Bool)
         }
     }
 

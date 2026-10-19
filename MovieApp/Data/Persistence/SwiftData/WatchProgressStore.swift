@@ -5,35 +5,35 @@ import SwiftData
 actor WatchProgressStore {
     private var revision = 0
 
-    func records(for userID: UserID) throws -> StoreResult<[WatchProgress]> {
-        let records = try fetchRecords(for: userID).compactMap { record in makeWatchProgress(from: record) }
+    func records(for accountID: Account.ID) throws -> StoreResult<[WatchProgress]> {
+        let records = try fetchRecords(for: accountID).compactMap { record in makeWatchProgress(from: record) }
         return StoreResult(revision: revision, value: records)
     }
 
-    func upsert(_ progress: WatchProgress, for userID: UserID) throws -> StoreResult<[WatchProgress]> {
-        try write(for: userID) {
-            if let record = try fetchRecord(progress.contentID, mediaType: progress.mediaType, for: userID) {
+    func upsert(_ progress: WatchProgress, for accountID: Account.ID) throws -> StoreResult<[WatchProgress]> {
+        try write(for: accountID) {
+            if let record = try fetchRecord(progress.contentID, mediaType: progress.mediaType, for: accountID) {
                 record.update(from: progress)
             } else {
-                modelContext.insert(WatchProgressRecord(progress: progress, userID: userID.rawValue))
+                modelContext.insert(WatchProgressRecord(progress: progress, accountID: accountID))
             }
         }
     }
 
-    func progress(for contentID: Int, mediaType: MediaType, of userID: UserID) throws -> WatchProgress? {
-        let record = try fetchRecord(contentID, mediaType: mediaType, for: userID)
+    func progress(for contentID: Int, mediaType: MediaType, of accountID: Account.ID) throws -> WatchProgress? {
+        let record = try fetchRecord(contentID, mediaType: mediaType, for: accountID)
         return record.flatMap { record in makeWatchProgress(from: record) }
     }
 
-    func removeAll(for userID: UserID) throws -> StoreResult<[WatchProgress]> {
-        try write(for: userID) {
-            try fetchRecords(for: userID).forEach { record in modelContext.delete(record) }
+    func removeAll(for accountID: Account.ID) throws -> StoreResult<[WatchProgress]> {
+        try write(for: accountID) {
+            try fetchRecords(for: accountID).forEach { record in modelContext.delete(record) }
         }
     }
 }
 
 private extension WatchProgressStore {
-    func write(for userID: UserID, _ changes: () throws -> Void) throws -> StoreResult<[WatchProgress]> {
+    func write(for accountID: Account.ID, _ changes: () throws -> Void) throws -> StoreResult<[WatchProgress]> {
         do {
             try changes()
             try modelContext.save()
@@ -42,24 +42,22 @@ private extension WatchProgressStore {
             throw error
         }
         revision += 1
-        return try records(for: userID)
+        return try records(for: accountID)
     }
 
-    func fetchRecords(for userID: UserID) throws -> [WatchProgressRecord] {
-        let owner = userID.rawValue
+    func fetchRecords(for accountID: Account.ID) throws -> [WatchProgressRecord] {
         let descriptor = FetchDescriptor<WatchProgressRecord>(
-            predicate: #Predicate { $0.userID == owner },
+            predicate: #Predicate { $0.accountID == accountID },
             sortBy: [SortDescriptor(\.lastWatchedAt, order: .reverse)]
         )
         return try modelContext.fetch(descriptor)
     }
 
-    func fetchRecord(_ contentID: Int, mediaType: MediaType, for userID: UserID) throws -> WatchProgressRecord? {
-        let owner = userID.rawValue
+    func fetchRecord(_ contentID: Int, mediaType: MediaType, for accountID: Account.ID) throws -> WatchProgressRecord? {
         let mediaTypeValue = mediaType.rawValue
         var descriptor = FetchDescriptor<WatchProgressRecord>(
             predicate: #Predicate { record in
-                record.userID == owner && record.contentID == contentID && record.mediaType == mediaTypeValue
+                record.accountID == accountID && record.contentID == contentID && record.mediaType == mediaTypeValue
             }
         )
         descriptor.fetchLimit = 1

@@ -55,37 +55,49 @@ struct MovieDetailInteractorTests {
     @Test
     func observeSavedStatePresentsWhetherMovieIsSaved() async {
         // Given
-        let sut = makeSUT(worker: MovieDetailWorkerStub(savedLists: [[makeSavedMovie(id: 7)]]))
+        let sut = makeSUT(worker: MovieDetailWorkerStub(savedStates: [.signedIn([makeSavedMovie(id: 7)])]))
 
         // When
         await sut.observeSavedState(request: MovieDetailModel.ObserveSavedState.Request())
 
         // Assert
-        #expect(presenter.savedStates == [true])
+        #expect(presenter.savedStates == [.signedIn(true)])
     }
 
     @Test
     func observeSavedStatePresentsOnlyChanges() async {
         // Given
-        let lists = [
-            [],
-            [makeSavedMovie(id: 1)],
-            [makeSavedMovie(id: 7)],
-            [makeSavedMovie(id: 7), makeSavedMovie(id: 1)]
+        let states: [AccountScoped<[SavedMovie]>] = [
+            .signedIn([]),
+            .signedIn([makeSavedMovie(id: 1)]),
+            .signedIn([makeSavedMovie(id: 7)]),
+            .signedIn([makeSavedMovie(id: 7), makeSavedMovie(id: 1)])
         ]
-        let sut = makeSUT(worker: MovieDetailWorkerStub(savedLists: lists))
+        let sut = makeSUT(worker: MovieDetailWorkerStub(savedStates: states))
 
         // When
         await sut.observeSavedState(request: MovieDetailModel.ObserveSavedState.Request())
 
         // Assert
-        #expect(presenter.savedStates == [false, true])
+        #expect(presenter.savedStates == [.signedIn(false), .signedIn(true)])
+    }
+
+    @Test
+    func observeSavedStatePresentsSignedOut() async {
+        // Given
+        let sut = makeSUT(worker: MovieDetailWorkerStub(savedStates: [.signedOut]))
+
+        // When
+        await sut.observeSavedState(request: MovieDetailModel.ObserveSavedState.Request())
+
+        // Assert
+        #expect(presenter.savedStates == [.signedOut])
     }
 
     @Test
     func toggleSaveSavesUnsavedMovie() async {
         // Given
-        let worker = MovieDetailWorkerStub(savedLists: [[]])
+        let worker = MovieDetailWorkerStub(savedStates: [.signedIn([])])
         let sut = makeSUT(worker: worker)
         await sut.observeSavedState(request: MovieDetailModel.ObserveSavedState.Request())
 
@@ -99,7 +111,7 @@ struct MovieDetailInteractorTests {
     @Test
     func toggleSaveRemovesSavedMovie() async {
         // Given
-        let worker = MovieDetailWorkerStub(savedLists: [[makeSavedMovie(id: 7)]])
+        let worker = MovieDetailWorkerStub(savedStates: [.signedIn([makeSavedMovie(id: 7)])])
         let sut = makeSUT(worker: worker)
         await sut.observeSavedState(request: MovieDetailModel.ObserveSavedState.Request())
 
@@ -124,9 +136,23 @@ struct MovieDetailInteractorTests {
     }
 
     @Test
+    func toggleSaveIgnoresTapWhileSignedOut() async {
+        // Given
+        let worker = MovieDetailWorkerStub(savedStates: [.signedOut])
+        let sut = makeSUT(worker: worker)
+        await sut.observeSavedState(request: MovieDetailModel.ObserveSavedState.Request())
+
+        // When
+        await sut.toggleSave(request: MovieDetailModel.ToggleSave.Request())
+
+        // Assert
+        #expect(worker.calls.isEmpty)
+    }
+
+    @Test
     func toggleSavePresentsFailure() async throws {
         // Given
-        let worker = MovieDetailWorkerStub(savedLists: [[]], save: .failure(StubError.failed))
+        let worker = MovieDetailWorkerStub(savedStates: [.signedIn([])], save: .failure(StubError.failed))
         let sut = makeSUT(worker: worker)
         await sut.observeSavedState(request: MovieDetailModel.ObserveSavedState.Request())
 
@@ -150,6 +176,20 @@ struct MovieDetailInteractorTests {
 
         // Assert
         #expect(worker.calls == [.startWatching(7, videoKey: "teaser-key")])
+        let response = try #require(presenter.watchResponses.first)
+        #expect(try response.result.get() == video)
+    }
+
+    @Test
+    func watchWhileSignedOutPresentsTrailer() async throws {
+        // Given
+        let sut = makeSUT(worker: MovieDetailWorkerStub(savedStates: [.signedOut]))
+        await sut.observeSavedState(request: MovieDetailModel.ObserveSavedState.Request())
+
+        // When
+        await sut.watch(request: MovieDetailModel.Watch.Request(video: video))
+
+        // Assert
         let response = try #require(presenter.watchResponses.first)
         #expect(try response.result.get() == video)
     }
@@ -209,7 +249,7 @@ private extension MovieDetailInteractorTests {
 @MainActor
 private final class MovieDetailPresenterSpy: IMovieDetailPresenter {
     private(set) var responses: [MovieDetailModel.LoadDetails.Response] = []
-    private(set) var savedStates: [Bool] = []
+    private(set) var savedStates: [AccountScoped<Bool>] = []
     private(set) var toggleSaveResponses: [MovieDetailModel.ToggleSave.Response] = []
     private(set) var watchResponses: [MovieDetailModel.Watch.Response] = []
 
@@ -218,7 +258,7 @@ private final class MovieDetailPresenterSpy: IMovieDetailPresenter {
     }
 
     func presentSavedState(response: MovieDetailModel.ObserveSavedState.Response) {
-        savedStates.append(response.isSaved)
+        savedStates.append(response.savedState)
     }
 
     func presentToggleSave(response: MovieDetailModel.ToggleSave.Response) {
@@ -238,7 +278,7 @@ private final class MovieDetailWorkerStub: IMovieDetailWorker {
     }
 
     private let details: Result<MovieDetails, any Error>
-    private let savedLists: [[SavedMovie]]
+    private let savedStates: [AccountScoped<[SavedMovie]>]
     private let saveResult: Result<Void, any Error>
     private let startWatchingResult: Result<Void, any Error>
     private let recordedCalls = Mutex<[Call]>([])
@@ -249,12 +289,12 @@ private final class MovieDetailWorkerStub: IMovieDetailWorker {
 
     init(
         details: Result<MovieDetails, any Error> = .failure(StubError.failed),
-        savedLists: [[SavedMovie]] = [],
+        savedStates: [AccountScoped<[SavedMovie]>] = [],
         save: Result<Void, any Error> = .success(()),
         startWatching: Result<Void, any Error> = .success(())
     ) {
         self.details = details
-        self.savedLists = savedLists
+        self.savedStates = savedStates
         saveResult = save
         startWatchingResult = startWatching
     }
@@ -263,9 +303,9 @@ private final class MovieDetailWorkerStub: IMovieDetailWorker {
         try details.get()
     }
 
-    func observeSavedMovies() async -> AsyncStream<[SavedMovie]> {
+    func observeSavedMovies() async -> AsyncStream<AccountScoped<[SavedMovie]>> {
         AsyncStream { continuation in
-            savedLists.forEach { savedMovies in continuation.yield(savedMovies) }
+            savedStates.forEach { state in continuation.yield(state) }
             continuation.finish()
         }
     }

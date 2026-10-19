@@ -19,39 +19,18 @@ final class ProfilePresenter {
 extension ProfilePresenter: IProfilePresenter {
     func presentProfile(response: ProfileModel.LoadProfile.Response) {
         let appInfo = response.appInfo
-        let clearSavedMessage = String(
-            localized: "Your saved movies on this device will be removed. This can't be undone."
-        )
-        let clearHistoryMessage = String(
-            localized: "Continue Watching on this device will be emptied. This can't be undone."
-        )
         let attribution = String(localized: "This product uses the TMDB API but is not endorsed or certified by TMDB.")
-        let sections = [
-            ProfileModel.DisplayedSection(
-                section: .account,
-                header: nil,
-                rows: makeAccountRows(for: response.accountState)
-            ),
-            ProfileModel.DisplayedSection(
-                section: .data,
-                header: String(localized: "Data"),
-                rows: [
-                    .clearSavedData(
-                        title: String(localized: "Clear Saved data"),
-                        confirmation: makeClearConfirmation(
-                            title: String(localized: "Clear Saved data?"),
-                            message: clearSavedMessage
-                        )
-                    ),
-                    .clearWatchHistory(
-                        title: String(localized: "Clear watch history"),
-                        confirmation: makeClearConfirmation(
-                            title: String(localized: "Clear watch history?"),
-                            message: clearHistoryMessage
-                        )
-                    )
-                ]
-            ),
+        let accountSection = ProfileModel.DisplayedSection(
+            section: .account,
+            header: nil,
+            rows: makeAccountRows(for: response.accountState)
+        )
+        let dataSections: [ProfileModel.DisplayedSection] = if case .signedIn = response.accountState {
+            [makeDataSection()]
+        } else {
+            []
+        }
+        let sections = [accountSection] + dataSections + [
             ProfileModel.DisplayedSection(
                 section: .preferences,
                 header: String(localized: "Preferences"),
@@ -83,7 +62,7 @@ extension ProfilePresenter: IProfilePresenter {
 private extension ProfilePresenter {
     func makeAccountRows(for state: ProfileModel.AccountState) -> [ProfileModel.Row] {
         let guestTitle = String(localized: "Browsing as guest")
-        let guestMessage = String(localized: "Saved movies and watch history stay on this device.")
+        let guestMessage = String(localized: "Sign in to save movies and keep your watch history.")
         let signInTitle = String(localized: "Sign in with TMDB")
         switch state {
         case .guest:
@@ -115,6 +94,35 @@ private extension ProfilePresenter {
                 .signOut(title: String(localized: "Sign out"), confirmation: makeSignOutConfirmation())
             ]
         }
+    }
+
+    func makeDataSection() -> ProfileModel.DisplayedSection {
+        let clearSavedMessage = String(
+            localized: "Your saved movies on this device will be removed. This can't be undone."
+        )
+        let clearHistoryMessage = String(
+            localized: "Continue Watching on this device will be emptied. This can't be undone."
+        )
+        return ProfileModel.DisplayedSection(
+            section: .data,
+            header: String(localized: "Data"),
+            rows: [
+                .clearSavedData(
+                    title: String(localized: "Clear Saved data"),
+                    confirmation: makeClearConfirmation(
+                        title: String(localized: "Clear Saved data?"),
+                        message: clearSavedMessage
+                    )
+                ),
+                .clearWatchHistory(
+                    title: String(localized: "Clear watch history"),
+                    confirmation: makeClearConfirmation(
+                        title: String(localized: "Clear watch history?"),
+                        message: clearHistoryMessage
+                    )
+                )
+            ]
+        )
     }
 
     func makeAvatar(for account: Account) -> DisplayedArtwork {

@@ -1,33 +1,31 @@
-import Foundation
 @testable import MovieApp
 import Testing
 
 struct AuthCurrentUserProviderTests {
-    private let guestID = UserID(guestID: UUID())
     private let account = Account(id: 548, username: "moviefan", name: "Movie Fan", avatarPath: nil)
 
     @Test
-    func signedOutMapsToGuestID() async {
+    func signedOutMapsToNil() async throws {
         // Given
         let sut: any CurrentUserProvider = makeSUT(states: [.signedOut])
 
         // When
-        let userID = await sut.userIDs.first { _ in true }
+        let accountID = try #require(await sut.accountIDs.first { _ in true })
 
         // Assert
-        #expect(userID == guestID)
+        #expect(accountID == nil)
     }
 
     @Test
-    func signedInMapsToAccountID() async {
+    func signedInMapsToAccountID() async throws {
         // Given
         let sut: any CurrentUserProvider = makeSUT(states: [.signedIn(account)])
 
         // When
-        let userID = await sut.userIDs.first { _ in true }
+        let accountID = try #require(await sut.accountIDs.first { _ in true })
 
         // Assert
-        #expect(userID == UserID(accountID: 548))
+        #expect(accountID == 548)
     }
 
     @Test
@@ -35,20 +33,20 @@ struct AuthCurrentUserProviderTests {
         // Given
         let renamed = Account(id: 548, username: "moviefan", name: "Renamed Fan", avatarPath: nil)
         let sut: any CurrentUserProvider = makeSUT(states: [.signedIn(account), .signedIn(renamed)])
-        var userIDs: [UserID] = []
+        var accountIDs: [Account.ID?] = []
 
         // When
-        for await userID in await sut.userIDs {
-            userIDs.append(userID)
+        for await accountID in await sut.accountIDs {
+            accountIDs.append(accountID)
         }
 
         // Assert
-        #expect(userIDs == [UserID(accountID: 548)])
+        #expect(accountIDs == [548])
     }
 }
 
 private extension AuthCurrentUserProviderTests {
     func makeSUT(states: [AuthState]) -> AuthCurrentUserProvider {
-        AuthCurrentUserProvider(authRepository: AuthRepositoryStub(states: states), guestID: guestID)
+        AuthCurrentUserProvider(authRepository: AuthRepositoryStub(states: states))
     }
 }

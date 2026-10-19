@@ -17,10 +17,10 @@ final class SavedInteractor {
 // MARK: - ISavedInteractor
 extension SavedInteractor: ISavedInteractor {
     func observeSavedMovies(request: SavedModel.ObserveSavedMovies.Request) async {
-        for await savedMovies in await worker.observeSavedMovies() {
+        for await state in await worker.observeSavedMovies() {
             presenter.presentSavedMovies(
                 response: SavedModel.ObserveSavedMovies.Response(
-                    savedMovies: savedMovies,
+                    state: state,
                     capacity: SavedMovie.capacity
                 )
             )

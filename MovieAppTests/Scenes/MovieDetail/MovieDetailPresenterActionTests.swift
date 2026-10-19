@@ -19,14 +19,23 @@ struct MovieDetailPresenterActionTests {
     @Test
     func savedStateTitles() {
         // When
-        sut.presentSavedState(response: MovieDetailModel.ObserveSavedState.Response(isSaved: false))
-        sut.presentSavedState(response: MovieDetailModel.ObserveSavedState.Response(isSaved: true))
+        sut.presentSavedState(response: MovieDetailModel.ObserveSavedState.Response(savedState: .signedIn(false)))
+        sut.presentSavedState(response: MovieDetailModel.ObserveSavedState.Response(savedState: .signedIn(true)))
 
         // Assert
         #expect(viewController.displayedSavedStates == [
-            MovieDetailModel.ObserveSavedState.ViewData(title: "Save", isSaved: false),
-            MovieDetailModel.ObserveSavedState.ViewData(title: "Saved", isSaved: true)
+            .visible(title: "Save", isSaved: false),
+            .visible(title: "Saved", isSaved: true)
         ])
+    }
+
+    @Test
+    func signedOutHidesSave() {
+        // When
+        sut.presentSavedState(response: MovieDetailModel.ObserveSavedState.Response(savedState: .signedOut))
+
+        // Assert
+        #expect(viewController.displayedSavedStates == [.hidden])
     }
 
     @Test

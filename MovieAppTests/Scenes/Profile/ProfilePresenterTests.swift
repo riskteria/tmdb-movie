@@ -17,10 +17,30 @@ struct ProfilePresenterTests {
 
     @Test
     func presentProfileOrdersSectionsWithHeaders() {
+        // When
+        sut.presentProfile(response: makeResponse(accountState: .signedIn(account)))
+
         // Assert
         let sections = viewController.displayedViewData.last?.sections ?? []
         #expect(sections.map(\.section) == [.account, .data, .preferences, .about])
         #expect(sections.map(\.header) == [nil, "Data", "Preferences", "About"])
+    }
+
+    @Test
+    func signedOutHasNoDataSection() {
+        // Assert
+        let sections = viewController.displayedViewData.last?.sections ?? []
+        #expect(sections.map(\.section) == [.account, .preferences, .about])
+    }
+
+    @Test
+    func signedInShowsDataSection() {
+        // When
+        sut.presentProfile(response: makeResponse(accountState: .signedIn(account)))
+
+        // Assert
+        let sections = viewController.displayedViewData.last?.sections ?? []
+        #expect(sections.contains { $0.section == .data })
     }
 
     @Test
@@ -32,6 +52,9 @@ struct ProfilePresenterTests {
 
     @Test
     func clearRowsCarryConfirmations() {
+        // When
+        sut.presentProfile(response: makeResponse(accountState: .signedIn(account)))
+
         // Assert
         let dataRows = viewController.displayedViewData.last?.sections.first { $0.section == .data }?.rows ?? []
         let expected: [ProfileModel.Row] = [
@@ -83,6 +106,17 @@ struct ProfilePresenterTests {
         // Assert
         let options = try appearanceOptions()
         #expect(options.filter(\.isSelected).map(\.theme) == [.dark])
+    }
+
+    @Test
+    func guestStateShowsSignInMessage() {
+        // Assert
+        #expect(
+            accountRows().first == .guest(
+                title: "Browsing as guest",
+                message: "Sign in to save movies and keep your watch history."
+            )
+        )
     }
 
     @Test

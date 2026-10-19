@@ -15,7 +15,19 @@ struct SavedWorkerTests {
         let stream = await sut.observeSavedMovies()
 
         // Assert
-        #expect(await stream.first { _ in true } == savedMovies)
+        #expect(await stream.first { _ in true } == .signedIn(savedMovies))
+    }
+
+    @Test
+    func observeSavedMoviesForwardsSignedOut() async {
+        // Given
+        let sut: any ISavedWorker = SavedWorker(savedMoviesRepository: SavedMoviesRepositoryStub(state: .signedOut))
+
+        // When
+        let stream = await sut.observeSavedMovies()
+
+        // Assert
+        #expect(await stream.first { _ in true } == .signedOut)
     }
 
     @Test

@@ -33,10 +33,13 @@ extension MovieDetailPresenter: IMovieDetailPresenter {
     }
 
     func presentSavedState(response: MovieDetailModel.ObserveSavedState.Response) {
-        let title = response.isSaved ? String(localized: "Saved") : String(localized: "Save")
-        viewController?.displaySavedState(
-            viewData: MovieDetailModel.ObserveSavedState.ViewData(title: title, isSaved: response.isSaved)
-        )
+        let viewData: MovieDetailModel.ObserveSavedState.ViewData = switch response.savedState {
+        case .signedOut:
+            .hidden
+        case .signedIn(let isSaved):
+            .visible(title: isSaved ? String(localized: "Saved") : String(localized: "Save"), isSaved: isSaved)
+        }
+        viewController?.displaySavedState(viewData: viewData)
     }
 
     func presentToggleSave(response: MovieDetailModel.ToggleSave.Response) {

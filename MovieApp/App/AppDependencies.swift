@@ -37,10 +37,7 @@ final class AppDependencies {
             credentialRepository: credentialRepository
         )
         let modelContainer = AppModelContainer()
-        let currentUser = AuthCurrentUserProvider(
-            authRepository: authRepository,
-            guestID: GuestIDStore().loadOrCreate()
-        )
+        let currentUser = AuthCurrentUserProvider(authRepository: authRepository)
         savedMoviesRepository = SavedMoviesRepository(
             container: modelContainer,
             currentUser: currentUser,

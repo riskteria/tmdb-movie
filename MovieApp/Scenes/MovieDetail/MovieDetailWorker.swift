@@ -2,7 +2,7 @@ import Foundation
 
 nonisolated protocol IMovieDetailWorker: Sendable {
     func fetchDetails(movieID: Movie.ID) async throws -> MovieDetails
-    func observeSavedMovies() async -> AsyncStream<[SavedMovie]>
+    func observeSavedMovies() async -> AsyncStream<AccountScoped<[SavedMovie]>>
     func saveMovie(_ movie: Movie) async throws
     func removeMovie(_ movieID: Movie.ID) async throws
     func startWatching(movieID: Movie.ID, video: Video) async throws
@@ -20,7 +20,7 @@ nonisolated extension MovieDetailWorker: IMovieDetailWorker {
         try await movieRepository.details(movieID: movieID)
     }
 
-    func observeSavedMovies() async -> AsyncStream<[SavedMovie]> {
+    func observeSavedMovies() async -> AsyncStream<AccountScoped<[SavedMovie]>> {
         await savedMoviesRepository.changes
     }
 

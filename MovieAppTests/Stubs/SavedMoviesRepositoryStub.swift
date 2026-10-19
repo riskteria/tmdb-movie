@@ -10,6 +10,7 @@ final class SavedMoviesRepositoryStub: ISavedMoviesRepository {
     }
 
     private let savedMovies: [SavedMovie]
+    private let state: AccountScoped<[SavedMovie]>
     private let saveResult: Result<Void, any Error>?
     private let removeResult: Result<Void, any Error>?
     private let removeAllResult: Result<Void, any Error>?
@@ -19,19 +20,21 @@ final class SavedMoviesRepositoryStub: ISavedMoviesRepository {
         recordedCalls.withLock { $0 }
     }
 
-    var changes: AsyncStream<[SavedMovie]> {
+    var changes: AsyncStream<AccountScoped<[SavedMovie]>> {
         get async {
-            AsyncStream { continuation in continuation.yield(savedMovies) }
+            AsyncStream { continuation in continuation.yield(state) }
         }
     }
 
     init(
         savedMovies: [SavedMovie] = [],
+        state: AccountScoped<[SavedMovie]>? = nil,
         save: Result<Void, any Error>? = nil,
         remove: Result<Void, any Error>? = nil,
         removeAll: Result<Void, any Error>? = nil
     ) {
         self.savedMovies = savedMovies
+        self.state = state ?? .signedIn(savedMovies)
         saveResult = save
         removeResult = remove
         removeAllResult = removeAll

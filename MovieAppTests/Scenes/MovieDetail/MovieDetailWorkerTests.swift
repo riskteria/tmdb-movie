@@ -115,7 +115,7 @@ struct MovieDetailWorkerTests {
         let stream = await sut.observeSavedMovies()
 
         // Assert
-        #expect(await stream.first { _ in true } == savedMovies)
+        #expect(await stream.first { _ in true } == .signedIn(savedMovies))
     }
 }
 

@@ -60,8 +60,14 @@ private extension HomeInteractor {
     func observeContinueWatching() async {
         let homeWorker = worker
         let limit = continueWatchingLimit
-        for await _ in await homeWorker.observeWatchProgress() {
-            let items = await Result { try await homeWorker.fetchContinueWatching(limit: limit) }
+        for await state in await homeWorker.observeWatchProgress() {
+            let items: Result<[ContinueWatchingItem], any Error>
+            switch state {
+            case .signedOut:
+                items = .success([])
+            case .signedIn:
+                items = await Result { try await homeWorker.fetchContinueWatching(limit: limit) }
+            }
             guard !Task.isCancelled else { return }
             continueWatching = items
             presentHomeIfReady()

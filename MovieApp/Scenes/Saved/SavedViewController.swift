@@ -112,6 +112,13 @@ extension SavedViewController: ISavedViewController {
                 secondaryText: message,
                 systemImage: "bookmark"
             )
+        case let .signedOut(title, message):
+            contentUnavailableConfiguration = UIContentUnavailableConfiguration.message(
+                title,
+                secondaryText: message,
+                systemImage: "person.crop.circle"
+            )
+            Array(removalCompletions.keys).forEach { movieID in completeRemoval(of: movieID, isRemoved: false) }
         }
         dataSource.apply(snapshot, animatingDifferences: !UIAccessibility.isReduceMotionEnabled)
         updateHeader()

@@ -16,13 +16,14 @@ enum SavedModel {
         struct Request {}
 
         struct Response {
-            let savedMovies: [SavedMovie]
+            let state: AccountScoped<[SavedMovie]>
             let capacity: Int
         }
 
         enum ViewData: Equatable {
             case content(header: String, movies: [DisplayedMovie])
             case empty(title: String, message: String)
+            case signedOut(title: String, message: String)
         }
     }
 

@@ -5,18 +5,18 @@ import Testing
 
 struct SavedMovieStoreTests {
     private let sut = SavedMovieStore(modelContainer: AppModelContainer(temporaryStoreID: UUID()).modelContainer)
-    private let guest = UserID(guestID: UUID())
-    private let account = UserID(accountID: 548)
+    private let account: Account.ID = 548
+    private let otherAccount: Account.ID = 549
     private let keepEverything = SavedFirstEvictionPolicy()
 
     @Test
     func saveThenMoviesReturnsNewestFirst() async throws {
         // Given
-        _ = try await sut.save(.fixture(id: 1), for: guest, evictionPolicy: keepEverything)
-        _ = try await sut.save(.fixture(id: 2), for: guest, evictionPolicy: keepEverything)
+        _ = try await sut.save(.fixture(id: 1), for: account, evictionPolicy: keepEverything)
+        _ = try await sut.save(.fixture(id: 2), for: account, evictionPolicy: keepEverything)
 
         // When
-        let movies = try await sut.movies(for: guest).value
+        let movies = try await sut.movies(for: account).value
 
         // Assert
         #expect(movies.map(\.id) == [2, 1])
@@ -25,11 +25,11 @@ struct SavedMovieStoreTests {
     @Test
     func moviesAreScopedPerUser() async throws {
         // Given
-        _ = try await sut.save(.fixture(id: 1), for: guest, evictionPolicy: keepEverything)
-        _ = try await sut.save(.fixture(id: 2), for: account, evictionPolicy: keepEverything)
+        _ = try await sut.save(.fixture(id: 1), for: account, evictionPolicy: keepEverything)
+        _ = try await sut.save(.fixture(id: 2), for: otherAccount, evictionPolicy: keepEverything)
 
         // When
-        let movies = try await sut.movies(for: account).value
+        let movies = try await sut.movies(for: otherAccount).value
 
         // Assert
         #expect(movies.map(\.id) == [2])
@@ -38,11 +38,11 @@ struct SavedMovieStoreTests {
     @Test
     func resavingRefreshesSavedAtWithoutDuplicate() async throws {
         // Given
-        _ = try await sut.save(.fixture(id: 1), for: guest, evictionPolicy: keepEverything)
-        _ = try await sut.save(.fixture(id: 2), for: guest, evictionPolicy: keepEverything)
+        _ = try await sut.save(.fixture(id: 1), for: account, evictionPolicy: keepEverything)
+        _ = try await sut.save(.fixture(id: 2), for: account, evictionPolicy: keepEverything)
 
         // When
-        let result = try await sut.save(.fixture(id: 1), for: guest, evictionPolicy: keepEverything)
+        let result = try await sut.save(.fixture(id: 1), for: account, evictionPolicy: keepEverything)
 
         // Assert
         #expect(result.value.map(\.id) == [1, 2])
@@ -51,11 +51,11 @@ struct SavedMovieStoreTests {
     @Test
     func saveAsksPolicyAndDeletesItsChoice() async throws {
         // Given
-        _ = try await sut.save(.fixture(id: 1), for: guest, evictionPolicy: keepEverything)
+        _ = try await sut.save(.fixture(id: 1), for: account, evictionPolicy: keepEverything)
         let policy = EvictionPolicySpy(evictedIDs: [1])
 
         // When
-        let result = try await sut.save(.fixture(id: 2), for: guest, evictionPolicy: policy)
+        let result = try await sut.save(.fixture(id: 2), for: account, evictionPolicy: policy)
 
         // Assert
         #expect(policy.requests == [EvictionPolicySpy.Request(movieIDs: [2, 1], capacity: SavedMovie.capacity)])
@@ -65,38 +65,38 @@ struct SavedMovieStoreTests {
     @Test
     func removeDeletesOnlyThatUsersMovie() async throws {
         // Given
-        _ = try await sut.save(.fixture(id: 1), for: guest, evictionPolicy: keepEverything)
         _ = try await sut.save(.fixture(id: 1), for: account, evictionPolicy: keepEverything)
+        _ = try await sut.save(.fixture(id: 1), for: otherAccount, evictionPolicy: keepEverything)
 
         // When
-        _ = try await sut.remove(1, for: guest)
+        _ = try await sut.remove(1, for: account)
 
         // Assert
-        #expect(try await sut.movies(for: guest).value.isEmpty)
-        #expect(try await sut.movies(for: account).value.map(\.id) == [1])
+        #expect(try await sut.movies(for: account).value.isEmpty)
+        #expect(try await sut.movies(for: otherAccount).value.map(\.id) == [1])
     }
 
     @Test
     func removeAllClearsOnlyThatUser() async throws {
         // Given
-        _ = try await sut.save(.fixture(id: 1), for: guest, evictionPolicy: keepEverything)
-        _ = try await sut.save(.fixture(id: 2), for: account, evictionPolicy: keepEverything)
+        _ = try await sut.save(.fixture(id: 1), for: account, evictionPolicy: keepEverything)
+        _ = try await sut.save(.fixture(id: 2), for: otherAccount, evictionPolicy: keepEverything)
 
         // When
-        _ = try await sut.removeAll(for: account)
+        _ = try await sut.removeAll(for: otherAccount)
 
         // Assert
-        #expect(try await sut.movies(for: account).value.isEmpty)
-        #expect(try await sut.movies(for: guest).value.map(\.id) == [1])
+        #expect(try await sut.movies(for: otherAccount).value.isEmpty)
+        #expect(try await sut.movies(for: account).value.map(\.id) == [1])
     }
 
     @Test
     func everyWriteIncreasesRevision() async throws {
         // Given
-        let saved = try await sut.save(.fixture(id: 1), for: guest, evictionPolicy: keepEverything)
+        let saved = try await sut.save(.fixture(id: 1), for: account, evictionPolicy: keepEverything)
 
         // When
-        let removed = try await sut.remove(1, for: guest)
+        let removed = try await sut.remove(1, for: account)
 
         // Assert
         #expect(removed.revision > saved.revision)
@@ -115,10 +115,10 @@ struct SavedMovieStoreTests {
         )
 
         // When
-        _ = try await sut.save(movie, for: guest, evictionPolicy: keepEverything)
+        _ = try await sut.save(movie, for: account, evictionPolicy: keepEverything)
 
         // Assert
-        #expect(try await sut.movies(for: guest).value.map(\.movie) == [movie])
+        #expect(try await sut.movies(for: account).value.map(\.movie) == [movie])
     }
 }
 

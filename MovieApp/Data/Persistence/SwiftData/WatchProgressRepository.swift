@@ -4,12 +4,13 @@ actor WatchProgressRepository {
     private let modelContainer: ModelContainer
     private let currentUser: any CurrentUserProvider
     private lazy var store = WatchProgressStore(modelContainer: modelContainer)
-    private var userID: UserID?
+    private var accountID: Account.ID?
+    private var hasCurrentUser = false
     private var records: [WatchProgress] = []
     private var appliedRevision = 0
-    private var broadcaster = AsyncBroadcaster<[WatchProgress]>()
+    private var broadcaster = AsyncBroadcaster<AccountScoped<[WatchProgress]>>()
     private var observationTask: Task<Void, Never>?
-    private var userIDWaiters: [CheckedContinuation<UserID, Never>] = []
+    private var currentUserWaiters: [CheckedContinuation<Account.ID?, Never>] = []
 
     init(container: AppModelContainer, currentUser: any CurrentUserProvider) {
         modelContainer = container.modelContainer
@@ -23,72 +24,81 @@ actor WatchProgressRepository {
 
 // MARK: - IWatchProgressRepository
 extension WatchProgressRepository: IWatchProgressRepository {
-    var changes: AsyncStream<[WatchProgress]> {
+    var changes: AsyncStream<AccountScoped<[WatchProgress]>> {
         get async {
-            _ = await activeUserID()
-            return broadcaster.subscribe(startingWith: records)
+            _ = await currentAccountID()
+            return broadcaster.subscribe(startingWith: currentState)
         }
     }
 
     func upsert(_ progress: WatchProgress) async throws {
-        let user = await activeUserID()
-        let result = try await store.upsert(progress, for: user)
-        apply(result, for: user)
+        guard let account = await currentAccountID() else { return }
+        let result = try await store.upsert(progress, for: account)
+        apply(result, for: account)
     }
 
     func progress(for contentID: Int, mediaType: MediaType) async -> WatchProgress? {
-        _ = await activeUserID()
+        _ = await currentAccountID()
         return records.first { $0.contentID == contentID && $0.mediaType == mediaType }
     }
 
     func recent(limit: Int) async -> [WatchProgress] {
-        _ = await activeUserID()
+        _ = await currentAccountID()
         return Array(records.prefix(limit))
     }
 
     func removeAll() async throws {
-        let user = await activeUserID()
-        let result = try await store.removeAll(for: user)
-        apply(result, for: user)
+        guard let account = await currentAccountID() else { return }
+        let result = try await store.removeAll(for: account)
+        apply(result, for: account)
     }
 }
 
 private extension WatchProgressRepository {
-    func activeUserID() async -> UserID {
-        if let userID {
-            return userID
+    var currentState: AccountScoped<[WatchProgress]> {
+        accountID == nil ? .signedOut : .signedIn(records)
+    }
+
+    func currentAccountID() async -> Account.ID? {
+        if hasCurrentUser {
+            return accountID
         }
         startObservingCurrentUser()
         return await withCheckedContinuation { continuation in
-            userIDWaiters.append(continuation)
+            currentUserWaiters.append(continuation)
         }
     }
 
     func startObservingCurrentUser() {
         guard observationTask == nil else { return }
         observationTask = Task { [weak self, currentUser] in
-            for await userID in await currentUser.userIDs {
-                await self?.switchUser(to: userID)
+            for await accountID in await currentUser.accountIDs {
+                await self?.switchUser(to: accountID)
             }
         }
     }
 
-    func switchUser(to newUserID: UserID) async {
-        guard newUserID != userID else { return }
-        let result = try? await store.records(for: newUserID)
-        userID = newUserID
-        records = result?.value ?? []
-        appliedRevision = max(appliedRevision, result?.revision ?? 0)
-        broadcaster.send(records)
-        let waiters = userIDWaiters
-        userIDWaiters = []
-        waiters.forEach { waiter in waiter.resume(returning: newUserID) }
+    func switchUser(to newAccountID: Account.ID?) async {
+        guard !hasCurrentUser || newAccountID != accountID else { return }
+        if let newAccountID {
+            let result = try? await store.records(for: newAccountID)
+            records = result?.value ?? []
+            appliedRevision = max(appliedRevision, result?.revision ?? 0)
+        } else {
+            records = []
+        }
+        accountID = newAccountID
+        hasCurrentUser = true
+        broadcaster.send(currentState)
+        let waiters = currentUserWaiters
+        currentUserWaiters = []
+        waiters.forEach { waiter in waiter.resume(returning: newAccountID) }
     }
 
-    func apply(_ result: StoreResult<[WatchProgress]>, for user: UserID) {
-        guard user == userID, result.revision > appliedRevision else { return }
+    func apply(_ result: StoreResult<[WatchProgress]>, for account: Account.ID) {
+        guard account == accountID, result.revision > appliedRevision else { return }
         appliedRevision = result.revision
         records = result.value
-        broadcaster.send(records)
+        broadcaster.send(currentState)
     }
 }

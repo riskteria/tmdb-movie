@@ -26,17 +26,27 @@ final class MovieDetailActionsCell: UICollectionViewCell {
 
     func configure(savedState: MovieDetailModel.ObserveSavedState.ViewData?, shareTitle: String, animated: Bool) {
         shareButton.configuration?.title = shareTitle
-        guard let savedState else {
+        switch savedState {
+        case nil:
+            saveButton.isHidden = false
             saveButton.alpha = 0
             saveButton.isEnabled = false
             saveButton.isAccessibilityElement = false
-            return
+        case .hidden:
+            saveButton.isHidden = true
+            saveButton.isEnabled = false
+        case let .visible(title, isSaved):
+            saveButton.isHidden = false
+            showSave(title: title, isSaved: isSaved, animated: animated)
         }
+    }
+}
+
+private extension MovieDetailActionsCell {
+    func showSave(title: String, isSaved: Bool, animated: Bool) {
         saveButton.isEnabled = true
         saveButton.isAccessibilityElement = true
-        saveButton.accessibilityTraits = savedState.isSaved ? [.button, .selected] : .button
-        let title = savedState.title
-        let isSaved = savedState.isSaved
+        saveButton.accessibilityTraits = isSaved ? [.button, .selected] : .button
         guard animated, !UIAccessibility.isReduceMotionEnabled else {
             applySaveState(title: title, isSaved: isSaved)
             return
@@ -46,9 +56,7 @@ final class MovieDetailActionsCell: UICollectionViewCell {
             applySaveState(title: title, isSaved: isSaved)
         }
     }
-}
 
-private extension MovieDetailActionsCell {
     func applySaveState(title: String, isSaved: Bool) {
         saveButton.configuration = makeSaveConfiguration(title: title, isSaved: isSaved)
         saveButton.alpha = 1

@@ -9,8 +9,7 @@ final class MovieDetailInteractor {
     private let movie: Movie
     private let presenter: any IMovieDetailPresenter
     private let worker: any IMovieDetailWorker
-    private var isSaved = false
-    private var isSavedStateKnown = false
+    private var savedState: AccountScoped<Bool>?
     private var isTogglingSave = false
 
     init(movie: Movie, presenter: any IMovieDetailPresenter, worker: any IMovieDetailWorker) {
@@ -36,17 +35,21 @@ extension MovieDetailInteractor: IMovieDetailInteractor {
     }
 
     func observeSavedState(request: MovieDetailModel.ObserveSavedState.Request) async {
-        for await savedMovies in await worker.observeSavedMovies() {
-            let isSaved = savedMovies.contains { $0.id == movie.id }
-            guard !isSavedStateKnown || isSaved != self.isSaved else { continue }
-            isSavedStateKnown = true
-            self.isSaved = isSaved
-            presenter.presentSavedState(response: MovieDetailModel.ObserveSavedState.Response(isSaved: isSaved))
+        for await state in await worker.observeSavedMovies() {
+            let savedState: AccountScoped<Bool> = switch state {
+            case .signedOut:
+                .signedOut
+            case .signedIn(let savedMovies):
+                .signedIn(savedMovies.contains { $0.id == movie.id })
+            }
+            guard savedState != self.savedState else { continue }
+            self.savedState = savedState
+            presenter.presentSavedState(response: MovieDetailModel.ObserveSavedState.Response(savedState: savedState))
         }
     }
 
     func toggleSave(request: MovieDetailModel.ToggleSave.Request) async {
-        guard isSavedStateKnown, !isTogglingSave else { return }
+        guard case .signedIn(let isSaved) = savedState, !isTogglingSave else { return }
         isTogglingSave = true
         defer { isTogglingSave = false }
         do {

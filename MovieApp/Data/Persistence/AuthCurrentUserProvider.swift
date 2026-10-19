@@ -1,31 +1,31 @@
 nonisolated protocol CurrentUserProvider: Sendable {
-    var userIDs: AsyncStream<UserID> { get async }
+    var accountIDs: AsyncStream<Account.ID?> { get async }
 }
 
 nonisolated struct AuthCurrentUserProvider {
     let authRepository: any IAuthRepository
-    let guestID: UserID
 }
 
 // MARK: - CurrentUserProvider
 nonisolated extension AuthCurrentUserProvider: CurrentUserProvider {
-    var userIDs: AsyncStream<UserID> {
+    var accountIDs: AsyncStream<Account.ID?> {
         get async {
             let states = await authRepository.changes
-            let guestID = guestID
             return AsyncStream { continuation in
                 let mapping = Task {
-                    var lastUserID: UserID?
+                    var hasYielded = false
+                    var lastAccountID: Account.ID?
                     for await state in states {
-                        let userID = switch state {
+                        let accountID: Account.ID? = switch state {
                         case .signedOut:
-                            guestID
+                            nil
                         case .signedIn(let account):
-                            UserID(accountID: account.id)
+                            account.id
                         }
-                        guard userID != lastUserID else { continue }
-                        lastUserID = userID
-                        continuation.yield(userID)
+                        guard !hasYielded || accountID != lastAccountID else { continue }
+                        hasYielded = true
+                        lastAccountID = accountID
+                        continuation.yield(accountID)
                     }
                     continuation.finish()
                 }

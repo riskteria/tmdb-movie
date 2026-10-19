@@ -17,14 +17,17 @@ final class SavedPresenter {
 // MARK: - ISavedPresenter
 extension SavedPresenter: ISavedPresenter {
     func presentSavedMovies(response: SavedModel.ObserveSavedMovies.Response) {
-        guard !response.savedMovies.isEmpty else {
+        switch response.state {
+        case .signedOut:
+            viewController?.displaySavedMovies(viewData: makeSignedOutViewData())
+        case .signedIn(let savedMovies) where savedMovies.isEmpty:
             viewController?.displaySavedMovies(viewData: makeEmptyViewData(capacity: response.capacity))
-            return
+        case .signedIn(let savedMovies):
+            let count = savedMovies.count
+            let header = String(localized: "\(count) of \(response.capacity) · the oldest is removed when full")
+            let movies = savedMovies.map { makeDisplayedMovie(from: $0.movie) }
+            viewController?.displaySavedMovies(viewData: .content(header: header, movies: movies))
         }
-        let count = response.savedMovies.count
-        let header = String(localized: "\(count) of \(response.capacity) · the oldest is removed when full")
-        let movies = response.savedMovies.map { makeDisplayedMovie(from: $0.movie) }
-        viewController?.displaySavedMovies(viewData: .content(header: header, movies: movies))
     }
 
     func presentRemoveMovie(response: SavedModel.RemoveMovie.Response) {
@@ -40,6 +43,15 @@ extension SavedPresenter: ISavedPresenter {
 }
 
 private extension SavedPresenter {
+    func makeSignedOutViewData() -> SavedModel.ObserveSavedMovies.ViewData {
+        .signedOut(
+            title: String(localized: "Sign in to see your saved movies"),
+            message: String(
+                localized: "Saved movies and Continue Watching are kept with your TMDB account on this device."
+            )
+        )
+    }
+
     func makeEmptyViewData(capacity: Int) -> SavedModel.ObserveSavedMovies.ViewData {
         .empty(
             title: String(localized: "Save movies to watch later"),

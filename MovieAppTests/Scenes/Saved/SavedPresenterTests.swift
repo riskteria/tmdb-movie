@@ -48,6 +48,19 @@ struct SavedPresenterTests {
     }
 
     @Test
+    func signedOutShowsSignInMessage() {
+        // When
+        sut.presentSavedMovies(response: SavedModel.ObserveSavedMovies.Response(state: .signedOut, capacity: 50))
+
+        // Assert
+        let expected = SavedModel.ObserveSavedMovies.ViewData.signedOut(
+            title: "Sign in to see your saved movies",
+            message: "Saved movies and Continue Watching are kept with your TMDB account on this device."
+        )
+        #expect(viewController.displayedViewData == [expected])
+    }
+
+    @Test
     func removeFailureMessage() {
         // Given
         let response = SavedModel.RemoveMovie.Response(
@@ -63,7 +76,7 @@ struct SavedPresenterTests {
     }
 
     private func makeResponse(savedMovies: [SavedMovie]) -> SavedModel.ObserveSavedMovies.Response {
-        SavedModel.ObserveSavedMovies.Response(savedMovies: savedMovies, capacity: 50)
+        SavedModel.ObserveSavedMovies.Response(state: .signedIn(savedMovies), capacity: 50)
     }
 }
 

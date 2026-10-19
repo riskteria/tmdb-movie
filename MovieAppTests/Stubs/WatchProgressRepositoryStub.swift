@@ -9,6 +9,7 @@ final class WatchProgressRepositoryStub: IWatchProgressRepository {
     }
 
     private let result: Result<[WatchProgress], any Error>
+    private let state: AccountScoped<[WatchProgress]>?
     private let upsertResult: Result<Void, any Error>?
     private let removeAllResult: Result<Void, any Error>?
     private let recordedLimits = Mutex<[Int]>([])
@@ -22,11 +23,11 @@ final class WatchProgressRepositoryStub: IWatchProgressRepository {
         recordedCalls.withLock { $0 }
     }
 
-    var changes: AsyncStream<[WatchProgress]> {
+    var changes: AsyncStream<AccountScoped<[WatchProgress]>> {
         get async {
             AsyncStream { continuation in
-                if case .success(let records) = result {
-                    continuation.yield(records)
+                if let state {
+                    continuation.yield(state)
                 }
             }
         }
@@ -34,10 +35,12 @@ final class WatchProgressRepositoryStub: IWatchProgressRepository {
 
     init(
         result: Result<[WatchProgress], any Error>,
+        state: AccountScoped<[WatchProgress]>? = nil,
         upsert: Result<Void, any Error>? = nil,
         removeAll: Result<Void, any Error>? = nil
     ) {
         self.result = result
+        self.state = state ?? (try? result.get()).map { records in AccountScoped.signedIn(records) }
         upsertResult = upsert
         removeAllResult = removeAll
     }

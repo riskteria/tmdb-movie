@@ -53,7 +53,7 @@ struct HomeInteractorTests {
     @Test
     func loadHomeWaitsForContinueWatchingBeforePresenting() async {
         // Given
-        let sut = makeSUT(watchProgressEmissions: 0)
+        let sut = makeSUT(watchProgressStates: [])
 
         // When
         await sut.loadHome(request: HomeModel.LoadHome.Request())
@@ -63,9 +63,22 @@ struct HomeInteractorTests {
     }
 
     @Test
+    func signedOutPresentsHomeWithoutContinueWatching() async throws {
+        // Given
+        let sut = makeSUT(continueWatching: .failure(StubError.failed), watchProgressStates: [.signedOut])
+
+        // When
+        await sut.loadHome(request: HomeModel.LoadHome.Request())
+
+        // Assert
+        let response = try #require(presenter.responses.first)
+        #expect(try response.continueWatching.get().isEmpty)
+    }
+
+    @Test
     func watchProgressChangePresentsHomeAgain() async {
         // Given
-        let sut = makeSUT(watchProgressEmissions: 2)
+        let sut = makeSUT(watchProgressStates: [.signedIn([]), .signedIn([])])
 
         // When
         await sut.loadHome(request: HomeModel.LoadHome.Request())
@@ -77,7 +90,7 @@ struct HomeInteractorTests {
     @Test(.timeLimit(.minutes(1)))
     func loadHomeReturnsWhenCancelled() async {
         // Given
-        let sut = makeSUT(watchProgressEmissions: 0, finishesWatchProgress: false)
+        let sut = makeSUT(watchProgressStates: [], finishesWatchProgress: false)
         let loadHome = Task { await sut.loadHome(request: HomeModel.LoadHome.Request()) }
 
         // When
@@ -93,7 +106,7 @@ struct HomeInteractorTests {
         continueWatching: Result<[ContinueWatchingItem], any Error> = .success([]),
         movies: Result<Page<Movie>, any Error> = .success(.fixture([])),
         genres: Result<[Genre], any Error> = .success([]),
-        watchProgressEmissions: Int = 1,
+        watchProgressStates: [AccountScoped<[WatchProgress]>] = [.signedIn([])],
         finishesWatchProgress: Bool = true
     ) -> any IHomeInteractor {
         HomeInteractor(
@@ -103,7 +116,7 @@ struct HomeInteractorTests {
                 continueWatching: continueWatching,
                 movies: movies,
                 genres: genres,
-                watchProgressEmissions: watchProgressEmissions,
+                watchProgressStates: watchProgressStates,
                 finishesWatchProgress: finishesWatchProgress
             )
         )
@@ -124,7 +137,7 @@ private struct HomeWorkerStub: IHomeWorker {
     let continueWatching: Result<[ContinueWatchingItem], any Error>
     let movies: Result<Page<Movie>, any Error>
     let genres: Result<[Genre], any Error>
-    let watchProgressEmissions: Int
+    let watchProgressStates: [AccountScoped<[WatchProgress]>]
     let finishesWatchProgress: Bool
 
     func fetchTrendingMovies(window: TrendingWindow) async throws -> [Movie] {
@@ -143,9 +156,9 @@ private struct HomeWorkerStub: IHomeWorker {
         try genres.get()
     }
 
-    func observeWatchProgress() async -> AsyncStream<[WatchProgress]> {
+    func observeWatchProgress() async -> AsyncStream<AccountScoped<[WatchProgress]>> {
         AsyncStream { continuation in
-            (0..<watchProgressEmissions).forEach { _ in continuation.yield([]) }
+            watchProgressStates.forEach { state in continuation.yield(state) }
             if finishesWatchProgress {
                 continuation.finish()
             }

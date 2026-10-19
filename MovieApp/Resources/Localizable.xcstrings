@@ -182,6 +182,9 @@
     "Saved" : {
 
     },
+    "Saved movies and Continue Watching are kept with your TMDB account on this device." : {
+
+    },
     "Saved movies and watch history stay on this device." : {
 
     },
@@ -192,6 +195,12 @@
 
     },
     "Show Less" : {
+
+    },
+    "Sign in to save movies and keep your watch history." : {
+
+    },
+    "Sign in to see your saved movies" : {
 
     },
     "Sign in with TMDB" : {

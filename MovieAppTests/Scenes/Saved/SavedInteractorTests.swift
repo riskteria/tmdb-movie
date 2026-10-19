@@ -12,14 +12,26 @@ struct SavedInteractorTests {
         // Given
         let first = SavedMovie(movie: .fixture(id: 1), savedAt: .now)
         let second = SavedMovie(movie: .fixture(id: 2), savedAt: .now)
-        let sut = makeSUT(worker: SavedWorkerStub(emissions: [[first], [second, first]]))
+        let sut = makeSUT(worker: SavedWorkerStub(emissions: [.signedIn([first]), .signedIn([second, first])]))
 
         // When
         await sut.observeSavedMovies(request: SavedModel.ObserveSavedMovies.Request())
 
         // Assert
-        #expect(presenter.responses.map(\.savedMovies) == [[first], [second, first]])
+        #expect(presenter.responses.map(\.state) == [.signedIn([first]), .signedIn([second, first])])
         #expect(presenter.responses.map(\.capacity) == [50, 50])
+    }
+
+    @Test
+    func observePassesSignedOut() async {
+        // Given
+        let sut = makeSUT(worker: SavedWorkerStub(emissions: [.signedOut]))
+
+        // When
+        await sut.observeSavedMovies(request: SavedModel.ObserveSavedMovies.Request())
+
+        // Assert
+        #expect(presenter.responses.map(\.state) == [.signedOut])
     }
 
     @Test
@@ -73,12 +85,12 @@ private final class SavedPresenterSpy: ISavedPresenter {
 }
 
 private struct SavedWorkerStub: ISavedWorker {
-    var emissions: [[SavedMovie]] = []
+    var emissions: [AccountScoped<[SavedMovie]>] = []
     var remove: Result<Void, any Error> = .success(())
 
-    func observeSavedMovies() async -> AsyncStream<[SavedMovie]> {
+    func observeSavedMovies() async -> AsyncStream<AccountScoped<[SavedMovie]>> {
         AsyncStream { continuation in
-            emissions.forEach { savedMovies in continuation.yield(savedMovies) }
+            emissions.forEach { state in continuation.yield(state) }
             continuation.finish()
         }
     }

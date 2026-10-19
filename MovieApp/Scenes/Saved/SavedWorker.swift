@@ -1,6 +1,6 @@
 nonisolated protocol ISavedWorker: Sendable {
-    // The current list first, then every change.
-    func observeSavedMovies() async -> AsyncStream<[SavedMovie]>
+    // The current state first, then every change.
+    func observeSavedMovies() async -> AsyncStream<AccountScoped<[SavedMovie]>>
     func removeMovie(_ movieID: Movie.ID) async throws
 }
 
@@ -10,7 +10,7 @@ nonisolated struct SavedWorker {
 
 // MARK: - ISavedWorker
 nonisolated extension SavedWorker: ISavedWorker {
-    func observeSavedMovies() async -> AsyncStream<[SavedMovie]> {
+    func observeSavedMovies() async -> AsyncStream<AccountScoped<[SavedMovie]>> {
         await savedMoviesRepository.changes
     }
 

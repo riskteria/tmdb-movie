@@ -1,6 +1,7 @@
 nonisolated protocol ISavedMoviesRepository: Sendable {
-    // Each subscriber gets the current list first, then every change.
-    var changes: AsyncStream<[SavedMovie]> { get async }
+    // Each subscriber gets the current state first, then every change. While signed out, reads are empty and writes
+    // do nothing.
+    var changes: AsyncStream<AccountScoped<[SavedMovie]>> { get async }
 
     func all() async throws -> [SavedMovie]
     func contains(_ movieID: Movie.ID) async throws -> Bool

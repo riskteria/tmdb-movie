@@ -156,7 +156,21 @@ struct HomeWorkerTests {
         let stream = await sut.observeWatchProgress()
 
         // Assert
-        #expect(await stream.first { _ in true } == records)
+        #expect(await stream.first { _ in true } == .signedIn(records))
+    }
+
+    @Test
+    func observeWatchProgressForwardsSignedOut() async {
+        // Given
+        let sut = makeSUT(
+            watchProgressRepository: WatchProgressRepositoryStub(result: .success([]), state: .signedOut)
+        )
+
+        // When
+        let stream = await sut.observeWatchProgress()
+
+        // Assert
+        #expect(await stream.first { _ in true } == .signedOut)
     }
 
     private func makeSUT(

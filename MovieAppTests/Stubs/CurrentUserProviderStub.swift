@@ -1,21 +1,21 @@
 @testable import MovieApp
 
 final class CurrentUserProviderStub: CurrentUserProvider {
-    private let stream: AsyncStream<UserID>
-    private let continuation: AsyncStream<UserID>.Continuation
+    private let stream: AsyncStream<Account.ID?>
+    private let continuation: AsyncStream<Account.ID?>.Continuation
 
-    var userIDs: AsyncStream<UserID> {
+    var accountIDs: AsyncStream<Account.ID?> {
         get async {
             stream
         }
     }
 
-    init(userID: UserID) {
-        (stream, continuation) = AsyncStream.makeStream(of: UserID.self)
-        continuation.yield(userID)
+    init(accountID: Account.ID?) {
+        (stream, continuation) = AsyncStream.makeStream(of: Account.ID?.self)
+        continuation.yield(accountID)
     }
 
-    func send(_ userID: UserID) {
-        continuation.yield(userID)
+    func send(_ accountID: Account.ID?) {
+        continuation.yield(accountID)
     }
 }
