@@ -60,6 +60,7 @@ extension AppDependencies: HomeFactory {
                 movieRepository: movieRepository,
                 genreRepository: genreRepository,
                 watchProgressRepository: watchProgressRepository,
+                savedMoviesRepository: savedMoviesRepository,
                 imageURLProvider: imageURLProvider,
                 imageLoader: imageLoader
             ),

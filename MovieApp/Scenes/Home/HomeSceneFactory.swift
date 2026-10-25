@@ -5,6 +5,7 @@ enum HomeSceneFactory {
         let movieRepository: any IMovieRepository
         let genreRepository: any IGenreRepository
         let watchProgressRepository: any IWatchProgressRepository
+        let savedMoviesRepository: any ISavedMoviesRepository
         let imageURLProvider: any ImageURLProvider
         let imageLoader: any IImageLoader
     }
@@ -13,7 +14,8 @@ enum HomeSceneFactory {
         let worker = HomeWorker(
             movieRepository: dependencies.movieRepository,
             genreRepository: dependencies.genreRepository,
-            watchProgressRepository: dependencies.watchProgressRepository
+            watchProgressRepository: dependencies.watchProgressRepository,
+            savedMoviesRepository: dependencies.savedMoviesRepository
         )
         let presenter = HomePresenter(imageURLProvider: dependencies.imageURLProvider)
         let interactor = HomeInteractor(presenter: presenter, worker: worker)

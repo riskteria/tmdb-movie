@@ -22,7 +22,7 @@ final class RatingBadgeView: UIView {
 // MARK: - Layout
 private extension RatingBadgeView {
     func setUpLayout() {
-        backgroundColor = UIColor.black.withAlphaComponent(0.45)
+        backgroundColor = .MVColor(.badgeScrim)
         layer.cornerRadius = Radius.small
         layer.cornerCurve = .continuous
         isAccessibilityElement = false

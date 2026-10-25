@@ -130,6 +130,14 @@ private final class HomePresenterSpy: IHomePresenter {
     func presentHome(response: HomeModel.LoadHome.Response) {
         responses.append(response)
     }
+
+    func presentSavedState(response: HomeModel.ObserveSavedState.Response) {
+        Issue.record("Unexpected call to presentSavedState(response:)")
+    }
+
+    func presentToggleSave(response: HomeModel.ToggleSave.Response) {
+        Issue.record("Unexpected call to presentToggleSave(response:)")
+    }
 }
 
 private struct HomeWorkerStub: IHomeWorker {
@@ -163,5 +171,18 @@ private struct HomeWorkerStub: IHomeWorker {
                 continuation.finish()
             }
         }
+    }
+
+    func observeSavedMovies() async -> AsyncStream<AccountScoped<[SavedMovie]>> {
+        Issue.record("Unexpected call to observeSavedMovies()")
+        return AsyncStream { continuation in continuation.finish() }
+    }
+
+    func saveMovie(_ movie: Movie) async throws {
+        Issue.record("Unexpected call to saveMovie(_:)")
+    }
+
+    func removeMovie(_ movieID: Movie.ID) async throws {
+        Issue.record("Unexpected call to removeMovie(_:)")
     }
 }

@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "git@github.com:riskteria/tmdb-movie-ds.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "11a7afacbdb6fdfb6bd9ead0c1636d66f044b7e1"
+        "revision" : "e325aede950d6895ac0aca09d282de2f295cbd2f",
+        "version" : "0.0.1"
       }
     }
   ],

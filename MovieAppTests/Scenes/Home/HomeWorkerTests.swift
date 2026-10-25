@@ -1,3 +1,4 @@
+import Foundation
 @testable import MovieApp
 import Testing
 
@@ -173,17 +174,80 @@ struct HomeWorkerTests {
         #expect(await stream.first { _ in true } == .signedOut)
     }
 
+    @Test
+    func observeSavedMoviesForwardsRepositoryState() async {
+        // Given
+        let savedMovies = [SavedMovie(movie: .fixture(id: 7), savedAt: .now)]
+        let sut = makeSUT(savedMoviesRepository: SavedMoviesRepositoryStub(savedMovies: savedMovies))
+
+        // When
+        let stream = await sut.observeSavedMovies()
+
+        // Assert
+        #expect(await stream.first { _ in true } == .signedIn(savedMovies))
+    }
+
+    @Test
+    func saveMovieSavesThroughRepository() async throws {
+        // Given
+        let repository = SavedMoviesRepositoryStub(save: .success(()))
+        let sut = makeSUT(savedMoviesRepository: repository)
+
+        // When
+        try await sut.saveMovie(.fixture(id: 7))
+
+        // Assert
+        #expect(repository.calls == [.save(7)])
+    }
+
+    @Test
+    func removeMovieRemovesThroughRepository() async throws {
+        // Given
+        let repository = SavedMoviesRepositoryStub(remove: .success(()))
+        let sut = makeSUT(savedMoviesRepository: repository)
+
+        // When
+        try await sut.removeMovie(7)
+
+        // Assert
+        #expect(repository.calls == [.remove(7)])
+    }
+
+    @Test
+    func saveMovieRethrowsRepositoryError() async {
+        // Given
+        let sut = makeSUT(savedMoviesRepository: SavedMoviesRepositoryStub(save: .failure(StubError.failed)))
+
+        // When & Assert
+        await #expect(throws: StubError.failed) {
+            try await sut.saveMovie(.fixture(id: 7))
+        }
+    }
+
+    @Test
+    func removeMovieRethrowsRepositoryError() async {
+        // Given
+        let sut = makeSUT(savedMoviesRepository: SavedMoviesRepositoryStub(remove: .failure(StubError.failed)))
+
+        // When & Assert
+        await #expect(throws: StubError.failed) {
+            try await sut.removeMovie(7)
+        }
+    }
+
     private func makeSUT(
         movieRepository: any IMovieRepository = MovieRepositoryStub(),
         genreRepository: any IGenreRepository = GenreRepositoryStub(result: .success([])),
         watchProgressRepository: any IWatchProgressRepository = WatchProgressRepositoryStub(
             result: .success([])
-        )
+        ),
+        savedMoviesRepository: any ISavedMoviesRepository = SavedMoviesRepositoryStub()
     ) -> any IHomeWorker {
         HomeWorker(
             movieRepository: movieRepository,
             genreRepository: genreRepository,
-            watchProgressRepository: watchProgressRepository
+            watchProgressRepository: watchProgressRepository,
+            savedMoviesRepository: savedMoviesRepository
         )
     }
 

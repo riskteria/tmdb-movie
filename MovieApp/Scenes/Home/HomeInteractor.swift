@@ -1,5 +1,7 @@
 protocol IHomeInteractor {
     func loadHome(request: HomeModel.LoadHome.Request) async
+    func observeSavedState(request: HomeModel.ObserveSavedState.Request) async
+    func toggleSave(request: HomeModel.ToggleSave.Request) async
 }
 
 final class HomeInteractor {
@@ -17,6 +19,8 @@ final class HomeInteractor {
     private let worker: any IHomeWorker
     private var sections: Sections?
     private var continueWatching: Result<[ContinueWatchingItem], any Error>?
+    private var savedState: AccountScoped<Set<Movie.ID>>?
+    private var togglingMovieIDs: Set<Movie.ID> = []
 
     init(presenter: any IHomePresenter, worker: any IHomeWorker) {
         self.presenter = presenter
@@ -32,6 +36,41 @@ extension HomeInteractor: IHomeInteractor {
         async let sectionsLoad: Void = loadSections()
         async let continueWatchingObservation: Void = observeContinueWatching()
         _ = await (sectionsLoad, continueWatchingObservation)
+    }
+
+    func observeSavedState(request: HomeModel.ObserveSavedState.Request) async {
+        for await state in await worker.observeSavedMovies() {
+            let savedState: AccountScoped<Set<Movie.ID>> = switch state {
+            case .signedOut:
+                .signedOut
+            case .signedIn(let savedMovies):
+                .signedIn(Set(savedMovies.map(\.id)))
+            }
+            guard savedState != self.savedState else { continue }
+            self.savedState = savedState
+            presenter.presentSavedState(response: HomeModel.ObserveSavedState.Response(savedState: savedState))
+        }
+    }
+
+    func toggleSave(request: HomeModel.ToggleSave.Request) async {
+        let movie = request.movie
+        guard case .signedIn(let savedMovieIDs) = savedState, !togglingMovieIDs.contains(movie.id) else { return }
+        togglingMovieIDs.insert(movie.id)
+        defer { togglingMovieIDs.remove(movie.id) }
+        let isSaved = savedMovieIDs.contains(movie.id)
+        do {
+            if isSaved {
+                try await worker.removeMovie(movie.id)
+            } else {
+                try await worker.saveMovie(movie)
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            presenter.presentToggleSave(
+                response: HomeModel.ToggleSave.Response(action: isSaved ? .remove : .save, movie: movie)
+            )
+        }
     }
 }
 

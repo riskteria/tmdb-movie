@@ -140,6 +140,65 @@ struct HomePresenterTests {
         #expect(viewController.displayedViewData == [.empty(message: "No movies to show yet")])
     }
 
+    @Test
+    func presentSavedStateHidesBookmarksWhenSignedOut() {
+        // When
+        sut.presentSavedState(response: HomeModel.ObserveSavedState.Response(savedState: .signedOut))
+
+        // Assert
+        #expect(viewController.displayedSavedStates == [.hidden])
+    }
+
+    @Test
+    func presentSavedStateShowsSavedMovieIDs() throws {
+        // When
+        sut.presentSavedState(response: HomeModel.ObserveSavedState.Response(savedState: .signedIn([7, 9])))
+
+        // Assert
+        let displayed = try #require(viewController.displayedSavedStates.last?.displayed)
+        #expect(displayed.savedMovieIDs == [7, 9])
+    }
+
+    @Test
+    func presentSavedStateNamesBookmarkActions() throws {
+        // When
+        sut.presentSavedState(response: HomeModel.ObserveSavedState.Response(savedState: .signedIn([])))
+
+        // Assert
+        let displayed = try #require(viewController.displayedSavedStates.last?.displayed)
+        #expect(displayed.saveActionName == "Save")
+        #expect(displayed.removeActionName == "Remove from Saved")
+        #expect(displayed.savedValue == "Saved")
+    }
+
+    @Test
+    func presentToggleSaveShowsSaveFailure() {
+        // Given
+        let movie = Movie.fixture(id: 7, title: "Furiosa")
+
+        // When
+        sut.presentToggleSave(response: HomeModel.ToggleSave.Response(action: .save, movie: movie))
+
+        // Assert
+        #expect(viewController.displayedToggleSaves == [
+            HomeModel.ToggleSave.ViewData(movieID: 7, message: "Couldn't save “Furiosa”")
+        ])
+    }
+
+    @Test
+    func presentToggleSaveShowsRemoveFailure() {
+        // Given
+        let movie = Movie.fixture(id: 7, title: "Wicked")
+
+        // When
+        sut.presentToggleSave(response: HomeModel.ToggleSave.Response(action: .remove, movie: movie))
+
+        // Assert
+        #expect(viewController.displayedToggleSaves == [
+            HomeModel.ToggleSave.ViewData(movieID: 7, message: "Couldn't remove “Wicked”")
+        ])
+    }
+
     private func makeResponse(
         trending: Result<[Movie], any Error> = .success([]),
         continueWatching: Result<[ContinueWatchingItem], any Error> = .success([]),
@@ -162,6 +221,8 @@ struct HomePresenterTests {
 @MainActor
 private final class HomeViewControllerSpy: IHomeViewController {
     private(set) var displayedViewData: [HomeModel.LoadHome.ViewData] = []
+    private(set) var displayedSavedStates: [HomeModel.ObserveSavedState.ViewData] = []
+    private(set) var displayedToggleSaves: [HomeModel.ToggleSave.ViewData] = []
 
     var sections: [HomeModel.DisplayedSection] {
         guard case .content(let sections) = displayedViewData.last else { return [] }
@@ -170,6 +231,21 @@ private final class HomeViewControllerSpy: IHomeViewController {
 
     func displayHome(viewData: HomeModel.LoadHome.ViewData) {
         displayedViewData.append(viewData)
+    }
+
+    func displaySavedState(viewData: HomeModel.ObserveSavedState.ViewData) {
+        displayedSavedStates.append(viewData)
+    }
+
+    func displayToggleSave(viewData: HomeModel.ToggleSave.ViewData) {
+        displayedToggleSaves.append(viewData)
+    }
+}
+
+@MainActor
+private extension HomeModel.ObserveSavedState.ViewData {
+    var displayed: HomeModel.DisplayedSavedState? {
+        if case .visible(let displayed) = self { displayed } else { nil }
     }
 }
 

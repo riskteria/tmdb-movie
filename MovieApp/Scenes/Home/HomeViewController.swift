@@ -3,6 +3,8 @@ import UIKit
 
 protocol IHomeViewController: AnyObject {
     func displayHome(viewData: HomeModel.LoadHome.ViewData)
+    func displaySavedState(viewData: HomeModel.ObserveSavedState.ViewData)
+    func displayToggleSave(viewData: HomeModel.ToggleSave.ViewData)
 }
 
 final class HomeViewController: UIViewController {
@@ -13,13 +15,18 @@ final class HomeViewController: UIViewController {
     private let imageLoader: any IImageLoader
     private var loadTask: Task<Void, Never>?
     private var autoAdvanceTask: Task<Void, Never>?
+    private var observeTask: Task<Void, Never>?
+    private var saveTask: Task<Void, Never>?
     private var sectionTitles: [HomeModel.Section: String] = [:]
+    private var savedState: HomeModel.ObserveSavedState.ViewData?
+    private var animatedBookmarkIDs: Set<Movie.ID> = []
     private var zoomSourceMovieID: Movie.ID?
     private weak var zoomSourceView: UIView?
     private var isHeroBehindStatusBar = true
 
     private lazy var collectionView = makeCollectionView()
     private lazy var dataSource = makeDataSource()
+    private lazy var toastView = StatusToastView()
 
     init(interactor: any IHomeInteractor, router: any IHomeRouter, imageLoader: any IImageLoader) {
         self.interactor = interactor
@@ -35,6 +42,8 @@ final class HomeViewController: UIViewController {
     isolated deinit {
         loadTask?.cancel()
         autoAdvanceTask?.cancel()
+        observeTask?.cancel()
+        saveTask?.cancel()
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -46,6 +55,7 @@ final class HomeViewController: UIViewController {
         title = String(localized: "Home")
         setUpLayout()
         loadHome()
+        observeSavedState()
     }
 
     // Home draws its hero under the status bar, so it has no navigation bar of its own.
@@ -85,6 +95,46 @@ private extension HomeViewController {
 
         loadTask = Task { [interactor] in
             await interactor.loadHome(request: HomeModel.LoadHome.Request())
+        }
+    }
+
+    func observeSavedState() {
+        observeTask?.cancel()
+        observeTask = Task { [interactor] in
+            await interactor.observeSavedState(request: HomeModel.ObserveSavedState.Request())
+        }
+    }
+
+    func toggleSave(_ movie: Movie) {
+        animatedBookmarkIDs.insert(movie.id)
+        saveTask = Task { [interactor] in
+            await interactor.toggleSave(request: HomeModel.ToggleSave.Request(movie: movie))
+        }
+    }
+
+    func makeBookmark(for movieID: Movie.ID) -> DisplayedBookmark? {
+        guard case .visible(let displayed) = savedState else { return nil }
+        let isSaved = displayed.savedMovieIDs.contains(movieID)
+        return DisplayedBookmark(
+            isSaved: isSaved,
+            actionName: isSaved ? displayed.removeActionName : displayed.saveActionName,
+            savedValue: isSaved ? displayed.savedValue : nil
+        )
+    }
+
+    func changedMovieIDs(
+        from oldState: HomeModel.ObserveSavedState.ViewData?,
+        to newState: HomeModel.ObserveSavedState.ViewData
+    ) -> Set<Movie.ID>? {
+        guard case .visible(let old) = oldState, case .visible(let new) = newState else { return nil }
+        return old.savedMovieIDs.symmetricDifference(new.savedMovieIDs)
+    }
+
+    func finishBookmarkAnimations(for changedMovieIDs: Set<Movie.ID>?) {
+        if let changedMovieIDs {
+            animatedBookmarkIDs.subtract(changedMovieIDs)
+        } else {
+            animatedBookmarkIDs.removeAll()
         }
     }
 
@@ -154,12 +204,44 @@ extension HomeViewController: IHomeViewController {
             contentUnavailableConfiguration = configuration
         }
     }
+
+    func displaySavedState(viewData: HomeModel.ObserveSavedState.ViewData) {
+        let changedIDs = changedMovieIDs(from: savedState, to: viewData)
+        savedState = viewData
+        var snapshot = dataSource.snapshot()
+        let changedItems = snapshot.itemIdentifiers.filter { item in
+            guard case .poster(let poster, _) = item else { return false }
+            return changedIDs?.contains(poster.id) ?? true
+        }
+        if changedItems.isEmpty {
+            finishBookmarkAnimations(for: changedIDs)
+        } else {
+            snapshot.reconfigureItems(changedItems)
+            dataSource.apply(snapshot, animatingDifferences: false) { [weak self] in
+                self?.finishBookmarkAnimations(for: changedIDs)
+            }
+        }
+    }
+
+    func displayToggleSave(viewData: HomeModel.ToggleSave.ViewData) {
+        animatedBookmarkIDs.remove(viewData.movieID)
+        toastView.show(message: viewData.message, in: view)
+    }
 }
 
 // MARK: - ZoomTransitionSourceProvider
 extension HomeViewController: ZoomTransitionSourceProvider {
     func zoomTransitionSourceView(for movieID: Movie.ID) -> UIView? {
         movieID == zoomSourceMovieID ? zoomSourceView : nil
+    }
+}
+
+// MARK: - PosterCellDelegate
+extension HomeViewController: PosterCellDelegate {
+    func posterCellDidTapBookmark(_ cell: PosterCell) {
+        guard let indexPath = collectionView.indexPath(for: cell) else { return }
+        guard case .poster(let poster, _) = dataSource.itemIdentifier(for: indexPath) else { return }
+        toggleSave(poster.movie)
     }
 }
 
@@ -271,8 +353,11 @@ private extension HomeViewController {
     }
 
     func makePosterRegistration() -> UICollectionView.CellRegistration<PosterCell, HomeModel.DisplayedPoster> {
-        UICollectionView.CellRegistration { [imageLoader] cell, _, poster in
+        UICollectionView.CellRegistration { [weak self, imageLoader] cell, _, poster in
             cell.configure(title: poster.title, artwork: poster.artwork, showsPlayBadge: true, imageLoader: imageLoader)
+            guard let self else { return }
+            cell.delegate = self
+            cell.configureBookmark(makeBookmark(for: poster.id), animated: animatedBookmarkIDs.contains(poster.id))
         }
     }
 }

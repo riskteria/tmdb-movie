@@ -4,12 +4,16 @@ nonisolated protocol IHomeWorker: Sendable {
     func fetchContinueWatching(limit: Int) async throws -> [ContinueWatchingItem]
     func fetchGenres() async throws -> [Genre]
     func observeWatchProgress() async -> AsyncStream<AccountScoped<[WatchProgress]>>
+    func observeSavedMovies() async -> AsyncStream<AccountScoped<[SavedMovie]>>
+    func saveMovie(_ movie: Movie) async throws
+    func removeMovie(_ movieID: Movie.ID) async throws
 }
 
 nonisolated struct HomeWorker {
     let movieRepository: any IMovieRepository
     let genreRepository: any IGenreRepository
     let watchProgressRepository: any IWatchProgressRepository
+    let savedMoviesRepository: any ISavedMoviesRepository
 }
 
 // MARK: - IHomeWorker
@@ -51,5 +55,17 @@ nonisolated extension HomeWorker: IHomeWorker {
 
     func observeWatchProgress() async -> AsyncStream<AccountScoped<[WatchProgress]>> {
         await watchProgressRepository.changes
+    }
+
+    func observeSavedMovies() async -> AsyncStream<AccountScoped<[SavedMovie]>> {
+        await savedMoviesRepository.changes
+    }
+
+    func saveMovie(_ movie: Movie) async throws {
+        try await savedMoviesRepository.save(movie)
+    }
+
+    func removeMovie(_ movieID: Movie.ID) async throws {
+        try await savedMoviesRepository.remove(movieID)
     }
 }

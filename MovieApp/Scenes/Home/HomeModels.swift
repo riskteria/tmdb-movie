@@ -72,4 +72,45 @@ enum HomeModel {
             case failure(message: String)
         }
     }
+
+    struct DisplayedSavedState: Equatable {
+        let savedMovieIDs: Set<Movie.ID>
+        let saveActionName: String
+        let removeActionName: String
+        let savedValue: String
+    }
+
+    enum ObserveSavedState {
+        struct Request {}
+
+        struct Response {
+            let savedState: AccountScoped<Set<Movie.ID>>
+        }
+
+        enum ViewData: Equatable {
+            case hidden
+            case visible(DisplayedSavedState)
+        }
+    }
+
+    enum ToggleSave {
+        enum Action {
+            case save
+            case remove
+        }
+
+        struct Request {
+            let movie: Movie
+        }
+
+        struct Response {
+            let action: Action
+            let movie: Movie
+        }
+
+        struct ViewData: Equatable {
+            let movieID: Movie.ID
+            let message: String
+        }
+    }
 }

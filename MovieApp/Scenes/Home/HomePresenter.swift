@@ -2,6 +2,8 @@ import Foundation
 
 protocol IHomePresenter {
     func presentHome(response: HomeModel.LoadHome.Response)
+    func presentSavedState(response: HomeModel.ObserveSavedState.Response)
+    func presentToggleSave(response: HomeModel.ToggleSave.Response)
 }
 
 final class HomePresenter {
@@ -36,6 +38,36 @@ extension HomePresenter: IHomePresenter {
         } else {
             viewController?.displayHome(viewData: .content(sections))
         }
+    }
+
+    func presentSavedState(response: HomeModel.ObserveSavedState.Response) {
+        let viewData: HomeModel.ObserveSavedState.ViewData = switch response.savedState {
+        case .signedOut:
+            .hidden
+        case .signedIn(let savedMovieIDs):
+            .visible(
+                HomeModel.DisplayedSavedState(
+                    savedMovieIDs: savedMovieIDs,
+                    saveActionName: String(localized: "Save"),
+                    removeActionName: String(localized: "Remove from Saved"),
+                    savedValue: String(localized: "Saved")
+                )
+            )
+        }
+        viewController?.displaySavedState(viewData: viewData)
+    }
+
+    func presentToggleSave(response: HomeModel.ToggleSave.Response) {
+        let title = response.movie.title
+        let message = switch response.action {
+        case .save:
+            String(localized: "Couldn't save “\(title)”")
+        case .remove:
+            String(localized: "Couldn't remove “\(title)”")
+        }
+        viewController?.displayToggleSave(
+            viewData: HomeModel.ToggleSave.ViewData(movieID: response.movie.id, message: message)
+        )
     }
 }
 

@@ -25,7 +25,7 @@ packages:
     from: 13.2.0
   MovieAppDS:
     url: git@github.com:riskteria/tmdb-movie-ds.git
-    branch: main
+    version: 0.0.1
   ArkanaKeys:
     path: Arkana/ArkanaKeys/ArkanaKeys
   Networking:
